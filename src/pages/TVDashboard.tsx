@@ -62,12 +62,12 @@ const TVDashboard = () => {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6 relative">
+    <div className="min-h-screen bg-gray-100 text-gray-800 p-6 relative">
       {/* Botão para voltar ao dashboard normal */}
       <Button 
         variant="outline" 
         size="sm" 
-        className="absolute top-4 right-4 z-50"
+        className="absolute top-4 right-4 z-50 bg-white/80 hover:bg-white"
         onClick={() => {
           if (document.fullscreenElement && document.exitFullscreen) {
             document.exitFullscreen();
@@ -78,9 +78,19 @@ const TVDashboard = () => {
         <X size={18} className="mr-1" /> Sair da Projeção
       </Button>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Painel de Monitoramento</h1>
-        <p className="text-gray-400">Visão geral para projeção em tela</p>
+      {/* Logo da empresa e título */}
+      <div className="flex items-center mb-8">
+        <div className="flex-shrink-0 mr-4">
+          <img 
+            src="/lovable-uploads/cda21d11-e6d7-4886-bb6c-b43a15f1cc81.png" 
+            alt="Logo da empresa" 
+            className="h-16 w-auto"
+          />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold mb-2 text-gray-900">Painel de Monitoramento</h1>
+          <p className="text-gray-600">Visão geral para projeção em tela</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -88,56 +98,56 @@ const TVDashboard = () => {
           title="Despesas Totais"
           value={totalExpenses}
           icon={<DollarSign className="text-sistema-primary" size={24} />}
-          className="border-red-500/20"
+          className="border-red-500/20 bg-white shadow-lg"
         />
         <StatCard
           title="Receita Total"
           value={totalRevenue}
           icon={<BadgeDollarSign className="text-sistema-primary" size={24} />}
-          className="border-green-500/20"
+          className="border-green-500/20 bg-white shadow-lg"
         />
         <StatCard
           title="Despesas com Combustível"
           value={fuelExpenses}
           icon={<Fuel className="text-sistema-primary" size={24} />}
-          className="border-yellow-500/20"
+          className="border-yellow-500/20 bg-white shadow-lg"
         />
         <StatCard
           title="Despesas com Manutenção"
           value={maintenanceExpenses}
           icon={<WrenchIcon className="text-sistema-primary" size={24} />}
-          className="border-blue-500/20"
+          className="border-blue-500/20 bg-white shadow-lg"
         />
         <StatCard
           title="Notas Recebidas"
           value={receivedInvoices}
           icon={<Receipt className="text-sistema-primary" size={24} />}
-          className="border-purple-500/20"
+          className="border-purple-500/20 bg-white shadow-lg"
         />
         <StatCard
           title="Notas que Saíram"
           value={issuedInvoices}
           icon={<FileText className="text-sistema-primary" size={24} />}
-          className="border-cyan-500/20"
+          className="border-cyan-500/20 bg-white shadow-lg"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardCard title="Ranking de Veículos por Despesa">
+        <DashboardCard title="Ranking de Veículos por Despesa" className="bg-white shadow-lg">
           <div className="space-y-3">
             {vehicleRanking.map((vehicle, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-800">
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                 <div className="flex items-center">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
                     vehicle.type === 'Combustível' 
-                      ? 'bg-yellow-900/30 text-yellow-500' 
-                      : 'bg-blue-900/30 text-blue-500'
+                      ? 'bg-yellow-100 text-yellow-600' 
+                      : 'bg-blue-100 text-blue-600'
                   }`}>
                     {index + 1}
                   </div>
                   <div>
                     <p className="font-medium">{vehicle.plate}</p>
-                    <p className="text-xs text-gray-400">{vehicle.type}</p>
+                    <p className="text-xs text-gray-500">{vehicle.type}</p>
                   </div>
                 </div>
                 <span className="font-medium">
@@ -148,7 +158,7 @@ const TVDashboard = () => {
           </div>
         </DashboardCard>
 
-        <DashboardCard title="Distribuição de Despesas">
+        <DashboardCard title="Distribuição de Despesas" className="bg-white shadow-lg">
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>

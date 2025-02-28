@@ -23,13 +23,13 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
   return (
     <div 
       className={cn(
-        "bg-white dark:bg-sistema-dark rounded-xl shadow-card border border-gray-100 dark:border-gray-800 overflow-hidden card-transition",
+        "bg-white rounded-xl shadow-card border border-gray-100 overflow-hidden card-transition",
         className
       )}
       onClick={handleCardClick}
     >
-      <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
-        <h3 className="text-sm font-medium text-gray-900 dark:text-white">{title}</h3>
+      <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100">
+        <h3 className="text-sm font-medium text-gray-900">{title}</h3>
         {action && (
           <div className="ml-4">
             {action}
