@@ -80,8 +80,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center justify-center">
           <span className="text-2xl font-bold bg-gradient-to-r from-sistema-primary to-sistema-accent bg-clip-text text-transparent">
-            LogiFrota
+            ControlFrota
           </span>
+        </div>
+        <div className="text-center text-xs text-gray-400 mt-1">
+          Sistema de Controladoria de Frotas
         </div>
       </div>
 
