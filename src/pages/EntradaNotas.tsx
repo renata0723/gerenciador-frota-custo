@@ -82,7 +82,7 @@ const EntradaNotas = () => {
   const handleEditClick = (note) => {
     logOperation('EntradaNotas', `Iniciou edição da nota fiscal ${note.id}`, false);
     toast.info(`Iniciando edição da nota fiscal ${note.id}`);
-    navigate(`/entrada-notas/editar/${note.id}`);
+    navigate(`/entrada-notas/editar/${note.id}`, { state: { noteData: note } });
   };
 
   // Função para ver detalhes
@@ -158,7 +158,15 @@ const EntradaNotas = () => {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredNotes.map((note) => (
                 <tr key={note.id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{note.id}</td>
+                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                    <Link 
+                      to={`/entrada-notas/editar/${note.id}`} 
+                      state={{ noteData: note }}
+                      className="text-sistema-primary hover:underline"
+                    >
+                      {note.id}
+                    </Link>
+                  </td>
                   <td className="px-6 py-4">{note.date}</td>
                   <td className="px-6 py-4">{note.client}</td>
                   <td className="px-6 py-4">{note.destination}</td>

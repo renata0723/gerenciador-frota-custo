@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Eye, Edit, Trash, AlertCircle, Calendar } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, Edit, Trash, AlertCircle, Calendar, FileText, Truck } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -31,6 +31,7 @@ interface VeiculosTableProps {
 }
 
 const VeiculosTable: React.FC<VeiculosTableProps> = ({ veiculos, onInativar, onDelete }) => {
+  const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [inativarDialogOpen, setInativarDialogOpen] = useState(false);
   const [selectedVeiculo, setSelectedVeiculo] = useState<number | null>(null);
@@ -62,6 +63,10 @@ const VeiculosTable: React.FC<VeiculosTableProps> = ({ veiculos, onInativar, onD
     }
   };
 
+  const handleEditClick = (veiculo: any) => {
+    navigate(`/veiculos/editar/${veiculo.id}`, { state: { veiculoData: veiculo } });
+  };
+
   return (
     <>
       <div className="overflow-x-auto">
@@ -81,7 +86,15 @@ const VeiculosTable: React.FC<VeiculosTableProps> = ({ veiculos, onInativar, onD
             {veiculos.length > 0 ? (
               veiculos.map((veiculo) => (
                 <tr key={veiculo.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{veiculo.placa}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                    <Link
+                      to={`/veiculos/editar/${veiculo.id}`}
+                      state={{ veiculoData: veiculo }}
+                      className="text-sistema-primary hover:underline"
+                    >
+                      {veiculo.placa}
+                    </Link>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{veiculo.tipo}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{veiculo.modelo}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{veiculo.ano}</td>
@@ -105,9 +118,13 @@ const VeiculosTable: React.FC<VeiculosTableProps> = ({ veiculos, onInativar, onD
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                     <div className="flex items-center justify-end space-x-3">
-                      <Link to={`/veiculos/editar/${veiculo.id}`} className="text-gray-500 hover:text-sistema-primary transition-colors duration-200" title="Editar">
+                      <button 
+                        onClick={() => handleEditClick(veiculo)}
+                        className="text-gray-500 hover:text-sistema-primary transition-colors duration-200" 
+                        title="Editar"
+                      >
                         <Edit size={18} />
-                      </Link>
+                      </button>
 
                       {veiculo.status === 'Ativo' && (
                         <button 

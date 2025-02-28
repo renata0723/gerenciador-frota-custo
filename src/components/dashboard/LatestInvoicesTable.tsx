@@ -44,7 +44,8 @@ const LatestInvoicesTable: React.FC = () => {
               <tr key={note.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
                 <td className="table-cell font-medium">
                   <Link 
-                    to={`/entrada-notas/editar/${note.id}`} 
+                    to={`/entrada-notas/editar/${note.id}`}
+                    state={{ noteData: note }}
                     className="text-sistema-primary hover:underline"
                   >
                     {note.id}
