@@ -8,7 +8,6 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ConfiguracoesEmpresa from "./pages/ConfiguracoesEmpresa";
 import Motoristas from "./pages/Motoristas";
-import Notas from "./pages/Notas";
 import TVDashboard from "./pages/TVDashboard";
 import Contratos from "./pages/Contratos";
 import Canhotos from "./pages/Canhotos";
@@ -26,7 +25,6 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/motoristas" element={<Motoristas />} />
-          <Route path="/notas" element={<Notas />} />
           <Route path="/entrada-notas" element={<EntradaNotas />} />
           <Route path="/entrada-notas/nova" element={<NovaNotaForm />} />
           <Route path="/configuracoes" element={<ConfiguracoesEmpresa />} />

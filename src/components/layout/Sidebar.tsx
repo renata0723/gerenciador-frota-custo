@@ -57,7 +57,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   const navItems = [
     { to: "/", label: "Dashboard", icon: <Home size={18} /> },
     { to: "/entrada-notas", label: "Entrada de Notas", icon: <FileText size={18} /> },
-    { to: "/notas", label: "Notas", icon: <FileText size={18} /> },
     { to: "/veiculos", label: "Veículos", icon: <Truck size={18} /> },
     { to: "/motoristas", label: "Motoristas", icon: <Users size={18} /> },
     { to: "/contratos", label: "Contratos", icon: <Clipboard size={18} /> },

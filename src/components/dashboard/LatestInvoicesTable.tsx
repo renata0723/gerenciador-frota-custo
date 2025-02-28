@@ -24,7 +24,7 @@ const LatestInvoicesTable: React.FC = () => {
     <DashboardCard 
       title="Últimas Notas Fiscais" 
       action={
-        <Link to="/notas" className="text-sistema-primary text-xs font-medium flex items-center hover:text-sistema-primary-dark transition-colors duration-200">
+        <Link to="/entrada-notas" className="text-sistema-primary text-xs font-medium flex items-center hover:text-sistema-primary-dark transition-colors duration-200">
           Ver todas <ArrowRight size={14} className="ml-1" />
         </Link>
       }
