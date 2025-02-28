@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-interface CTe {
+export interface CTeDados {
   numeroCTe: string;
   valorCarga: number;
   valorFrete: number;
@@ -13,161 +13,106 @@ interface CTe {
 
 interface FormularioCTeDadosProps {
   contratoId?: string;
-  onSave?: (dados: CTe[]) => void;
+  onSave: (dados: CTeDados) => void;
+  initialData?: CTeDados;
 }
 
-const FormularioCTeDados: React.FC<FormularioCTeDadosProps> = ({ contratoId, onSave }) => {
-  const [ctes, setCtes] = useState<CTe[]>([{ numeroCTe: '', valorCarga: 0, valorFrete: 0 }]);
+const FormularioCTeDados: React.FC<FormularioCTeDadosProps> = ({ 
+  contratoId, 
+  onSave,
+  initialData 
+}) => {
+  const [cte, setCte] = useState<CTeDados>(
+    initialData || { numeroCTe: '', valorCarga: 0, valorFrete: 0 }
+  );
 
-  const handleAddCTe = () => {
-    setCtes([...ctes, { numeroCTe: '', valorCarga: 0, valorFrete: 0 }]);
-  };
-
-  const handleRemoveCTe = (index: number) => {
-    if (ctes.length > 1) {
-      const newCtes = [...ctes];
-      newCtes.splice(index, 1);
-      setCtes(newCtes);
-    } else {
-      toast.error('Pelo menos um CTe deve ser mantido');
-    }
-  };
-
-  const handleCTeChange = (index: number, field: keyof CTe, value: string) => {
-    const newCtes = [...ctes];
+  const handleChange = (field: keyof CTeDados, value: string) => {
+    const newCte = { ...cte };
     
     if (field === 'numeroCTe') {
-      newCtes[index][field] = value;
+      newCte[field] = value;
     } else {
       // Converter para número e garantir que seja um número válido
       const numValue = parseFloat(value);
-      newCtes[index][field] = isNaN(numValue) ? 0 : numValue;
+      newCte[field] = isNaN(numValue) ? 0 : numValue;
     }
     
-    setCtes(newCtes);
+    setCte(newCte);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validação básica
-    for (const cte of ctes) {
-      if (!cte.numeroCTe) {
-        toast.error('Preencha todos os números de CTe');
-        return;
-      }
+    if (!cte.numeroCTe) {
+      toast.error('Preencha o número do CTe');
+      return;
     }
     
-    console.log('CTes salvos:', ctes);
-    
-    if (onSave) {
-      onSave(ctes);
+    if (cte.valorCarga <= 0) {
+      toast.error('O valor da carga deve ser maior que zero');
+      return;
     }
     
-    toast.success('Dados dos CTes salvos com sucesso');
-  };
-
-  const calcularTotalCarga = () => {
-    return ctes.reduce((total, cte) => total + cte.valorCarga, 0);
-  };
-
-  const calcularTotalFrete = () => {
-    return ctes.reduce((total, cte) => total + cte.valorFrete, 0);
+    if (cte.valorFrete <= 0) {
+      toast.error('O valor do frete deve ser maior que zero');
+      return;
+    }
+    
+    console.log('CTe enviado:', cte);
+    onSave(cte);
+    
+    // Limpar o formulário após envio
+    setCte({ numeroCTe: '', valorCarga: 0, valorFrete: 0 });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        {ctes.map((cte, index) => (
-          <div key={index} className="p-4 border rounded-md bg-gray-50">
-            <div className="flex justify-between items-center mb-2">
-              <h4 className="font-medium">CTe #{index + 1}</h4>
-              {ctes.length > 1 && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  className="h-8 text-red-500 hover:text-red-700"
-                  onClick={() => handleRemoveCTe(index)}
-                >
-                  Remover
-                </Button>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor={`cte-numero-${index}`}>Número do CTe</Label>
-                <Input
-                  id={`cte-numero-${index}`}
-                  value={cte.numeroCTe}
-                  onChange={(e) => handleCTeChange(index, 'numeroCTe', e.target.value)}
-                  placeholder="Digite o número do CTe"
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor={`cte-valor-carga-${index}`}>Valor da Carga (R$)</Label>
-                <Input
-                  id={`cte-valor-carga-${index}`}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={cte.valorCarga || ''}
-                  onChange={(e) => handleCTeChange(index, 'valorCarga', e.target.value)}
-                  placeholder="0,00"
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor={`cte-valor-frete-${index}`}>Valor do Frete (R$)</Label>
-                <Input
-                  id={`cte-valor-frete-${index}`}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={cte.valorFrete || ''}
-                  onChange={(e) => handleCTeChange(index, 'valorFrete', e.target.value)}
-                  placeholder="0,00"
-                  required
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-        
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={handleAddCTe}
-          className="w-full"
-        >
-          Adicionar mais um CTe
-        </Button>
-      </div>
+    <form onSubmit={handleSubmit} className="p-4 border rounded-md bg-gray-50">
+      <h4 className="font-medium mb-4">Adicionar Novo CTe</h4>
       
-      <div className="bg-blue-50 p-4 rounded-md">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>Valor Total da Carga:</Label>
-            <div className="text-xl font-semibold">
-              R$ {calcularTotalCarga().toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </div>
-          
-          <div>
-            <Label>Valor Total do Frete:</Label>
-            <div className="text-xl font-semibold">
-              R$ {calcularTotalFrete().toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <Label htmlFor="cte-numero">Número do CTe</Label>
+          <Input
+            id="cte-numero"
+            value={cte.numeroCTe}
+            onChange={(e) => handleChange('numeroCTe', e.target.value)}
+            placeholder="Digite o número do CTe"
+            required
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="cte-valor-carga">Valor da Carga (R$)</Label>
+          <Input
+            id="cte-valor-carga"
+            type="number"
+            step="0.01"
+            min="0"
+            value={cte.valorCarga || ''}
+            onChange={(e) => handleChange('valorCarga', e.target.value)}
+            placeholder="0,00"
+            required
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="cte-valor-frete">Valor do Frete (R$)</Label>
+          <Input
+            id="cte-valor-frete"
+            type="number"
+            step="0.01"
+            min="0"
+            value={cte.valorFrete || ''}
+            onChange={(e) => handleChange('valorFrete', e.target.value)}
+            placeholder="0,00"
+            required
+          />
         </div>
       </div>
       
       <Button type="submit" className="w-full">
-        Salvar Dados dos CTes
+        Salvar CTe
       </Button>
     </form>
   );

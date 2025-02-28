@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
-interface DadosFreteContratado {
+export interface FreteContratadoData {
   valorFreteContratado: number;
   valorAdiantamento: number;
   valorPedagio: number;
@@ -17,21 +17,29 @@ interface DadosFreteContratado {
 interface FormularioFreteContratadoProps {
   contratoId?: string;
   valorTotalCTes?: number;
-  onSave?: (dados: DadosFreteContratado) => void;
+  tipoVeiculo?: string;
+  onTipoVeiculoChange?: (tipo: string) => void;
+  onSave: (dados: FreteContratadoData) => void;
+  initialData?: FreteContratadoData;
 }
 
 const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({ 
   contratoId, 
   valorTotalCTes = 0,
+  tipoVeiculo = "terceiro",
+  onTipoVeiculoChange,
+  initialData,
   onSave 
 }) => {
-  const [dadosFrete, setDadosFrete] = useState<DadosFreteContratado>({
-    valorFreteContratado: 0,
-    valorAdiantamento: 0,
-    valorPedagio: 0,
-    saldoAPagar: 0,
-    aguardandoCanhoto: true
-  });
+  const [dadosFrete, setDadosFrete] = useState<FreteContratadoData>(
+    initialData || {
+      valorFreteContratado: 0,
+      valorAdiantamento: 0,
+      valorPedagio: 0,
+      saldoAPagar: 0,
+      aguardandoCanhoto: true
+    }
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -63,6 +71,12 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
     }
   };
 
+  const handleTipoVeiculoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (onTipoVeiculoChange) {
+      onTipoVeiculoChange(e.target.value);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -78,11 +92,7 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
     }
     
     console.log('Dados do frete contratado salvos:', dadosFrete);
-    
-    if (onSave) {
-      onSave(dadosFrete);
-    }
-    
+    onSave(dadosFrete);
     toast.success('Dados do frete contratado salvos com sucesso');
   };
 
@@ -90,6 +100,19 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
+          <div>
+            <Label htmlFor="tipoVeiculo">Tipo de Veículo</Label>
+            <select
+              id="tipoVeiculo"
+              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              value={tipoVeiculo}
+              onChange={handleTipoVeiculoChange}
+            >
+              <option value="frota">Frota Própria</option>
+              <option value="terceiro">Terceirizado</option>
+            </select>
+          </div>
+          
           <div>
             <Label htmlFor="valorFreteContratado">Valor do Frete Contratado (R$)</Label>
             <Input

@@ -2,9 +2,24 @@
 import React, { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FormularioCTeDados, CTeDados } from "./FormularioCTeDados";
-import { FormularioFreteContratado, FreteContratadoData } from "./FormularioFreteContratado";
+import FormularioCTeDados from "./FormularioCTeDados";
+import FormularioFreteContratado from "./FormularioFreteContratado";
 import { toast } from "sonner";
+
+// Definição dos tipos para CTe e Frete Contratado
+interface CTeDados {
+  numeroCTe: string;
+  valorCarga: number;
+  valorFrete: number;
+}
+
+interface FreteContratadoData {
+  valorFreteContratado: number;
+  valorAdiantamento: number;
+  valorPedagio: number;
+  saldoAPagar: number;
+  aguardandoCanhoto: boolean;
+}
 
 interface ContratoFormTabsProps {
   onSave: (dadosCompletos: any) => void;
@@ -129,6 +144,7 @@ export function ContratoFormTabs({ onSave, initialData }: ContratoFormTabsProps)
           onSave={handleSaveFreteContratado} 
           tipoVeiculo={tipoVeiculo}
           onTipoVeiculoChange={setTipoVeiculo}
+          valorTotalCTes={cteDataList.reduce((sum, cte) => sum + cte.valorFrete, 0)}
         />
       </TabsContent>
 
