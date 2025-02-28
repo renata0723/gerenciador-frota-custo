@@ -16,6 +16,7 @@ import NovaNotaForm from "./pages/NovaNotaForm";
 import Veiculos from "./pages/Veiculos";
 import NovoVeiculoForm from "./pages/NovoVeiculoForm";
 import RelatoriosVeiculos from "./pages/RelatoriosVeiculos";
+import SaldoPagar from "./pages/SaldoPagar";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/veiculos/novo" element={<NovoVeiculoForm />} />
           <Route path="/veiculos/editar/:id" element={<NovoVeiculoForm />} />
           <Route path="/veiculos/relatorios" element={<RelatoriosVeiculos />} />
+          <Route path="/saldo-pagar" element={<SaldoPagar />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,16 +1,27 @@
 
 import React, { useState, useEffect } from 'react';
-import PageLayout from '../components/layout/PageLayout';
-import PageHeader from '../components/ui/PageHeader';
-import { Wallet, Search, Filter, Download, Calendar, ArrowDownCircle, CheckCircle } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import DashboardCard from '@/components/dashboard/DashboardCard';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, FileText, Download, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import PageLayout from '@/components/layout/PageLayout';
+import PageHeader from '@/components/ui/PageHeader';
 import { logOperation } from '@/utils/logOperations';
-import { toast } from 'sonner';
 
-// Interface para os dados de saldo a pagar
-interface SaldoPagarItem {
+// Define os tipos para o sistema
+type DadosBancarios = {
+  banco: string;
+  agencia: string;
+  conta: string;
+  tipoConta: 'corrente' | 'poupanca';
+  pix?: string;
+};
+
+type SaldoPagarItem = {
   id: string;
   parceiro: string;
   documento: string;
@@ -20,562 +31,775 @@ interface SaldoPagarItem {
   valorPago: number;
   saldoRestante: number;
   status: 'pendente' | 'parcial' | 'pago';
+  dataPagamento: string;
+  bancoPagamento: string;
   contratos: string[];
-  dadosBancarios?: {
-    banco: string;
-    agencia: string;
-    conta: string;
-    tipoConta: string;
-    titular: string;
-    cpfCnpj: string;
-  };
-}
-
-// Dados iniciais para demonstração
-const dadosIniciais: SaldoPagarItem[] = [
-  {
-    id: 'SP001',
-    parceiro: 'Transportes Silva Ltda',
-    documento: 'NF-87654',
-    dataEmissao: '05/04/2023',
-    dataVencimento: '05/05/2023',
-    valorTotal: 12500.00,
-    valorPago: 0,
-    saldoRestante: 12500.00,
-    status: 'pendente',
-    contratos: ['CT-20230401', 'CT-20230405'],
-    dadosBancarios: {
-      banco: 'Banco do Brasil',
-      agencia: '1234-5',
-      conta: '12345-6',
-      tipoConta: 'Corrente',
-      titular: 'Transportes Silva Ltda',
-      cpfCnpj: '12.345.678/0001-90'
-    }
-  },
-  {
-    id: 'SP002',
-    parceiro: 'Express Transportadora',
-    documento: 'NF-12345',
-    dataEmissao: '10/04/2023',
-    dataVencimento: '10/05/2023',
-    valorTotal: 8750.00,
-    valorPago: 4375.00,
-    saldoRestante: 4375.00,
-    status: 'parcial',
-    contratos: ['CT-20230410'],
-    dadosBancarios: {
-      banco: 'Itaú',
-      agencia: '4321-5',
-      conta: '54321-6',
-      tipoConta: 'Corrente',
-      titular: 'Express Transportadora Ltda',
-      cpfCnpj: '98.765.432/0001-10'
-    }
-  },
-  {
-    id: 'SP003',
-    parceiro: 'Rodoviário Expresso',
-    documento: 'NF-56789',
-    dataEmissao: '15/04/2023',
-    dataVencimento: '15/05/2023',
-    valorTotal: 5250.00,
-    valorPago: 5250.00,
-    saldoRestante: 0,
-    status: 'pago',
-    contratos: ['CT-20230415', 'CT-20230418'],
-    dadosBancarios: {
-      banco: 'Bradesco',
-      agencia: '7890-1',
-      conta: '78901-2',
-      tipoConta: 'Poupança',
-      titular: 'Rodoviário Expresso S.A.',
-      cpfCnpj: '45.678.901/0001-23'
-    }
-  },
-  {
-    id: 'SP004',
-    parceiro: 'Transportadora Rápida',
-    documento: 'NF-34567',
-    dataEmissao: '20/04/2023',
-    dataVencimento: '20/05/2023',
-    valorTotal: 15800.00,
-    valorPago: 0,
-    saldoRestante: 15800.00,
-    status: 'pendente',
-    contratos: ['CT-20230420'],
-    dadosBancarios: {
-      banco: 'Santander',
-      agencia: '2345-6',
-      conta: '23456-7',
-      tipoConta: 'Corrente',
-      titular: 'Transportadora Rápida Ltda',
-      cpfCnpj: '56.789.012/0001-34'
-    }
-  },
-];
+  dadosBancarios?: DadosBancarios;
+};
 
 // Chave para armazenamento no localStorage
 const STORAGE_KEY = 'controlfrota_saldo_pagar';
 
-const SaldoPagar = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+const SaldoPagar: React.FC = () => {
+  const [saldoItems, setSaldoItems] = useState<SaldoPagarItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<SaldoPagarItem[]>([]);
-  const [saldoData, setSaldoData] = useState<SaldoPagarItem[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState<'todos' | 'pendentes' | 'pagos'>('todos');
-  const [selectedItem, setSelectedItem] = useState<SaldoPagarItem | null>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  
-  // Carregar dados do localStorage na inicialização
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('todos');
+  const [isNewItemDialogOpen, setIsNewItemDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [currentItem, setCurrentItem] = useState<SaldoPagarItem | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Novo item form state
+  const [newItem, setNewItem] = useState({
+    parceiro: '',
+    documento: '',
+    dataEmissao: '',
+    dataVencimento: '',
+    valorTotal: 0,
+    contratos: [''],
+    banco: '',
+    agencia: '',
+    conta: '',
+    tipoConta: 'corrente' as const,
+    pix: ''
+  });
+
+  // Payment form state
+  const [payment, setPayment] = useState({
+    valorPago: 0,
+    dataPagamento: '',
+    bancoPagamento: ''
+  });
+
+  // Carregar dados do localStorage ao inicializar
   useEffect(() => {
-    const storedData = localStorage.getItem(STORAGE_KEY);
-    if (storedData) {
-      setSaldoData(JSON.parse(storedData));
+    const storedItems = localStorage.getItem(STORAGE_KEY);
+    if (storedItems) {
+      setSaldoItems(JSON.parse(storedItems));
     } else {
-      // Se não existir dados no localStorage, usa os dados iniciais
-      setSaldoData(dadosIniciais);
-      // Salva os dados iniciais no localStorage
+      // Dados simulados
+      const dadosIniciais: SaldoPagarItem[] = [
+        {
+          id: 'SP-001',
+          parceiro: 'Transportes Rápidos Ltda',
+          documento: 'CT-12345',
+          dataEmissao: '2023-10-15',
+          dataVencimento: '2023-11-15',
+          valorTotal: 5800.00,
+          valorPago: 2000.00,
+          saldoRestante: 3800.00,
+          status: 'parcial',
+          dataPagamento: '2023-10-20',
+          bancoPagamento: 'Banco do Brasil',
+          contratos: ['CONT-001', 'CONT-002'],
+          dadosBancarios: {
+            banco: 'Banco do Brasil',
+            agencia: '1234',
+            conta: '56789-0',
+            tipoConta: 'corrente',
+            pix: '11.222.333/0001-44'
+          }
+        },
+        {
+          id: 'SP-002',
+          parceiro: 'Auto Diesel Transportadora',
+          documento: 'CT-67890',
+          dataEmissao: '2023-10-10',
+          dataVencimento: '2023-11-10',
+          valorTotal: 3200.00,
+          valorPago: 3200.00,
+          saldoRestante: 0,
+          status: 'pago',
+          dataPagamento: '2023-10-25',
+          bancoPagamento: 'Itaú',
+          contratos: ['CONT-003'],
+          dadosBancarios: {
+            banco: 'Itaú',
+            agencia: '5678',
+            conta: '12345-6',
+            tipoConta: 'corrente'
+          }
+        },
+        {
+          id: 'SP-003',
+          parceiro: 'Logística Estrada Real',
+          documento: 'CT-54321',
+          dataEmissao: '2023-10-20',
+          dataVencimento: '2023-11-20',
+          valorTotal: 7500.00,
+          valorPago: 0,
+          saldoRestante: 7500.00,
+          status: 'pendente',
+          dataPagamento: '',
+          bancoPagamento: '',
+          contratos: ['CONT-004', 'CONT-005', 'CONT-006'],
+          dadosBancarios: {
+            banco: 'Bradesco',
+            agencia: '0123',
+            conta: '78901-2',
+            tipoConta: 'corrente',
+            pix: 'contato@logisticareal.com.br'
+          }
+        }
+      ];
+      
+      setSaldoItems(dadosIniciais);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dadosIniciais));
     }
-    
-    logOperation('SaldoPagar', 'Acessou página de Saldo a Pagar', false);
   }, []);
-  
-  // Filtrar dados com base no termo de busca e período selecionado
+
+  // Filtrar itens com base nos critérios de busca e status
   useEffect(() => {
-    let filtered = saldoData;
+    let filtered = [...saldoItems];
     
-    // Filtrar por termo de busca
+    // Aplicar filtro de busca
     if (searchTerm) {
       filtered = filtered.filter(item => 
         item.parceiro.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.documento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchTerm.toLowerCase())
+        item.contratos.some(contrato => contrato.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
     
-    // Filtrar por período
-    if (selectedPeriod === 'pendentes') {
-      filtered = filtered.filter(item => item.status !== 'pago');
-    } else if (selectedPeriod === 'pagos') {
-      filtered = filtered.filter(item => item.status === 'pago');
+    // Aplicar filtro de status
+    if (filterStatus !== 'todos') {
+      filtered = filtered.filter(item => item.status === filterStatus);
     }
     
     setFilteredItems(filtered);
-  }, [searchTerm, saldoData, selectedPeriod]);
-  
-  // Calcular totais
-  const calcularTotais = () => {
-    const totalPendente = saldoData
-      .filter(item => item.status !== 'pago')
-      .reduce((acc, item) => acc + item.saldoRestante, 0);
-      
-    const totalPago = saldoData
-      .reduce((acc, item) => acc + item.valorPago, 0);
+  }, [saldoItems, searchTerm, filterStatus]);
+
+  // Função para adicionar novo item
+  const handleAddItem = () => {
+    const id = `SP-${String(saldoItems.length + 1).padStart(3, '0')}`;
     
-    return { totalPendente, totalPago };
-  };
-  
-  const { totalPendente, totalPago } = calcularTotais();
-  
-  // Função para registrar pagamento
-  const registrarPagamento = (id: string, valorPagamento: number, dataPagamento: string, banco: string) => {
-    if (valorPagamento <= 0) {
-      toast.error('O valor do pagamento deve ser maior que zero');
-      return;
-    }
-    
-    const updatedItems = saldoData.map(item => {
-      if (item.id === id) {
-        // Verificar se o valor do pagamento é válido
-        if (valorPagamento > item.saldoRestante) {
-          toast.error('O valor do pagamento não pode ser maior que o saldo restante');
-          return item;
-        }
-        
-        const novoValorPago = item.valorPago + valorPagamento;
-        const novoSaldoRestante = item.valorTotal - novoValorPago;
-        const novoStatus = novoSaldoRestante === 0 ? 'pago' : 'parcial';
-        
-        return {
-          ...item,
-          valorPago: novoValorPago,
-          saldoRestante: novoSaldoRestante,
-          status: novoStatus,
-          dataPagamento,
-          bancoPagamento: banco
-        };
+    const newSaldoItem: SaldoPagarItem = {
+      id,
+      parceiro: newItem.parceiro,
+      documento: newItem.documento,
+      dataEmissao: newItem.dataEmissao,
+      dataVencimento: newItem.dataVencimento,
+      valorTotal: Number(newItem.valorTotal),
+      valorPago: 0,
+      saldoRestante: Number(newItem.valorTotal),
+      status: 'pendente',
+      dataPagamento: '',
+      bancoPagamento: '',
+      contratos: newItem.contratos.filter(c => c.trim() !== ''),
+      dadosBancarios: {
+        banco: newItem.banco,
+        agencia: newItem.agencia,
+        conta: newItem.conta,
+        tipoConta: newItem.tipoConta,
+        pix: newItem.pix
       }
-      return item;
-    });
-    
-    setSaldoData(updatedItems);
+    };
+
+    const updatedItems = [...saldoItems, newSaldoItem];
+    setSaldoItems(updatedItems);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedItems));
+    setIsNewItemDialogOpen(false);
     
-    toast.success('Pagamento registrado com sucesso');
-    setIsPaymentModalOpen(false);
-    logOperation('SaldoPagar', `Registrou pagamento para ${id}`, true);
+    // Log da operação
+    logOperation('Saldo a Pagar', `Adicionado novo item ${id} para ${newItem.parceiro}`);
+    
+    // Limpar formulário
+    setNewItem({
+      parceiro: '',
+      documento: '',
+      dataEmissao: '',
+      dataVencimento: '',
+      valorTotal: 0,
+      contratos: [''],
+      banco: '',
+      agencia: '',
+      conta: '',
+      tipoConta: 'corrente',
+      pix: ''
+    });
   };
-  
-  // Função para mostrar detalhes
-  const handleShowDetails = (item: SaldoPagarItem) => {
-    setSelectedItem(item);
-    setIsDetailsModalOpen(true);
-    logOperation('SaldoPagar', `Visualizou detalhes do parceiro ${item.parceiro}`, false);
+
+  // Registrar pagamento
+  const handlePayment = () => {
+    if (!currentItem) return;
+
+    const valorPago = Number(payment.valorPago) + currentItem.valorPago;
+    const saldoRestante = currentItem.valorTotal - valorPago;
+    
+    let status: 'pendente' | 'parcial' | 'pago';
+    if (saldoRestante <= 0) {
+      status = 'pago';
+    } else if (valorPago > 0) {
+      status = 'parcial';
+    } else {
+      status = 'pendente';
+    }
+
+    const updatedItem: SaldoPagarItem = {
+      ...currentItem,
+      valorPago,
+      saldoRestante: Math.max(0, saldoRestante),
+      status,
+      dataPagamento: payment.dataPagamento,
+      bancoPagamento: payment.bancoPagamento
+    };
+
+    const updatedItems = saldoItems.map(item => 
+      item.id === currentItem.id ? updatedItem : item
+    );
+
+    setSaldoItems(updatedItems);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedItems));
+    setIsPaymentDialogOpen(false);
+    
+    // Log da operação
+    logOperation('Saldo a Pagar', `Registrado pagamento de R$ ${payment.valorPago.toFixed(2)} para ${currentItem.parceiro}`);
+    
+    // Limpar formulário
+    setPayment({
+      valorPago: 0,
+      dataPagamento: '',
+      bancoPagamento: ''
+    });
   };
-  
-  // Função para mostrar modal de pagamento
-  const handleShowPaymentModal = (item: SaldoPagarItem) => {
-    setSelectedItem(item);
-    setIsPaymentModalOpen(true);
-    logOperation('SaldoPagar', `Iniciou registro de pagamento para ${item.parceiro}`, false);
+
+  // Obter os itens da página atual
+  const getCurrentPageItems = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredItems.slice(startIndex, endIndex);
   };
-  
+
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+
+  // Formatação de valores monetários
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  // Formatação de datas
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const [year, month, day] = dateString.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
   return (
     <PageLayout>
       <PageHeader 
-        title="Saldo a Pagar" 
-        description="Gestão de pagamentos a parceiros e fornecedores"
-        icon={<Wallet className="h-8 w-8 text-sistema-primary" />}
+        title="Saldo a Pagar"
+        description="Controle de valores a pagar aos parceiros"
+        icon={<FileText className="h-6 w-6 text-sistema-primary" />}
         breadcrumbs={[
           { label: 'Dashboard', href: '/' },
           { label: 'Saldo a Pagar' }
         ]}
         actions={
-          <div className="flex space-x-2">
-            <Button variant="outline" className="flex items-center">
-              <Filter size={16} className="mr-2" />
-              Filtrar
-            </Button>
-            <Button variant="outline" className="flex items-center">
-              <Download size={16} className="mr-2" />
-              Exportar
-            </Button>
-          </div>
+          <Button onClick={() => setIsNewItemDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Novo Saldo
+          </Button>
         }
       />
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <DashboardCard title="Total Pendente">
-          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-            R$ {totalPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </div>
-          <div className="text-sm text-gray-500 mt-1">
-            Valores em aberto para pagamento
-          </div>
-        </DashboardCard>
-        
-        <DashboardCard title="Total Pago">
-          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            R$ {totalPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </div>
-          <div className="text-sm text-gray-500 mt-1">
-            Valores já pagos aos parceiros
-          </div>
-        </DashboardCard>
-        
-        <DashboardCard title="Pagamentos do Mês">
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {saldoData.filter(item => item.status === 'pago').length}
-          </div>
-          <div className="text-sm text-gray-500 mt-1">
-            Pagamentos realizados no período
-          </div>
-        </DashboardCard>
-      </div>
-      
-      <div className="bg-white dark:bg-sistema-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden mb-8">
-        <div className="p-5 border-b border-gray-100 dark:border-gray-800">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="relative w-full md:w-96">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Search size={18} className="text-gray-400" />
+
+      <Card className="p-6">
+        <Tabs defaultValue="lista" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="lista">Lista de Saldos</TabsTrigger>
+            <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="lista" className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-4 mb-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="search"
+                  placeholder="Buscar por parceiro, documento ou contrato..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-              <Input
-                type="text"
-                className="pl-10 w-full"
-                placeholder="Buscar por parceiro ou documento..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <Select
+                value={filterStatus}
+                onValueChange={(value) => setFilterStatus(value)}
+              >
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="parcial">Parcial</SelectItem>
+                  <SelectItem value="pago">Pago</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button variant="outline" className="md:w-auto">
+                <Download className="mr-2 h-4 w-4" /> Exportar
+              </Button>
             </div>
             
-            <div className="flex space-x-2">
-              <Button 
-                variant={selectedPeriod === 'todos' ? 'default' : 'outline'} 
-                onClick={() => setSelectedPeriod('todos')}
-                className={selectedPeriod === 'todos' ? 'bg-sistema-primary hover:bg-sistema-primary/90' : ''}
-              >
-                Todos
-              </Button>
-              <Button 
-                variant={selectedPeriod === 'pendentes' ? 'default' : 'outline'} 
-                onClick={() => setSelectedPeriod('pendentes')}
-                className={selectedPeriod === 'pendentes' ? 'bg-sistema-primary hover:bg-sistema-primary/90' : ''}
-              >
-                Pendentes
-              </Button>
-              <Button 
-                variant={selectedPeriod === 'pagos' ? 'default' : 'outline'} 
-                onClick={() => setSelectedPeriod('pagos')}
-                className={selectedPeriod === 'pagos' ? 'bg-sistema-primary hover:bg-sistema-primary/90' : ''}
-              >
-                Pagos
-              </Button>
-            </div>
-          </div>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-800 dark:text-gray-300">
-              <tr>
-                <th scope="col" className="px-6 py-3">ID</th>
-                <th scope="col" className="px-6 py-3">Parceiro</th>
-                <th scope="col" className="px-6 py-3">Documento</th>
-                <th scope="col" className="px-6 py-3">Data Vencimento</th>
-                <th scope="col" className="px-6 py-3">Valor Total</th>
-                <th scope="col" className="px-6 py-3">Valor Pago</th>
-                <th scope="col" className="px-6 py-3">Saldo Restante</th>
-                <th scope="col" className="px-6 py-3">Status</th>
-                <th scope="col" className="px-6 py-3">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredItems.length > 0 ? (
-                filteredItems.map((item) => (
-                  <tr key={item.id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{item.id}</td>
-                    <td className="px-6 py-4">{item.parceiro}</td>
-                    <td className="px-6 py-4">{item.documento}</td>
-                    <td className="px-6 py-4">{item.dataVencimento}</td>
-                    <td className="px-6 py-4">R$ {item.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                    <td className="px-6 py-4">R$ {item.valorPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                    <td className="px-6 py-4">R$ {item.saldoRestante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        item.status === 'pago' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                          : item.status === 'parcial'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                      }`}>
-                        {item.status === 'pago' ? 'Pago' : item.status === 'parcial' ? 'Parcial' : 'Pendente'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <button 
-                          className="text-gray-500 hover:text-sistema-primary transition-colors duration-200" 
-                          title="Ver detalhes"
-                          onClick={() => handleShowDetails(item)}
-                        >
-                          <Search size={18} />
-                        </button>
-                        {item.status !== 'pago' && (
-                          <button 
-                            className="text-gray-500 hover:text-green-500 transition-colors duration-200" 
-                            title="Registrar pagamento"
-                            onClick={() => handleShowPaymentModal(item)}
-                          >
-                            <ArrowDownCircle size={18} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={9} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
-                    <div className="flex flex-col items-center justify-center">
-                      <Wallet size={32} className="mb-2 text-gray-400" />
-                      <p>Nenhum registro encontrado</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-      {/* Modal para visualização de detalhes (simplificado) */}
-      {isDetailsModalOpen && selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-lg w-full">
-            <div className="p-6">
-              <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-4">
-                Detalhes do Parceiro
-              </h3>
-              
-              <div className="grid gap-4">
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Parceiro:</span>
-                  <span className="col-span-2">{selectedItem.parceiro}</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Documento:</span>
-                  <span className="col-span-2">{selectedItem.documento}</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Data Emissão:</span>
-                  <span className="col-span-2">{selectedItem.dataEmissao}</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Vencimento:</span>
-                  <span className="col-span-2">{selectedItem.dataVencimento}</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Valor Total:</span>
-                  <span className="col-span-2">R$ {selectedItem.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Saldo Restante:</span>
-                  <span className="col-span-2">R$ {selectedItem.saldoRestante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Contratos:</span>
-                  <span className="col-span-2">{selectedItem.contratos.join(', ')}</span>
-                </div>
-                
-                {selectedItem.dadosBancarios && (
-                  <>
-                    <h4 className="text-md font-medium mt-4 col-span-3">Dados Bancários</h4>
-                    
-                    <div className="grid grid-cols-3 gap-4 items-center">
-                      <span className="text-sm font-medium">Banco:</span>
-                      <span className="col-span-2">{selectedItem.dadosBancarios.banco}</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-4 items-center">
-                      <span className="text-sm font-medium">Agência:</span>
-                      <span className="col-span-2">{selectedItem.dadosBancarios.agencia}</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-4 items-center">
-                      <span className="text-sm font-medium">Conta:</span>
-                      <span className="col-span-2">{selectedItem.dadosBancarios.conta} ({selectedItem.dadosBancarios.tipoConta})</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-4 items-center">
-                      <span className="text-sm font-medium">Titular:</span>
-                      <span className="col-span-2">{selectedItem.dadosBancarios.titular}</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-4 items-center">
-                      <span className="text-sm font-medium">CPF/CNPJ:</span>
-                      <span className="col-span-2">{selectedItem.dadosBancarios.cpfCnpj}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              <div className="mt-6 flex justify-end">
-                <Button onClick={() => setIsDetailsModalOpen(false)}>
-                  Fechar
-                </Button>
+            <div className="rounded-md border">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50 dark:bg-gray-800">
+                      <th className="px-4 py-3 text-left font-medium">ID</th>
+                      <th className="px-4 py-3 text-left font-medium">Parceiro</th>
+                      <th className="px-4 py-3 text-left font-medium">Documento</th>
+                      <th className="px-4 py-3 text-left font-medium">Vencimento</th>
+                      <th className="px-4 py-3 text-right font-medium">Valor Total</th>
+                      <th className="px-4 py-3 text-right font-medium">Valor Pago</th>
+                      <th className="px-4 py-3 text-right font-medium">Saldo</th>
+                      <th className="px-4 py-3 text-center font-medium">Status</th>
+                      <th className="px-4 py-3 text-center font-medium">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {getCurrentPageItems().length > 0 ? (
+                      getCurrentPageItems().map((item) => (
+                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <td className="px-4 py-3 text-left">{item.id}</td>
+                          <td className="px-4 py-3 text-left">{item.parceiro}</td>
+                          <td className="px-4 py-3 text-left">{item.documento}</td>
+                          <td className="px-4 py-3 text-left">{formatDate(item.dataVencimento)}</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(item.valorTotal)}</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(item.valorPago)}</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(item.saldoRestante)}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium
+                              ${item.status === 'pago' ? 'bg-green-100 text-green-800' : 
+                                item.status === 'parcial' ? 'bg-yellow-100 text-yellow-800' : 
+                                'bg-red-100 text-red-800'}`}>
+                              {item.status === 'pago' ? 'Pago' : 
+                               item.status === 'parcial' ? 'Parcial' : 'Pendente'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {item.status !== 'pago' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  setCurrentItem(item);
+                                  setIsPaymentDialogOpen(true);
+                                }}
+                              >
+                                Pagar
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={9} className="px-4 py-6 text-center text-muted-foreground">
+                          Nenhum saldo a pagar encontrado
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Modal para registro de pagamento (simplificado) */}
-      {isPaymentModalOpen && selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-lg w-full">
-            <div className="p-6">
-              <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-4">
-                Registrar Pagamento
-              </h3>
+            
+            {/* Paginação */}
+            {filteredItems.length > itemsPerPage && (
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-gray-500">
+                  Mostrando {Math.min(filteredItems.length, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(filteredItems.length, currentPage * itemsPerPage)} de {filteredItems.length} itens
+                </p>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                    // Lógica para mostrar 5 páginas por vez
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="relatorios" className="space-y-4">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="p-4">
+                <h3 className="font-semibold mb-2">Total Pendente</h3>
+                <p className="text-2xl font-bold text-red-600">
+                  {formatCurrency(
+                    saldoItems
+                      .filter(item => item.status !== 'pago')
+                      .reduce((acc, item) => acc + item.saldoRestante, 0)
+                  )}
+                </p>
+              </Card>
               
-              <div className="grid gap-4">
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Parceiro:</span>
-                  <span className="col-span-2">{selectedItem.parceiro}</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Documento:</span>
-                  <span className="col-span-2">{selectedItem.documento}</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Valor Pendente:</span>
-                  <span className="col-span-2 text-red-600 dark:text-red-400">
-                    R$ {selectedItem.saldoRestante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Valor a Pagar:</span>
-                  <div className="col-span-2">
-                    <Input 
-                      type="number" 
-                      id="valorPagamento"
-                      placeholder="0,00"
-                      defaultValue={selectedItem.saldoRestante.toString()}
-                      max={selectedItem.saldoRestante}
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Data Pagamento:</span>
-                  <div className="col-span-2">
-                    <Input 
-                      type="date" 
-                      id="dataPagamento"
-                      defaultValue={new Date().toISOString().slice(0, 10)}
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <span className="text-sm font-medium">Banco:</span>
-                  <div className="col-span-2">
-                    <select className="w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600">
-                      <option value="Banco do Brasil">Banco do Brasil</option>
-                      <option value="Itaú">Itaú</option>
-                      <option value="Bradesco">Bradesco</option>
-                      <option value="Santander">Santander</option>
-                      <option value="Caixa">Caixa Econômica</option>
-                    </select>
+              <Card className="p-4">
+                <h3 className="font-semibold mb-2">Total Pago (Mês Atual)</h3>
+                <p className="text-2xl font-bold text-green-600">
+                  {formatCurrency(
+                    saldoItems
+                      .filter(item => {
+                        if (!item.dataPagamento) return false;
+                        const [year, month] = item.dataPagamento.split('-');
+                        const now = new Date();
+                        return parseInt(year) === now.getFullYear() && parseInt(month) === now.getMonth() + 1;
+                      })
+                      .reduce((acc, item) => acc + item.valorPago, 0)
+                  )}
+                </p>
+              </Card>
+              
+              <Card className="p-4">
+                <h3 className="font-semibold mb-2">Saldos a Vencer (30 dias)</h3>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {formatCurrency(
+                    saldoItems
+                      .filter(item => {
+                        if (item.status === 'pago') return false;
+                        const vencimento = new Date(item.dataVencimento);
+                        const hoje = new Date();
+                        const trintaDias = new Date();
+                        trintaDias.setDate(hoje.getDate() + 30);
+                        return vencimento >= hoje && vencimento <= trintaDias;
+                      })
+                      .reduce((acc, item) => acc + item.saldoRestante, 0)
+                  )}
+                </p>
+              </Card>
+            </div>
+            
+            <Card className="p-4">
+              <h3 className="font-semibold mb-4">Distribuição de Status</h3>
+              <div className="flex items-center gap-4">
+                <div className="w-full bg-gray-200 rounded-full h-4">
+                  {/* Barras de progresso para cada status */}
+                  <div className="flex h-full rounded-full overflow-hidden">
+                    {(() => {
+                      const total = saldoItems.length;
+                      const pendentes = saldoItems.filter(i => i.status === 'pendente').length;
+                      const parciais = saldoItems.filter(i => i.status === 'parcial').length;
+                      const pagos = saldoItems.filter(i => i.status === 'pago').length;
+                      
+                      return (
+                        <>
+                          <div 
+                            className="bg-red-500 h-full" 
+                            style={{ width: `${(pendentes / total) * 100}%` }}
+                          />
+                          <div 
+                            className="bg-yellow-500 h-full" 
+                            style={{ width: `${(parciais / total) * 100}%` }}
+                          />
+                          <div 
+                            className="bg-green-500 h-full" 
+                            style={{ width: `${(pagos / total) * 100}%` }}
+                          />
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
+              <div className="flex justify-between mt-2 text-sm">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-red-500 rounded-full mr-2" />
+                  <span>Pendentes</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2" />
+                  <span>Parciais</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-green-500 rounded-full mr-2" />
+                  <span>Pagos</span>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </Card>
+      
+      {/* Diálogo para adicionar novo saldo a pagar */}
+      <Dialog open={isNewItemDialogOpen} onOpenChange={setIsNewItemDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Adicionar Novo Saldo a Pagar</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="space-y-4">
+              <h3 className="font-medium text-sm">Informações Principais</h3>
               
-              <div className="mt-6 flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsPaymentModalOpen(false)}
+              <div className="space-y-2">
+                <Label htmlFor="parceiro">Parceiro</Label>
+                <Input 
+                  id="parceiro" 
+                  value={newItem.parceiro}
+                  onChange={(e) => setNewItem({...newItem, parceiro: e.target.value})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="documento">Número do Documento</Label>
+                <Input 
+                  id="documento" 
+                  value={newItem.documento}
+                  onChange={(e) => setNewItem({...newItem, documento: e.target.value})}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dataEmissao">Data de Emissão</Label>
+                  <Input 
+                    id="dataEmissao" 
+                    type="date"
+                    value={newItem.dataEmissao}
+                    onChange={(e) => setNewItem({...newItem, dataEmissao: e.target.value})}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="dataVencimento">Data de Vencimento</Label>
+                  <Input 
+                    id="dataVencimento" 
+                    type="date"
+                    value={newItem.dataVencimento}
+                    onChange={(e) => setNewItem({...newItem, dataVencimento: e.target.value})}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="valorTotal">Valor Total</Label>
+                <Input 
+                  id="valorTotal" 
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newItem.valorTotal}
+                  onChange={(e) => setNewItem({...newItem, valorTotal: parseFloat(e.target.value)})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Contratos Associados</Label>
+                {newItem.contratos.map((contrato, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input 
+                      value={contrato}
+                      onChange={(e) => {
+                        const newContratos = [...newItem.contratos];
+                        newContratos[index] = e.target.value;
+                        setNewItem({...newItem, contratos: newContratos});
+                      }}
+                      placeholder="Número do contrato"
+                    />
+                    {index === newItem.contratos.length - 1 && (
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setNewItem({
+                          ...newItem, 
+                          contratos: [...newItem.contratos, '']
+                        })}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="font-medium text-sm">Dados Bancários</h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="banco">Banco</Label>
+                <Input 
+                  id="banco" 
+                  value={newItem.banco}
+                  onChange={(e) => setNewItem({...newItem, banco: e.target.value})}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="agencia">Agência</Label>
+                  <Input 
+                    id="agencia" 
+                    value={newItem.agencia}
+                    onChange={(e) => setNewItem({...newItem, agencia: e.target.value})}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="conta">Conta</Label>
+                  <Input 
+                    id="conta" 
+                    value={newItem.conta}
+                    onChange={(e) => setNewItem({...newItem, conta: e.target.value})}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="tipoConta">Tipo de Conta</Label>
+                <Select 
+                  value={newItem.tipoConta} 
+                  onValueChange={(value) => 
+                    setNewItem({
+                      ...newItem, 
+                      tipoConta: value as 'corrente' | 'poupanca'
+                    })
+                  }
                 >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="corrente">Corrente</SelectItem>
+                    <SelectItem value="poupanca">Poupança</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="pix">Chave PIX</Label>
+                <Input 
+                  id="pix" 
+                  value={newItem.pix}
+                  onChange={(e) => setNewItem({...newItem, pix: e.target.value})}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setIsNewItemDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddItem}>
+              Salvar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo para registrar pagamento */}
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar Pagamento</DialogTitle>
+          </DialogHeader>
+          
+          {currentItem && (
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="font-medium">Parceiro:</div>
+                <div>{currentItem.parceiro}</div>
+                
+                <div className="font-medium">Documento:</div>
+                <div>{currentItem.documento}</div>
+                
+                <div className="font-medium">Valor Total:</div>
+                <div>{formatCurrency(currentItem.valorTotal)}</div>
+                
+                <div className="font-medium">Valor Já Pago:</div>
+                <div>{formatCurrency(currentItem.valorPago)}</div>
+                
+                <div className="font-medium">Saldo Restante:</div>
+                <div className="font-bold text-red-600">{formatCurrency(currentItem.saldoRestante)}</div>
+              </div>
+              
+              <div className="space-y-2 border-t pt-4">
+                <Label htmlFor="valorPago">Valor a Pagar</Label>
+                <Input 
+                  id="valorPago" 
+                  type="number"
+                  min="0"
+                  max={currentItem.saldoRestante}
+                  step="0.01"
+                  value={payment.valorPago}
+                  onChange={(e) => setPayment({...payment, valorPago: parseFloat(e.target.value)})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="dataPagamento">Data do Pagamento</Label>
+                <Input 
+                  id="dataPagamento" 
+                  type="date"
+                  value={payment.dataPagamento}
+                  onChange={(e) => setPayment({...payment, dataPagamento: e.target.value})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="bancoPagamento">Banco do Pagamento</Label>
+                <Input 
+                  id="bancoPagamento" 
+                  value={payment.bancoPagamento}
+                  onChange={(e) => setPayment({...payment, bancoPagamento: e.target.value})}
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button 
-                  onClick={() => {
-                    const valorPagamento = parseFloat((document.getElementById('valorPagamento') as HTMLInputElement).value);
-                    const dataPagamento = (document.getElementById('dataPagamento') as HTMLInputElement).value;
-                    registrarPagamento(selectedItem.id, valorPagamento, dataPagamento, 'Banco do Brasil');
-                  }}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <CheckCircle size={16} className="mr-2" />
+                <Button onClick={handlePayment}>
                   Confirmar Pagamento
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };
