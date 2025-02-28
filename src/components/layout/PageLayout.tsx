@@ -6,9 +6,10 @@ import { useLocation } from 'react-router-dom';
 
 interface PageLayoutProps {
   children: React.ReactNode;
+  showProjectionButton?: boolean;
 }
 
-const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
+const PageLayout: React.FC<PageLayoutProps> = ({ children, showProjectionButton = false }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const location = useLocation();
   
@@ -22,7 +23,11 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
       <Sidebar isOpen={isSidebarOpen} />
       
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Navbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+        <Navbar 
+          toggleSidebar={toggleSidebar} 
+          isSidebarOpen={isSidebarOpen}
+          showProjectionButton={showProjectionButton}
+        />
         
         <main className={`flex-1 overflow-y-auto transition-all duration-300 ease-in-out ${isSidebarOpen ? 'md:ml-64' : 'ml-0'}`}>
           <div className="container p-6 mx-auto">
