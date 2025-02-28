@@ -1,67 +1,69 @@
 
-import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { logOperation } from "@/utils/logOperations";
+import React, { useState } from 'react';
+import { toast } from 'sonner';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 interface FormularioRejeicaoContratoProps {
-  contratoId: string;
-  onRejeicaoConfirmada: (data: RejeicaoContratoData) => void;
+  idContrato?: string;
+  onRejeicaoRegistrada?: () => void;
 }
 
-export interface RejeicaoContratoData {
-  contratoId: string;
-  dataRejeicao: string;
-  motivo: string;
-}
-
-export function FormularioRejeicaoContrato({ contratoId, onRejeicaoConfirmada }: FormularioRejeicaoContratoProps) {
-  const [open, setOpen] = useState(false);
-  const [dataRejeicao, setDataRejeicao] = useState(new Date().toISOString().split('T')[0]);
-  const [motivo, setMotivo] = useState("");
+const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({ 
+  idContrato, 
+  onRejeicaoRegistrada 
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [dataRejeicao, setDataRejeicao] = useState(
+    new Date().toISOString().slice(0, 10)
+  );
+  const [motivoRejeicao, setMotivoRejeicao] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!dataRejeicao || !motivo) {
-      toast.error("Por favor, preencha todos os campos obrigatórios.");
+    // Validações básicas
+    if (!dataRejeicao || !motivoRejeicao) {
+      toast.error('Por favor, preencha todos os campos obrigatórios');
       return;
     }
 
-    const dadosRejeicao: RejeicaoContratoData = {
-      contratoId,
+    // Salvar a rejeição (simulado)
+    console.log('Rejeição registrada:', {
+      idContrato,
       dataRejeicao,
-      motivo
-    };
+      motivoRejeicao,
+    });
 
-    onRejeicaoConfirmada(dadosRejeicao);
-    logOperation(`Rejeição de Contrato: Contrato ID: ${contratoId} - Motivo: ${motivo}`);
+    // Notificar o usuário
+    toast.success('Rejeição de contrato registrada com sucesso');
     
-    toast.success("Rejeição de contrato registrada com sucesso!");
-    setOpen(false);
+    // Resetar o formulário e fechar o diálogo
+    setMotivoRejeicao('');
+    setIsOpen(false);
     
-    // Resetar formulário
-    setMotivo("");
+    // Chamar o callback (se fornecido)
+    if (onRejeicaoRegistrada) {
+      onRejeicaoRegistrada();
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="destructive" size="sm">
-          Rejeitar Contrato
-        </Button>
+        <Button variant="destructive">Rejeitar Contrato</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Rejeição de Contrato</DialogTitle>
         </DialogHeader>
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4">
-            <div className="grid gap-2">
+            <div className="space-y-2">
               <Label htmlFor="dataRejeicao">Data da Rejeição</Label>
               <Input
                 id="dataRejeicao"
@@ -71,28 +73,30 @@ export function FormularioRejeicaoContrato({ contratoId, onRejeicaoConfirmada }:
                 required
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="motivo">Motivo da Rejeição</Label>
+            
+            <div className="space-y-2">
+              <Label htmlFor="motivoRejeicao">Motivo da Rejeição</Label>
               <Textarea
-                id="motivo"
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                rows={4}
-                placeholder="Descreva o motivo da rejeição do contrato..."
+                id="motivoRejeicao"
+                value={motivoRejeicao}
+                onChange={(e) => setMotivoRejeicao(e.target.value)}
+                placeholder="Descreva o motivo da rejeição do contrato"
+                className="min-h-[120px]"
                 required
               />
             </div>
           </div>
+          
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="destructive">
-              Confirmar Rejeição
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline" type="button">Cancelar</Button>
+            </DialogClose>
+            <Button type="submit" variant="destructive">Confirmar Rejeição</Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default FormularioRejeicaoContrato;
