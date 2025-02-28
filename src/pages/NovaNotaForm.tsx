@@ -79,16 +79,16 @@ const NovaNotaForm = () => {
         cidadeDestino: note.destination.split(',')[0] || '',
         estadoDestino: note.destination.split(',')[1]?.trim() || 'SP',
         numeroNotaFiscal: note.id || '',
-        senhaAgendamento: '',
+        senhaAgendamento: note.password || '',
         valorNotaFiscal: note.value.replace('R$ ', '').replace('.', '').replace(',', '.') || '',
-        volume: '',
-        pesoTotal: '',
-        quantidadePaletes: '',
-        valorCotacao: '',
-        numeroTotalPaletes: '',
-        tipoCarga: 'paletizada',
-        quantidadeCarga: '',
-        tipoVeiculo: ''
+        volume: note.volume || '',
+        pesoTotal: note.weight || '',
+        quantidadePaletes: note.palletsPerNote || '',
+        valorCotacao: note.quotationValue || '',
+        numeroTotalPaletes: note.totalPallets || '',
+        tipoCarga: note.cargoType || 'paletizada',
+        quantidadeCarga: note.cargoQuantity || '',
+        tipoVeiculo: note.vehicleType || ''
       });
     }
   }, [location]);
@@ -169,10 +169,37 @@ const NovaNotaForm = () => {
       destination: `${formData.cidadeDestino}, ${formData.estadoDestino}`,
       deliveryDate: formData.dataEntrega.split('-').reverse().join('/'),
       value: `R$ ${parseFloat(formData.valorNotaFiscal).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-      status: isEditing ? location.state?.noteData?.status || 'Em trânsito' : 'Em trânsito'
+      status: isEditing ? location.state?.noteData?.status || 'Em trânsito' : 'Em trânsito',
+      
+      // Dados adicionais completos
+      password: formData.senhaAgendamento,
+      volume: formData.volume,
+      weight: formData.pesoTotal,
+      palletsPerNote: formData.quantidadePaletes,
+      totalPallets: formData.numeroTotalPaletes,
+      cargoType: formData.tipoCarga,
+      cargoQuantity: formData.quantidadeCarga,
+      quotationValue: formData.valorCotacao,
+      vehicleType: formData.tipoVeiculo
     };
+
+    // Buscar as notas existentes
+    const storedNotes = localStorage.getItem(STORAGE_KEY);
+    let allNotes = [];
+    
+    if (storedNotes) {
+      allNotes = JSON.parse(storedNotes);
+    }
     
     if (isEditing) {
+      // Se estiver editando, substitui a nota existente
+      const updatedNotes = allNotes.map((note: any) => 
+        note.id === originalId ? formattedNote : note
+      );
+      
+      // Salvar no localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
+      
       // Registrar operação
       logOperation('EntradaNotas', `Atualizou nota fiscal: ${formData.numeroNotaFiscal}`, true);
       
@@ -181,6 +208,12 @@ const NovaNotaForm = () => {
         state: { updatedNote: formattedNote }
       });
     } else {
+      // Se for uma nova nota, adiciona ao início do array
+      const updatedNotes = [formattedNote, ...allNotes];
+      
+      // Salvar no localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
+      
       // Registrar operação para nova nota
       logOperation('EntradaNotas', `Cadastrou nova nota fiscal: ${formData.numeroNotaFiscal}`, true);
       

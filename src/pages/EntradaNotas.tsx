@@ -36,6 +36,15 @@ interface NotaFiscal {
   deliveryDate: string;
   value: string;
   status: string;
+  password?: string;
+  volume?: string;
+  weight?: string;
+  palletsPerNote?: string;
+  totalPallets?: string;
+  cargoType?: string;
+  cargoQuantity?: string;
+  quotationValue?: string;
+  vehicleType?: string;
 }
 
 // Chave para armazenamento no localStorage
@@ -81,7 +90,7 @@ const EntradaNotas = () => {
     if (location.state && location.state.updatedNote) {
       const updatedNote = location.state.updatedNote;
       
-      // Atualizar o array de notas (substituindo a nota existente)
+      // Atualizar o localStorage e o estado
       setNotesData(current => {
         const updated = current.map(note => 
           note.id === updatedNote.id ? updatedNote : note
@@ -115,10 +124,14 @@ const EntradaNotas = () => {
           return current;
         }
         
-        const updated = [...current, newNote];
+        // Adicionar a nova nota ao início do array
+        const updated = [newNote, ...current];
         
         // Salvar no localStorage
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        
+        // Disparar evento para atualizar o componente LatestInvoicesTable
+        window.dispatchEvent(new Event('storage'));
         
         return updated;
       });
@@ -165,6 +178,9 @@ const EntradaNotas = () => {
       // Salvar no localStorage após a exclusão
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
       
+      // Disparar evento para atualizar o componente LatestInvoicesTable
+      window.dispatchEvent(new Event('storage'));
+      
       toast.success(`Nota fiscal ${selectedNote.id} excluída com sucesso`);
       logOperation('EntradaNotas', `Excluiu nota fiscal ${selectedNote.id}`, true);
       setIsDeleteDialogOpen(false);
@@ -196,6 +212,9 @@ const EntradaNotas = () => {
       // Salvar no localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       
+      // Disparar evento para atualizar o componente LatestInvoicesTable
+      window.dispatchEvent(new Event('storage'));
+      
       return updated;
     });
     
@@ -207,6 +226,10 @@ const EntradaNotas = () => {
   const resetToInitialData = () => {
     setNotesData(dadosIniciaisNotas);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dadosIniciaisNotas));
+    
+    // Disparar evento para atualizar o componente LatestInvoicesTable
+    window.dispatchEvent(new Event('storage'));
+    
     toast.success('Dados das notas fiscais foram restaurados para o padrão inicial');
     logOperation('EntradaNotas', 'Restaurou dados iniciais das notas fiscais', true);
   };
@@ -423,6 +446,36 @@ const EntradaNotas = () => {
                 <span className="text-sm font-medium">Valor:</span>
                 <span className="col-span-3">{selectedNote.value}</span>
               </div>
+              {selectedNote.password && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <span className="text-sm font-medium">Senha/Agendamento:</span>
+                  <span className="col-span-3">{selectedNote.password}</span>
+                </div>
+              )}
+              {selectedNote.volume && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <span className="text-sm font-medium">Volume (m³):</span>
+                  <span className="col-span-3">{selectedNote.volume}</span>
+                </div>
+              )}
+              {selectedNote.weight && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <span className="text-sm font-medium">Peso (kg):</span>
+                  <span className="col-span-3">{selectedNote.weight}</span>
+                </div>
+              )}
+              {selectedNote.cargoType && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <span className="text-sm font-medium">Tipo de Carga:</span>
+                  <span className="col-span-3">{selectedNote.cargoType === 'paletizada' ? 'Paletizada' : 'Batida'}</span>
+                </div>
+              )}
+              {selectedNote.vehicleType && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <span className="text-sm font-medium">Veículo:</span>
+                  <span className="col-span-3">{selectedNote.vehicleType}</span>
+                </div>
+              )}
               <div className="grid grid-cols-4 items-center gap-4">
                 <span className="text-sm font-medium">Status:</span>
                 <span className="col-span-3">
