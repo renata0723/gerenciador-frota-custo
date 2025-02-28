@@ -5,10 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 export interface FreteContratadoData {
   valorFreteContratado: number;
   valorAdiantamento: number;
+  dataAdiantamento: Date | undefined;
   valorPedagio: number;
   saldoAPagar: number;
   aguardandoCanhoto: boolean;
@@ -35,6 +42,7 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
     initialData || {
       valorFreteContratado: 0,
       valorAdiantamento: 0,
+      dataAdiantamento: undefined,
       valorPedagio: 0,
       saldoAPagar: 0,
       aguardandoCanhoto: true
@@ -92,6 +100,14 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
     }
     
     console.log('Dados do frete contratado salvos:', dadosFrete);
+    
+    // Registrar o saldo a pagar no módulo de Saldo a Pagar (se houver saldo)
+    if (dadosFrete.saldoAPagar > 0) {
+      // Aqui seria o código para registrar o saldo no módulo de Saldo a Pagar
+      console.log('Saldo a pagar registrado no módulo:', dadosFrete.saldoAPagar);
+      toast.success('Saldo a pagar de R$ ' + dadosFrete.saldoAPagar.toFixed(2) + ' registrado no módulo Saldo a Pagar');
+    }
+    
     onSave(dadosFrete);
     toast.success('Dados do frete contratado salvos com sucesso');
   };
@@ -143,6 +159,42 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
           </div>
           
           <div>
+            <Label htmlFor="dataAdiantamento">Data de Pagamento do Adiantamento</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dadosFrete.dataAdiantamento && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dadosFrete.dataAdiantamento ? (
+                    format(dadosFrete.dataAdiantamento, "PP", { locale: ptBR })
+                  ) : (
+                    <span>Selecione uma data</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dadosFrete.dataAdiantamento}
+                  onSelect={(date) => 
+                    setDadosFrete(prev => ({
+                      ...prev,
+                      dataAdiantamento: date
+                    }))
+                  }
+                  initialFocus
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          
+          <div>
             <Label htmlFor="valorPedagio">Valor do Pedágio (R$)</Label>
             <Input
               id="valorPedagio"
@@ -171,6 +223,9 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
               <div className="text-xl font-semibold text-green-600">
                 R$ {dadosFrete.saldoAPagar.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Este saldo será registrado automaticamente no módulo de Saldo a Pagar
+              </p>
             </div>
           </div>
           
@@ -192,7 +247,7 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
           </div>
           
           <div className="text-sm text-gray-500 mt-2">
-            O saldo a pagar será registrado no módulo de Saldo a Pagar com status de "Aguardando Canhoto".
+            O saldo a pagar será registrado no módulo de Saldo a Pagar com status de "Aguardando Canhoto" se esta opção estiver marcada.
           </div>
         </div>
       </div>

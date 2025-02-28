@@ -16,6 +16,7 @@ interface CTeDados {
 interface FreteContratadoData {
   valorFreteContratado: number;
   valorAdiantamento: number;
+  dataAdiantamento: Date | undefined;
   valorPedagio: number;
   saldoAPagar: number;
   aguardandoCanhoto: boolean;
@@ -29,7 +30,14 @@ interface ContratoFormTabsProps {
 export function ContratoFormTabs({ onSave, initialData }: ContratoFormTabsProps) {
   const [activeTab, setActiveTab] = useState("documentos");
   const [dadosDocumentos, setDadosDocumentos] = useState<any>(initialData?.documentos || {});
-  const [dadosFreteContrato, setDadosFreteContrato] = useState<any>(initialData?.freteContrato || {});
+  const [dadosFreteContrato, setDadosFreteContrato] = useState<FreteContratadoData>(initialData?.freteContrato || {
+    valorFreteContratado: 0,
+    valorAdiantamento: 0,
+    dataAdiantamento: undefined,
+    valorPedagio: 0,
+    saldoAPagar: 0,
+    aguardandoCanhoto: true
+  });
   const [observacoes, setObservacoes] = useState(initialData?.observacoes || "");
   const [tipoVeiculo, setTipoVeiculo] = useState(initialData?.tipoVeiculo || "terceiro");
 
@@ -75,8 +83,13 @@ export function ContratoFormTabs({ onSave, initialData }: ContratoFormTabsProps)
     
     // Se houver saldo a pagar, programar para o módulo de saldo a pagar
     if (dados.saldoAPagar > 0) {
-      // Aqui seria a lógica para enviar para o módulo de saldo a pagar
+      // Aqui seria a lógica para registrar no módulo de saldo a pagar
       console.log("Saldo a pagar pendente registrado:", dados.saldoAPagar);
+      console.log("Data de adiantamento:", dados.dataAdiantamento);
+      
+      if (dados.aguardandoCanhoto) {
+        console.log("Status: Aguardando Canhoto");
+      }
     }
   };
 
@@ -145,6 +158,7 @@ export function ContratoFormTabs({ onSave, initialData }: ContratoFormTabsProps)
           tipoVeiculo={tipoVeiculo}
           onTipoVeiculoChange={setTipoVeiculo}
           valorTotalCTes={cteDataList.reduce((sum, cte) => sum + cte.valorFrete, 0)}
+          initialData={dadosFreteContrato}
         />
       </TabsContent>
 
