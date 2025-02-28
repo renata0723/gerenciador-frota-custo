@@ -13,11 +13,13 @@ import PageHeader from '@/components/ui/PageHeader';
 import { logOperation } from '@/utils/logOperations';
 
 // Define os tipos para o sistema
+type TipoConta = 'corrente' | 'poupanca';
+
 type DadosBancarios = {
   banco: string;
   agencia: string;
   conta: string;
-  tipoConta: 'corrente' | 'poupanca';
+  tipoConta: TipoConta;
   pix?: string;
 };
 
@@ -62,7 +64,7 @@ const SaldoPagar: React.FC = () => {
     banco: '',
     agencia: '',
     conta: '',
-    tipoConta: 'corrente' as const,
+    tipoConta: 'corrente' as TipoConta,
     pix: ''
   });
 
@@ -691,10 +693,10 @@ const SaldoPagar: React.FC = () => {
                 <Label htmlFor="tipoConta">Tipo de Conta</Label>
                 <Select 
                   value={newItem.tipoConta} 
-                  onValueChange={(value) => 
+                  onValueChange={(value: TipoConta) => 
                     setNewItem({
                       ...newItem, 
-                      tipoConta: value as 'corrente' | 'poupanca'
+                      tipoConta: value
                     })
                   }
                 >
