@@ -13,6 +13,9 @@ import Contratos from "./pages/Contratos";
 import Canhotos from "./pages/Canhotos";
 import EntradaNotas from "./pages/EntradaNotas";
 import NovaNotaForm from "./pages/NovaNotaForm";
+import Veiculos from "./pages/Veiculos";
+import NovoVeiculoForm from "./pages/NovoVeiculoForm";
+import RelatoriosVeiculos from "./pages/RelatoriosVeiculos";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +35,10 @@ const App = () => (
           <Route path="/tv-dashboard" element={<TVDashboard />} />
           <Route path="/contratos" element={<Contratos />} />
           <Route path="/canhotos" element={<Canhotos />} />
+          <Route path="/veiculos" element={<Veiculos />} />
+          <Route path="/veiculos/novo" element={<NovoVeiculoForm />} />
+          <Route path="/veiculos/editar/:id" element={<NovoVeiculoForm />} />
+          <Route path="/veiculos/relatorios" element={<RelatoriosVeiculos />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
