@@ -20,6 +20,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Chave para armazenamento no localStorage
+const STORAGE_KEY = 'controlfrota_notas_fiscais';
+
 // Lista correta dos estados brasileiros em ordem alfabética
 const estados = [
   'AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 
@@ -29,11 +32,6 @@ const estados = [
 // Tipos de veículos
 const tiposVeiculos = [
   'Utilitário', 'VUC', '3/4', 'Toco', 'Truck', 'Carreta', 'Bitrem', 'Vanderleia'
-];
-
-// Banco de dados simulado de notas fiscais para verificar duplicidades
-const notasFiscaisExistentes = [
-  'NF-12345', 'NF-12346', 'NF-12347', 'NF-12348', 'NF-12349'
 ];
 
 const NovaNotaForm = () => {
@@ -102,6 +100,15 @@ const NovaNotaForm = () => {
     // Verifica duplicidade ao digitar o número da nota fiscal, mas apenas se não estiver em modo de edição
     // ou se o ID for diferente do original
     if (name === 'numeroNotaFiscal' && (!isEditing || value !== originalId)) {
+      // Verificar no localStorage se a nota já existe
+      const storedNotes = localStorage.getItem(STORAGE_KEY);
+      let notasFiscaisExistentes: string[] = [];
+      
+      if (storedNotes) {
+        const parsedNotes = JSON.parse(storedNotes);
+        notasFiscaisExistentes = parsedNotes.map((note: any) => note.id);
+      }
+      
       const isDuplicada = notasFiscaisExistentes.includes(value);
       setIsNotaDuplicada(isDuplicada);
     }
@@ -127,6 +134,16 @@ const NovaNotaForm = () => {
     if (isEditing && formData.numeroNotaFiscal === originalId) {
       return false;
     }
+    
+    // Verificar no localStorage se a nota já existe
+    const storedNotes = localStorage.getItem(STORAGE_KEY);
+    let notasFiscaisExistentes: string[] = [];
+    
+    if (storedNotes) {
+      const parsedNotes = JSON.parse(storedNotes);
+      notasFiscaisExistentes = parsedNotes.map((note: any) => note.id);
+    }
+    
     return notasFiscaisExistentes.includes(formData.numeroNotaFiscal);
   };
 
@@ -172,8 +189,10 @@ const NovaNotaForm = () => {
         description: `NF ${formData.numeroNotaFiscal} para ${formData.clienteDestinatario}`,
       });
       
-      // Redirecionar para lista
-      navigate('/entrada-notas');
+      // Redirecionar para lista com a nova nota
+      navigate('/entrada-notas', { 
+        state: { newNote: formattedNote }
+      });
     }
   };
 

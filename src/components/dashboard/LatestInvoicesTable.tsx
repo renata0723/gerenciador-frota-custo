@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import DashboardCard from './DashboardCard';
@@ -11,14 +11,29 @@ interface InvoiceItem {
   value: string;
 }
 
+// Chave para armazenamento no localStorage
+const STORAGE_KEY = 'controlfrota_notas_fiscais';
+
 const LatestInvoicesTable: React.FC = () => {
-  // Dados simulados para tabelas
-  const latestNotes: InvoiceItem[] = [
-    { id: 'NF-12345', client: 'Empresa ABC Ltda', destination: 'São Paulo, SP', value: 'R$ 15.450,00' },
-    { id: 'NF-12346', client: 'Distribuidora XYZ', destination: 'Rio de Janeiro, RJ', value: 'R$ 8.720,50' },
-    { id: 'NF-12347', client: 'Indústria MNO', destination: 'Curitiba, PR', value: 'R$ 22.150,00' },
-    { id: 'NF-12348', client: 'Comércio RST', destination: 'Belo Horizonte, MG', value: 'R$ 5.890,75' },
-  ];
+  const [latestNotes, setLatestNotes] = useState<InvoiceItem[]>([]);
+  
+  // Carregar notas do localStorage ao inicializar o componente
+  useEffect(() => {
+    const storedNotes = localStorage.getItem(STORAGE_KEY);
+    if (storedNotes) {
+      const allNotes = JSON.parse(storedNotes);
+      // Pegar as 4 notas mais recentes
+      setLatestNotes(allNotes.slice(0, 4));
+    } else {
+      // Dados simulados para tabelas se não houver dados no localStorage
+      setLatestNotes([
+        { id: 'NF-12345', client: 'Empresa ABC Ltda', destination: 'São Paulo, SP', value: 'R$ 15.450,00' },
+        { id: 'NF-12346', client: 'Distribuidora XYZ', destination: 'Rio de Janeiro, RJ', value: 'R$ 8.720,50' },
+        { id: 'NF-12347', client: 'Indústria MNO', destination: 'Curitiba, PR', value: 'R$ 22.150,00' },
+        { id: 'NF-12348', client: 'Comércio RST', destination: 'Belo Horizonte, MG', value: 'R$ 5.890,75' },
+      ]);
+    }
+  }, []);
 
   return (
     <DashboardCard 
