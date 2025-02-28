@@ -3,9 +3,12 @@ import React, { useState } from 'react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
 import { Building, SaveIcon, Upload, MapPin, Tag, Phone, Mail, Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
 
 const ConfiguracoesEmpresa = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [formSubmitting, setFormSubmitting] = useState(false);
   
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -16,6 +19,20 @@ const ConfiguracoesEmpresa = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleSaveConfig = () => {
+    setFormSubmitting(true);
+    
+    // Simulando um salvamento assíncrono
+    setTimeout(() => {
+      setFormSubmitting(false);
+      toast({
+        title: "Configurações salvas",
+        description: "As configurações da empresa foram atualizadas com sucesso.",
+        variant: "default",
+      });
+    }, 1500);
   };
 
   return (
@@ -32,7 +49,7 @@ const ConfiguracoesEmpresa = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
         <div className="lg:col-span-2 space-y-8">
           {/* Informações Gerais */}
-          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-card overflow-hidden">
+          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center">
               <Building className="text-sistema-primary mr-2" size={20} />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Informações da Empresa</h3>
@@ -47,7 +64,7 @@ const ConfiguracoesEmpresa = () => {
                   <input
                     type="text"
                     id="nome"
-                    className="input-field w-full"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                     placeholder="Nome da sua empresa"
                   />
                 </div>
@@ -59,7 +76,7 @@ const ConfiguracoesEmpresa = () => {
                   <input
                     type="text"
                     id="cnpj"
-                    className="input-field w-full"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                     placeholder="00.000.000/0001-00"
                   />
                 </div>
@@ -77,7 +94,7 @@ const ConfiguracoesEmpresa = () => {
                     <input
                       type="text"
                       id="telefone"
-                      className="input-field pl-10 w-full"
+                      className="w-full pl-10 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                       placeholder="(00) 0000-0000"
                     />
                   </div>
@@ -94,7 +111,7 @@ const ConfiguracoesEmpresa = () => {
                     <input
                       type="email"
                       id="email"
-                      className="input-field pl-10 w-full"
+                      className="w-full pl-10 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                       placeholder="contato@empresa.com.br"
                     />
                   </div>
@@ -112,7 +129,7 @@ const ConfiguracoesEmpresa = () => {
                   <input
                     type="text"
                     id="website"
-                    className="input-field pl-10 w-full"
+                    className="w-full pl-10 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                     placeholder="www.suaempresa.com.br"
                   />
                 </div>
@@ -125,7 +142,7 @@ const ConfiguracoesEmpresa = () => {
                 <textarea
                   id="slogan"
                   rows={3}
-                  className="input-field w-full"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                   placeholder="Descreva brevemente sua empresa..."
                 ></textarea>
               </div>
@@ -133,7 +150,7 @@ const ConfiguracoesEmpresa = () => {
           </div>
           
           {/* Endereço */}
-          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-card overflow-hidden">
+          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center">
               <MapPin className="text-sistema-primary mr-2" size={20} />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Endereço</h3>
@@ -147,7 +164,7 @@ const ConfiguracoesEmpresa = () => {
                 <input
                   type="text"
                   id="cep"
-                  className="input-field w-full max-w-xs"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white max-w-xs"
                   placeholder="00000-000"
                 />
               </div>
@@ -160,7 +177,7 @@ const ConfiguracoesEmpresa = () => {
                   <input
                     type="text"
                     id="logradouro"
-                    className="input-field w-full"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                     placeholder="Rua, Avenida, etc."
                   />
                 </div>
@@ -173,7 +190,7 @@ const ConfiguracoesEmpresa = () => {
                     <input
                       type="text"
                       id="numero"
-                      className="input-field w-full"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                       placeholder="Nº"
                     />
                   </div>
@@ -185,7 +202,7 @@ const ConfiguracoesEmpresa = () => {
                     <input
                       type="text"
                       id="complemento"
-                      className="input-field w-full"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                       placeholder="Sala, Andar, etc."
                     />
                   </div>
@@ -200,7 +217,7 @@ const ConfiguracoesEmpresa = () => {
                   <input
                     type="text"
                     id="bairro"
-                    className="input-field w-full"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                     placeholder="Bairro"
                   />
                 </div>
@@ -212,7 +229,7 @@ const ConfiguracoesEmpresa = () => {
                   <input
                     type="text"
                     id="cidade"
-                    className="input-field w-full"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                     placeholder="Cidade"
                   />
                 </div>
@@ -223,7 +240,7 @@ const ConfiguracoesEmpresa = () => {
                   </label>
                   <select
                     id="estado"
-                    className="input-field w-full"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                   >
                     <option value="">Selecione</option>
                     <option value="AC">Acre</option>
@@ -260,7 +277,7 @@ const ConfiguracoesEmpresa = () => {
           </div>
           
           {/* Personalização */}
-          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-card overflow-hidden">
+          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center">
               <Tag className="text-sistema-primary mr-2" size={20} />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Personalização</h3>
@@ -274,7 +291,7 @@ const ConfiguracoesEmpresa = () => {
                 <input
                   type="text"
                   id="cabecalho"
-                  className="input-field w-full"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                   placeholder="Texto que aparecerá no cabeçalho dos documentos"
                 />
               </div>
@@ -301,7 +318,7 @@ const ConfiguracoesEmpresa = () => {
         
         {/* Logo e Prévia */}
         <div className="space-y-8">
-          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-card overflow-hidden">
+          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Logo da Empresa</h3>
             </div>
@@ -343,7 +360,7 @@ const ConfiguracoesEmpresa = () => {
           </div>
           
           {/* Prévia do Cabeçalho */}
-          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-card overflow-hidden">
+          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Prévia do Cabeçalho</h3>
             </div>
@@ -378,15 +395,73 @@ const ConfiguracoesEmpresa = () => {
               </p>
             </div>
           </div>
+          
+          {/* Configurações Avançadas */}
+          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Configurações Avançadas</h3>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">Backups Automáticos</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Realizar backups diários do sistema</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" defaultChecked />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sistema-primary/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-sistema-primary"></div>
+                </label>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">Notificações por E-mail</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Receber alertas e relatórios por e-mail</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sistema-primary/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-sistema-primary"></div>
+                </label>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">Acesso Externo</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Permitir acesso ao sistema fora da rede local</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" defaultChecked />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sistema-primary/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-sistema-primary"></div>
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
       {/* Botão de Salvar */}
-      <div className="flex justify-end mt-8">
-        <button className="btn-primary flex items-center">
-          <SaveIcon size={16} className="mr-2" />
-          Salvar Configurações
-        </button>
+      <div className="flex justify-end mt-8 mb-12">
+        <Button 
+          onClick={handleSaveConfig} 
+          disabled={formSubmitting}
+          className="bg-sistema-primary hover:bg-sistema-primary-dark text-white"
+        >
+          {formSubmitting ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Salvando...
+            </>
+          ) : (
+            <>
+              <SaveIcon size={16} className="mr-2" />
+              Salvar Configurações
+            </>
+          )}
+        </Button>
       </div>
     </PageLayout>
   );

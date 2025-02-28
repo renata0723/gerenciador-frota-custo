@@ -10,7 +10,7 @@ import {
   Receipt, 
   CreditCard, 
   Fuel, 
-  Tool, 
+  Wrench, 
   DollarSign, 
   BarChart,
   Settings
@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
     { to: "/canhotos", label: "Canhotos", icon: <Receipt size={18} /> },
     { to: "/saldo-pagar", label: "Saldo a Pagar", icon: <CreditCard size={18} /> },
     { to: "/abastecimentos", label: "Abastecimentos", icon: <Fuel size={18} /> },
-    { to: "/manutencao", label: "Manutenção", icon: <Tool size={18} /> },
+    { to: "/manutencao", label: "Manutenção", icon: <Wrench size={18} /> },
     { to: "/despesas", label: "Despesas", icon: <DollarSign size={18} /> },
     { to: "/relatorios", label: "Relatórios", icon: <BarChart size={18} /> },
     { to: "/configuracoes", label: "Configurações", icon: <Settings size={18} /> }
