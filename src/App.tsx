@@ -10,6 +10,7 @@ import ConfiguracoesEmpresa from "./pages/ConfiguracoesEmpresa";
 import Motoristas from "./pages/Motoristas";
 import Notas from "./pages/Notas";
 import TVDashboard from "./pages/TVDashboard";
+import Contratos from "./pages/Contratos";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/notas" element={<Notas />} />
           <Route path="/configuracoes" element={<ConfiguracoesEmpresa />} />
           <Route path="/tv-dashboard" element={<TVDashboard />} />
+          <Route path="/contratos" element={<Contratos />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
