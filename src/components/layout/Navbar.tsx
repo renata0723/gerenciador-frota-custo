@@ -1,14 +1,16 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, User, ChevronDown, Settings, LogOut, Menu } from 'lucide-react';
+import { Bell, User, ChevronDown, Settings, LogOut, Menu, Tv } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavbarProps {
   toggleSidebar: () => void;
+  isSidebarOpen: boolean;
+  showProjectionButton?: boolean;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
+const Navbar: React.FC<NavbarProps> = ({ toggleSidebar, isSidebarOpen, showProjectionButton = false }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
