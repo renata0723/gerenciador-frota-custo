@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
 import { FileText, Plus, Search, Filter, Download, Trash, Edit, Info, AlertCircle, Pencil } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { logOperation } from '@/utils/logOperations';
@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 
 const EntradaNotas = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
@@ -43,6 +44,29 @@ const EntradaNotas = () => {
     { id: 'NF-12348', date: '13/04/2023', client: 'Comércio RST', destination: 'Belo Horizonte, MG', deliveryDate: '20/04/2023', value: 'R$ 5.890,75', status: 'Em trânsito' },
     { id: 'NF-12349', date: '14/04/2023', client: 'Atacadista UVW', destination: 'Salvador, BA', deliveryDate: '21/04/2023', value: 'R$ 12.540,30', status: 'Entregue' },
   ]);
+
+  // Verificar se há dados atualizados na navegação
+  useEffect(() => {
+    // Verificar se temos dados atualizados na navegação
+    if (location.state && location.state.updatedNote) {
+      const updatedNote = location.state.updatedNote;
+      
+      // Atualizar o array de notas
+      setNotesData(current => 
+        current.map(note => 
+          note.id === updatedNote.id ? updatedNote : note
+        )
+      );
+      
+      // Exibir notificação de sucesso
+      toast.success(`Nota fiscal ${updatedNote.id} atualizada com sucesso`);
+      
+      // Limpar o state para evitar atualizações duplicadas
+      window.history.replaceState({}, document.title);
+      
+      logOperation('EntradaNotas', `Atualizou nota fiscal ${updatedNote.id}`, true);
+    }
+  }, [location]);
 
   // Filtrar notas pelo termo de busca
   const filteredNotes = notesData.filter(note => 
@@ -90,6 +114,17 @@ const EntradaNotas = () => {
     setSelectedNote(note);
     setIsDetailsDialogOpen(true);
     logOperation('EntradaNotas', `Visualizou detalhes da nota fiscal ${note.id}`, false);
+  };
+
+  // Função para salvar alterações inline (edição rápida)
+  const handleQuickSave = (updatedNote) => {
+    setNotesData(current => 
+      current.map(note => 
+        note.id === updatedNote.id ? updatedNote : note
+      )
+    );
+    toast.success(`Nota fiscal ${updatedNote.id} atualizada com sucesso`);
+    logOperation('EntradaNotas', `Atualizou rápida de nota fiscal ${updatedNote.id}`, true);
   };
 
   return (

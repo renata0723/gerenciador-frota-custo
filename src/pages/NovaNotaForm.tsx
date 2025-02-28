@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,10 @@ const notasFiscaisExistentes = [
 
 const NovaNotaForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isEditing, setIsEditing] = useState(false);
+  const [originalId, setOriginalId] = useState('');
+  
   const [formData, setFormData] = useState({
     dataColeta: '',
     horaColeta: '',
@@ -61,12 +65,43 @@ const NovaNotaForm = () => {
   const [isNotaDuplicada, setIsNotaDuplicada] = useState(false);
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
 
+  // Verificar se estamos em modo de edição
+  useEffect(() => {
+    if (location.state && location.state.noteData) {
+      const note = location.state.noteData;
+      setIsEditing(true);
+      setOriginalId(note.id);
+      
+      // Preencher o formulário com os dados da nota
+      setFormData({
+        dataColeta: note.date.split('/').reverse().join('-') || '',  // Converter data para formato de input date
+        horaColeta: '08:00', // Valor padrão pois não temos o dado
+        dataEntrega: note.deliveryDate.split('/').reverse().join('-') || '',
+        clienteDestinatario: note.client || '',
+        cidadeDestino: note.destination.split(',')[0] || '',
+        estadoDestino: note.destination.split(',')[1]?.trim() || 'SP',
+        numeroNotaFiscal: note.id || '',
+        senhaAgendamento: '',
+        valorNotaFiscal: note.value.replace('R$ ', '').replace('.', '').replace(',', '.') || '',
+        volume: '',
+        pesoTotal: '',
+        quantidadePaletes: '',
+        valorCotacao: '',
+        numeroTotalPaletes: '',
+        tipoCarga: 'paletizada',
+        quantidadeCarga: '',
+        tipoVeiculo: ''
+      });
+    }
+  }, [location]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Verifica duplicidade ao digitar o número da nota fiscal
-    if (name === 'numeroNotaFiscal') {
+    // Verifica duplicidade ao digitar o número da nota fiscal, mas apenas se não estiver em modo de edição
+    // ou se o ID for diferente do original
+    if (name === 'numeroNotaFiscal' && (!isEditing || value !== originalId)) {
       const isDuplicada = notasFiscaisExistentes.includes(value);
       setIsNotaDuplicada(isDuplicada);
     }
@@ -88,6 +123,10 @@ const NovaNotaForm = () => {
   };
 
   const verificarDuplicidade = () => {
+    // Se estiver editando e o ID não foi alterado, não há duplicidade
+    if (isEditing && formData.numeroNotaFiscal === originalId) {
+      return false;
+    }
     return notasFiscaisExistentes.includes(formData.numeroNotaFiscal);
   };
 
@@ -105,16 +144,37 @@ const NovaNotaForm = () => {
   };
 
   const finalizarSalvamento = () => {
-    // Simular salvamento
-    logOperation('EntradaNotas', `Cadastrou nova nota fiscal: ${formData.numeroNotaFiscal}`, false);
+    // Formatar os dados para o formato esperado pela lista
+    const formattedNote = {
+      id: formData.numeroNotaFiscal,
+      date: formData.dataColeta.split('-').reverse().join('/'),
+      client: formData.clienteDestinatario,
+      destination: `${formData.cidadeDestino}, ${formData.estadoDestino}`,
+      deliveryDate: formData.dataEntrega.split('-').reverse().join('/'),
+      value: `R$ ${parseFloat(formData.valorNotaFiscal).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+      status: isEditing ? location.state?.noteData?.status || 'Em trânsito' : 'Em trânsito'
+    };
     
-    // Notificar usuário
-    toast.success('Nota fiscal cadastrada com sucesso!', {
-      description: `NF ${formData.numeroNotaFiscal} para ${formData.clienteDestinatario}`,
-    });
-    
-    // Redirecionar para lista
-    navigate('/entrada-notas');
+    if (isEditing) {
+      // Registrar operação
+      logOperation('EntradaNotas', `Atualizou nota fiscal: ${formData.numeroNotaFiscal}`, true);
+      
+      // Redirecionar para lista com dados atualizados
+      navigate('/entrada-notas', { 
+        state: { updatedNote: formattedNote }
+      });
+    } else {
+      // Registrar operação para nova nota
+      logOperation('EntradaNotas', `Cadastrou nova nota fiscal: ${formData.numeroNotaFiscal}`, true);
+      
+      // Notificar usuário
+      toast.success('Nota fiscal cadastrada com sucesso!', {
+        description: `NF ${formData.numeroNotaFiscal} para ${formData.clienteDestinatario}`,
+      });
+      
+      // Redirecionar para lista
+      navigate('/entrada-notas');
+    }
   };
 
   const handleCancel = () => {
@@ -124,13 +184,13 @@ const NovaNotaForm = () => {
   return (
     <PageLayout>
       <PageHeader 
-        title="Nova Nota Fiscal" 
-        description="Cadastre uma nova nota fiscal e dados de frete"
+        title={isEditing ? "Editar Nota Fiscal" : "Nova Nota Fiscal"} 
+        description={isEditing ? "Altere os dados da nota fiscal" : "Cadastre uma nova nota fiscal e dados de frete"}
         icon={<FileText className="h-8 w-8 text-sistema-primary" />}
         breadcrumbs={[
           { label: 'Dashboard', href: '/' },
           { label: 'Entrada de Notas', href: '/entrada-notas' },
-          { label: 'Nova Nota' }
+          { label: isEditing ? 'Editar Nota' : 'Nova Nota' }
         ]}
         actions={
           <div className="flex space-x-2">
@@ -260,6 +320,7 @@ const NovaNotaForm = () => {
                   value={formData.numeroNotaFiscal}
                   onChange={handleInputChange}
                   className={isNotaDuplicada ? "border-red-500 pr-10" : ""}
+                  readOnly={isEditing} // Tornar somente leitura em modo de edição
                 />
                 {isNotaDuplicada && (
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -464,7 +525,7 @@ const NovaNotaForm = () => {
             className="bg-sistema-primary hover:bg-sistema-primary/90"
           >
             <Save className="mr-2 h-4 w-4" />
-            Salvar Nota Fiscal
+            {isEditing ? 'Salvar Alterações' : 'Salvar Nota Fiscal'}
           </Button>
         </div>
       </form>
