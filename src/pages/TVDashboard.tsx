@@ -115,7 +115,7 @@ const TVDashboard = () => {
           className="border-purple-500/20"
         />
         <StatCard
-          title="Notas Emitidas"
+          title="Notas que Saíram"
           value={issuedInvoices}
           icon={<FileText className="text-sistema-primary" size={24} />}
           className="border-cyan-500/20"
