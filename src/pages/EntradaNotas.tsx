@@ -50,6 +50,9 @@ interface NotaFiscal {
 // Chave para armazenamento no localStorage
 const STORAGE_KEY = 'controlfrota_notas_fiscais';
 
+// Quantidade de itens por página
+const ITEMS_PER_PAGE = 6;
+
 const EntradaNotas = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,6 +61,10 @@ const EntradaNotas = () => {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NotaFiscal | null>(null);
   const [isDuplicateWarningOpen, setIsDuplicateWarningOpen] = useState(false);
+  
+  // Estado para controle da paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   
   // Dados simulados de notas iniciais (só serão usados se não houver dados no localStorage)
   const dadosIniciaisNotas: NotaFiscal[] = [
@@ -153,6 +160,41 @@ const EntradaNotas = () => {
     note.destination.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Calcular total de páginas e atualizar quando a lista de notas for filtrada
+  useEffect(() => {
+    setTotalPages(Math.max(1, Math.ceil(filteredNotes.length / ITEMS_PER_PAGE)));
+    // Resetar para página 1 quando o filtro mudar
+    setCurrentPage(1);
+  }, [filteredNotes.length]);
+
+  // Obter notas para a página atual
+  const getCurrentPageNotes = () => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredNotes.slice(startIndex, endIndex);
+  };
+
+  // Navegar para a próxima página
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  // Navegar para a página anterior
+  const previousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  // Navegar para uma página específica
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   const handleAddNote = () => {
     logOperation('EntradaNotas', 'Iniciou o cadastro de nova nota fiscal', false);
   };
@@ -234,6 +276,40 @@ const EntradaNotas = () => {
     logOperation('EntradaNotas', 'Restaurou dados iniciais das notas fiscais', true);
   };
 
+  // Gerar array de números de página para exibição
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxPagesToShow = 3;
+    
+    // Se temos poucas páginas, mostramos todas
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      // Caso contrário, mostramos um número limitado
+      // Sempre mostramos a primeira página
+      pageNumbers.push(1);
+      
+      // Mostramos as páginas próximas da atual
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        if (pageNumbers.indexOf(i) === -1) {
+          pageNumbers.push(i);
+        }
+      }
+      
+      // Sempre mostramos a última página
+      if (pageNumbers.indexOf(totalPages) === -1) {
+        pageNumbers.push(totalPages);
+      }
+    }
+    
+    return pageNumbers;
+  };
+
+  // Obter as notas da página atual
+  const currentPageNotes = getCurrentPageNotes();
+
   return (
     <PageLayout>
       <PageHeader 
@@ -298,62 +374,62 @@ const EntradaNotas = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredNotes.map((note) => (
-                <tr key={note.id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                    <Link 
-                      to={`/entrada-notas/editar/${note.id}`} 
-                      state={{ noteData: note }}
-                      className="text-sistema-primary hover:underline"
-                    >
-                      {note.id}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4">{note.date}</td>
-                  <td className="px-6 py-4">{note.client}</td>
-                  <td className="px-6 py-4">{note.destination}</td>
-                  <td className="px-6 py-4">{note.deliveryDate}</td>
-                  <td className="px-6 py-4">{note.value}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      note.status === 'Entregue' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                        : note.status === 'Em trânsito'
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                    }`}>
-                      {note.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-3">
-                      <button 
-                        className="text-gray-500 hover:text-sistema-primary transition-colors duration-200" 
-                        title="Editar"
-                        onClick={() => handleEditClick(note)}
+              {currentPageNotes.length > 0 ? (
+                currentPageNotes.map((note) => (
+                  <tr key={note.id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                      <Link 
+                        to={`/entrada-notas/editar/${note.id}`} 
+                        state={{ noteData: note }}
+                        className="text-sistema-primary hover:underline"
                       >
-                        <Pencil size={18} />
-                      </button>
-                      <button 
-                        className="text-gray-500 hover:text-red-500 transition-colors duration-200" 
-                        title="Excluir"
-                        onClick={() => handleDeleteClick(note)}
-                      >
-                        <Trash size={18} />
-                      </button>
-                      <button 
-                        className="text-gray-500 hover:text-blue-500 transition-colors duration-200" 
-                        title="Detalhes"
-                        onClick={() => handleDetailsClick(note)}
-                      >
-                        <Info size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              
-              {filteredNotes.length === 0 && (
+                        {note.id}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4">{note.date}</td>
+                    <td className="px-6 py-4">{note.client}</td>
+                    <td className="px-6 py-4">{note.destination}</td>
+                    <td className="px-6 py-4">{note.deliveryDate}</td>
+                    <td className="px-6 py-4">{note.value}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        note.status === 'Entregue' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                          : note.status === 'Em trânsito'
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                      }`}>
+                        {note.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        <button 
+                          className="text-gray-500 hover:text-sistema-primary transition-colors duration-200" 
+                          title="Editar"
+                          onClick={() => handleEditClick(note)}
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button 
+                          className="text-gray-500 hover:text-red-500 transition-colors duration-200" 
+                          title="Excluir"
+                          onClick={() => handleDeleteClick(note)}
+                        >
+                          <Trash size={18} />
+                        </button>
+                        <button 
+                          className="text-gray-500 hover:text-blue-500 transition-colors duration-200" 
+                          title="Detalhes"
+                          onClick={() => handleDetailsClick(note)}
+                        >
+                          <Info size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
                 <tr>
                   <td colSpan={8} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
                     <div className="flex flex-col items-center justify-center">
@@ -370,21 +446,38 @@ const EntradaNotas = () => {
         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Mostrando {filteredNotes.length} de {notesData.length} notas
+              Mostrando {Math.min(filteredNotes.length, currentPageNotes.length)} de {filteredNotes.length} notas
             </p>
           </div>
           
           <div className="flex space-x-2">
-            <Button variant="outline" size="sm" disabled>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={previousPage}
+              disabled={currentPage === 1}
+            >
               Anterior
             </Button>
-            <Button variant="default" size="sm" className="bg-sistema-primary hover:bg-sistema-primary/90">
-              1
-            </Button>
-            <Button variant="outline" size="sm">
-              2
-            </Button>
-            <Button variant="outline" size="sm">
+            
+            {getPageNumbers().map(page => (
+              <Button 
+                key={page}
+                variant={currentPage === page ? "default" : "outline"} 
+                size="sm" 
+                className={currentPage === page ? "bg-sistema-primary hover:bg-sistema-primary/90" : ""}
+                onClick={() => goToPage(page)}
+              >
+                {page}
+              </Button>
+            ))}
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={nextPage}
+              disabled={currentPage === totalPages}
+            >
               Próximo
             </Button>
           </div>
