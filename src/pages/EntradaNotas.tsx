@@ -2,8 +2,11 @@
 import React, { useState } from 'react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
-import { FileText, Plus, Search, Filter, Download, Trash, Edit } from 'lucide-react';
+import { FileText, Plus, Search, Filter, Download, Trash, Edit, Calendar, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { logOperation } from '@/utils/logOperations';
 
 const EntradaNotas = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,79 +27,83 @@ const EntradaNotas = () => {
     note.destination.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleAddNote = () => {
+    logOperation('EntradaNotas', 'Iniciou o cadastro de nova nota fiscal', false);
+  };
+
   return (
     <PageLayout>
       <PageHeader 
         title="Entrada de Notas" 
-        description="Gerencie notas fiscais e coletas de carga"
+        description="Gerenciamento de notas fiscais e fretes"
+        icon={<FileText className="h-8 w-8 text-sistema-primary" />}
         breadcrumbs={[
           { label: 'Dashboard', href: '/' },
           { label: 'Entrada de Notas' }
         ]}
         actions={
-          <Link 
-            to="/notas/nova" 
-            className="btn-primary flex items-center"
-          >
-            <Plus size={16} className="mr-2" />
-            Nova Nota
+          <Link to="/entrada-notas/nova" onClick={handleAddNote}>
+            <Button className="bg-sistema-primary hover:bg-sistema-primary/90">
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Nota
+            </Button>
           </Link>
         }
       />
 
-      <div className="bg-white dark:bg-sistema-dark rounded-xl shadow-card border border-gray-100 dark:border-gray-800 overflow-hidden mb-8 animate-fade-in">
+      <div className="bg-white dark:bg-sistema-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden mb-8 animate-fade-in">
         <div className="p-5 border-b border-gray-100 dark:border-gray-800">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="relative w-full md:w-96">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                 <Search size={18} className="text-gray-400" />
               </div>
-              <input
+              <Input
                 type="text"
-                className="input-field pl-10 w-full"
-                placeholder="Buscar notas..."
+                className="pl-10 w-full"
+                placeholder="Buscar notas fiscais..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             
             <div className="flex items-center space-x-3">
-              <button className="btn-outline flex items-center">
+              <Button variant="outline" className="flex items-center">
                 <Filter size={16} className="mr-2" />
                 Filtrar
-              </button>
-              <button className="btn-outline flex items-center">
+              </Button>
+              <Button variant="outline" className="flex items-center">
                 <Download size={16} className="mr-2" />
                 Exportar
-              </button>
+              </Button>
             </div>
           </div>
         </div>
         
-        <div className="table-container">
-          <table className="table-default">
-            <thead className="table-head">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-800 dark:text-gray-300">
               <tr>
-                <th className="table-header-cell">Nº Nota</th>
-                <th className="table-header-cell">Data Coleta</th>
-                <th className="table-header-cell">Cliente</th>
-                <th className="table-header-cell">Destino</th>
-                <th className="table-header-cell">Data Entrega</th>
-                <th className="table-header-cell">Valor</th>
-                <th className="table-header-cell">Status</th>
-                <th className="table-header-cell">Ações</th>
+                <th scope="col" className="px-6 py-3">Nº Nota</th>
+                <th scope="col" className="px-6 py-3">Data Coleta</th>
+                <th scope="col" className="px-6 py-3">Cliente</th>
+                <th scope="col" className="px-6 py-3">Destino</th>
+                <th scope="col" className="px-6 py-3">Data Entrega</th>
+                <th scope="col" className="px-6 py-3">Valor</th>
+                <th scope="col" className="px-6 py-3">Status</th>
+                <th scope="col" className="px-6 py-3">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredNotes.map((note) => (
-                <tr key={note.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
-                  <td className="table-cell font-medium">{note.id}</td>
-                  <td className="table-cell">{note.date}</td>
-                  <td className="table-cell">{note.client}</td>
-                  <td className="table-cell">{note.destination}</td>
-                  <td className="table-cell">{note.deliveryDate}</td>
-                  <td className="table-cell">{note.value}</td>
-                  <td className="table-cell">
+                <tr key={note.id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
+                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{note.id}</td>
+                  <td className="px-6 py-4">{note.date}</td>
+                  <td className="px-6 py-4">{note.client}</td>
+                  <td className="px-6 py-4">{note.destination}</td>
+                  <td className="px-6 py-4">{note.deliveryDate}</td>
+                  <td className="px-6 py-4">{note.value}</td>
+                  <td className="px-6 py-4">
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       note.status === 'Entregue' 
                         ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
@@ -107,13 +114,16 @@ const EntradaNotas = () => {
                       {note.status}
                     </span>
                   </td>
-                  <td className="table-cell">
+                  <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">
                       <button className="text-gray-500 hover:text-sistema-primary transition-colors duration-200" title="Editar">
                         <Edit size={18} />
                       </button>
                       <button className="text-gray-500 hover:text-red-500 transition-colors duration-200" title="Excluir">
                         <Trash size={18} />
+                      </button>
+                      <button className="text-gray-500 hover:text-blue-500 transition-colors duration-200" title="Detalhes">
+                        <Info size={18} />
                       </button>
                     </div>
                   </td>
@@ -134,7 +144,7 @@ const EntradaNotas = () => {
           </table>
         </div>
         
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Mostrando {filteredNotes.length} de {notesData.length} notas
@@ -142,18 +152,18 @@ const EntradaNotas = () => {
           </div>
           
           <div className="flex space-x-2">
-            <button className="px-3 py-1 rounded border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50">
+            <Button variant="outline" size="sm" disabled>
               Anterior
-            </button>
-            <button className="px-3 py-1 rounded bg-sistema-primary text-white hover:bg-sistema-primary-dark">
+            </Button>
+            <Button variant="default" size="sm" className="bg-sistema-primary hover:bg-sistema-primary/90">
               1
-            </button>
-            <button className="px-3 py-1 rounded border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+            </Button>
+            <Button variant="outline" size="sm">
               2
-            </button>
-            <button className="px-3 py-1 rounded border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+            </Button>
+            <Button variant="outline" size="sm">
               Próximo
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -12,6 +12,8 @@ import Notas from "./pages/Notas";
 import TVDashboard from "./pages/TVDashboard";
 import Contratos from "./pages/Contratos";
 import Canhotos from "./pages/Canhotos";
+import EntradaNotas from "./pages/EntradaNotas";
+import NovaNotaForm from "./pages/NovaNotaForm";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +27,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/motoristas" element={<Motoristas />} />
           <Route path="/notas" element={<Notas />} />
+          <Route path="/entrada-notas" element={<EntradaNotas />} />
+          <Route path="/entrada-notas/nova" element={<NovaNotaForm />} />
           <Route path="/configuracoes" element={<ConfiguracoesEmpresa />} />
           <Route path="/tv-dashboard" element={<TVDashboard />} />
           <Route path="/contratos" element={<Contratos />} />
