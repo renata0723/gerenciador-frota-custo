@@ -161,24 +161,46 @@ const TVDashboard = () => {
         <DashboardCard title="Distribuição de Despesas" className="bg-white shadow-lg">
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={expenseDistributionData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={90}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              <BarChart
+                data={expenseDistributionData}
+                margin={{
+                  top: 10,
+                  right: 30,
+                  left: 0,
+                  bottom: 20,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis 
+                  tickFormatter={(value) => `${value}%`}
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip 
+                  formatter={(value) => [`${value}%`, 'Percentual']}
+                  contentStyle={{ 
+                    backgroundColor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
+                  }}
+                />
+                <Legend 
+                  verticalAlign="top"
+                  height={36}
+                  wrapperStyle={{ paddingBottom: '10px' }}
+                />
+                <Bar 
+                  dataKey="value" 
+                  name="Percentual" 
+                  fill="#0088FE"
+                  radius={[4, 4, 0, 0]}
                 >
                   {expenseDistributionData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
-                </Pie>
-                <Tooltip formatter={(value) => [`${value}%`, 'Percentual']} />
-                <Legend layout="vertical" verticalAlign="middle" align="right" />
-              </PieChart>
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </DashboardCard>
