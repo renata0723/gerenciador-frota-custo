@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Truck, FileText, Users, Clipboard, Fuel, Tool, DollarSign, ArrowRight } from 'lucide-react';
+import { Truck, FileText, Users, Clipboard, Fuel, Wrench, DollarSign, ArrowRight } from 'lucide-react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/dashboard/StatCard';
@@ -14,28 +14,28 @@ const Index = () => {
       title: "Total de Veículos", 
       value: "48", 
       icon: <Truck className="text-sistema-primary" size={24} />,
-      change: { value: 12, type: "increase" },
+      change: { value: 12, type: "increase" as const },
       subtitle: "vs. mês anterior"
     },
     { 
       title: "Notas Fiscais", 
       value: "237", 
       icon: <FileText className="text-sistema-primary" size={24} />,
-      change: { value: 8, type: "increase" },
+      change: { value: 8, type: "increase" as const },
       subtitle: "vs. mês anterior"
     },
     { 
       title: "Motoristas", 
       value: "32", 
       icon: <Users className="text-sistema-primary" size={24} />,
-      change: { value: 0, type: "neutral" },
+      change: { value: 0, type: "neutral" as const },
       subtitle: "vs. mês anterior"
     },
     { 
       title: "Contratos Ativos", 
       value: "18", 
       icon: <Clipboard className="text-sistema-primary" size={24} />,
-      change: { value: 5, type: "decrease" },
+      change: { value: 5, type: "decrease" as const },
       subtitle: "vs. mês anterior"
     },
   ];
