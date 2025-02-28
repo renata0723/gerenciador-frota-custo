@@ -1,3 +1,6 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,80 +16,65 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 196 84% 57%;  /* #33C3F0 - Azul céu */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 223 24% 14%; /* #1A1F2C - Preto azulado escuro */
+    --secondary-foreground: 0 0% 98%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 196 80% 44%; /* #0FA0CE - Azul escuro para destaque */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 196 84% 57%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 223 24% 14%; /* #1A1F2C */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 196 84% 57%; /* #33C3F0 */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 225 9% 25%;  /* Ligeiramente mais claro que o fundo */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 225 9% 20%;
+    --sidebar-ring: 196 84% 57%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 223 24% 14%; /* #1A1F2C */
+    --foreground: 0 0% 100%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 224 22% 18%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 223 24% 14%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 196 84% 57%; /* #33C3F0 */
+    --primary-foreground: 223 24% 14%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 226 13% 40%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 223 24% 20%;
+    --muted-foreground: 215 20.2% 80%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 196 80% 44%; /* #0FA0CE */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 225 9% 20%;
+    --input: 225 9% 20%;
+    --ring: 196 84% 57%;
   }
 }
 
@@ -96,6 +84,189 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .animate-in {
+    animation-duration: 300ms;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    animation-fill-mode: both;
+  }
+  
+  .animate-out {
+    animation-duration: 300ms;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    animation-fill-mode: both;
+  }
+  
+  .glass-effect {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-card-hover transform hover:-translate-y-1;
+  }
+  
+  .btn-primary {
+    @apply bg-sistema-primary text-white px-4 py-2 rounded-md shadow-button hover:shadow-button-hover transition-all duration-200 hover:bg-sistema-primary-dark active:translate-y-0.5;
+  }
+  
+  .btn-secondary {
+    @apply bg-sistema-medium text-white px-4 py-2 rounded-md shadow-button hover:shadow-button-hover transition-all duration-200 hover:opacity-90 active:translate-y-0.5;
+  }
+  
+  .btn-outline {
+    @apply border border-sistema-primary text-sistema-primary px-4 py-2 rounded-md transition-all duration-200 hover:bg-sistema-primary hover:text-white active:translate-y-0.5;
+  }
+  
+  .input-field {
+    @apply px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-sistema-primary transition-all duration-200;
+  }
+  
+  .dropdown-content {
+    @apply absolute right-0 mt-2 w-56 rounded-md shadow-dropdown bg-white dark:bg-sistema-dark ring-1 ring-black ring-opacity-5 z-50;
+  }
+  
+  .table-container {
+    @apply w-full overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700;
+  }
+  
+  .table-default {
+    @apply min-w-full divide-y divide-gray-200 dark:divide-gray-700;
+  }
+  
+  .table-head {
+    @apply bg-gray-50 dark:bg-sistema-medium;
+  }
+  
+  .table-cell {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200;
+  }
+  
+  .table-header-cell {
+    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider;
+  }
+  
+  .page-transition {
+    @apply animate-fade-in motion-reduce:animate-none;
+  }
+  
+  .card-transition {
+    @apply animate-zoom-in motion-reduce:animate-none;
+  }
+  
+  .sidebar-item {
+    @apply flex items-center px-4 py-3 text-gray-300 hover:bg-sistema-accent rounded-md transition-all duration-200;
+  }
+  
+  .sidebar-item-active {
+    @apply flex items-center px-4 py-3 bg-sistema-primary text-white rounded-md;
+  }
+}
+
+/* Scrollbar customizado */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Animações de página */
+.page-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-exit {
+  opacity: 1;
+}
+
+.page-exit-active {
+  opacity: 0;
+  transition: opacity 300ms;
+}
+
+/* Animações para elementos na página */
+.fade-in-up {
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estilo especial para tabelas zebradas */
+.table-zebra tr:nth-child(even) {
+  @apply bg-gray-50 dark:bg-gray-800/30;
+}
+
+/* Tooltip personalizado */
+.custom-tooltip {
+  @apply absolute z-50 px-2 py-1 text-xs text-white bg-sistema-dark rounded shadow-lg opacity-0 invisible transition-all duration-200;
+}
+
+.custom-tooltip-visible {
+  @apply opacity-100 visible;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--sistema-primary);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
