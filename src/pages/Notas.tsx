@@ -2,18 +2,42 @@
 import React, { useState } from 'react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
-import { FileText, Plus, Search, Filter, DownloadCloud, Upload, MoreHorizontal } from 'lucide-react';
+import { FileText, Plus, Search, Filter, DownloadCloud, Upload, MoreHorizontal, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const Notas = () => {
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedNote, setSelectedNote] = useState(null);
   
   // Dados simulados de notas fiscais
-  const notasFiscais = [
+  const [notasFiscais, setNotasFiscais] = useState([
     { id: 'NF-12345', emissao: '15/06/2023', cliente: 'Empresa ABC Ltda', origem: 'São Paulo, SP', destino: 'Rio de Janeiro, RJ', valor: 'R$ 15.450,00', status: 'Finalizada' },
     { id: 'NF-12346', emissao: '18/06/2023', cliente: 'Distribuidora XYZ', origem: 'Curitiba, PR', destino: 'Florianópolis, SC', valor: 'R$ 8.720,50', status: 'Em trânsito' },
     { id: 'NF-12347', emissao: '20/06/2023', cliente: 'Indústria MNO', origem: 'Belo Horizonte, MG', destino: 'Brasília, DF', valor: 'R$ 22.150,00', status: 'Agendada' },
@@ -22,30 +46,29 @@ const Notas = () => {
     { id: 'NF-12350', emissao: '27/06/2023', cliente: 'Empresa DEF S.A.', origem: 'Porto Alegre, RS', destino: 'Curitiba, PR', valor: 'R$ 12.780,00', status: 'Agendada' },
     { id: 'NF-12351', emissao: '01/07/2023', cliente: 'Distribuidora GHI', origem: 'Goiânia, GO', destino: 'Brasília, DF', valor: 'R$ 7.650,25', status: 'Finalizada' },
     { id: 'NF-12352', emissao: '03/07/2023', cliente: 'Indústria JKL', origem: 'Fortaleza, CE', destino: 'Natal, RN', valor: 'R$ 9.340,00', status: 'Em trânsito' },
-  ];
+  ]);
 
   // Função para importar notas
   const handleImportarNotas = () => {
-    toast({
-      title: "Importação iniciada",
-      description: "A importação de notas foi iniciada com sucesso.",
+    toast.success("Importação iniciada", {
+      description: "A importação de notas foi iniciada com sucesso."
     });
   };
 
   // Função para exportar notas
   const handleExportarNotas = () => {
-    toast({
-      title: "Exportação concluída",
-      description: "As notas foram exportadas com sucesso.",
+    toast.success("Exportação concluída", {
+      description: "As notas foram exportadas com sucesso."
     });
   };
 
   // Função para adicionar nova nota
   const handleAddNota = () => {
-    toast({
-      title: "Nova nota",
-      description: "Formulário de nova nota fiscal aberto.",
+    toast.info("Nova nota", {
+      description: "Formulário de nova nota fiscal aberto."
     });
+    // Em um sistema real isso redirecionaria para a página de criação
+    // navigate('/notas/nova');
   };
 
   // Filtrar notas com base na busca
@@ -69,6 +92,40 @@ const Notas = () => {
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
     }
+  };
+
+  // Função para editar nota
+  const handleEditNote = (nota) => {
+    toast.info(`Editando nota fiscal ${nota.id}`);
+    // Em um sistema real isso redirecionaria para a página de edição com o ID
+    // navigate(`/notas/editar/${nota.id}`);
+  };
+
+  // Função para excluir nota
+  const handleDeleteNote = (nota) => {
+    setSelectedNote(nota);
+    setIsDeleteDialogOpen(true);
+  };
+
+  // Função para confirmar exclusão
+  const confirmDelete = () => {
+    if (selectedNote) {
+      setNotasFiscais(notasFiscais.filter(nota => nota.id !== selectedNote.id));
+      toast.success(`Nota fiscal ${selectedNote.id} excluída com sucesso`);
+      setIsDeleteDialogOpen(false);
+      setSelectedNote(null);
+    }
+  };
+
+  // Função para ver detalhes da nota
+  const handleViewDetails = (nota) => {
+    setSelectedNote(nota);
+    setIsDetailsDialogOpen(true);
+  };
+
+  // Função para imprimir nota
+  const handlePrintNote = (nota) => {
+    toast.info(`Preparando impressão da nota fiscal ${nota.id}`);
   };
 
   return (
@@ -153,10 +210,21 @@ const Notas = () => {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
-                          <DropdownMenuItem>Editar</DropdownMenuItem>
-                          <DropdownMenuItem>Imprimir</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">Excluir</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewDetails(nota)}>
+                            Ver detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditNote(nota)}>
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handlePrintNote(nota)}>
+                            Imprimir
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-red-600"
+                            onClick={() => handleDeleteNote(nota)}
+                          >
+                            Excluir
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -194,6 +262,80 @@ const Notas = () => {
           </div>
         </div>
       </div>
+
+      {/* Diálogo de confirmação para exclusão */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a nota fiscal {selectedNote?.id}?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo para exibição de detalhes */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-sistema-primary" />
+              Detalhes da Nota {selectedNote?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Informações detalhadas da nota fiscal.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedNote && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Cliente:</span>
+                <span className="col-span-3">{selectedNote.cliente}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Emissão:</span>
+                <span className="col-span-3">{selectedNote.emissao}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Origem:</span>
+                <span className="col-span-3">{selectedNote.origem}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Destino:</span>
+                <span className="col-span-3">{selectedNote.destino}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Valor:</span>
+                <span className="col-span-3">{selectedNote.valor}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Status:</span>
+                <span className="col-span-3">
+                  <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedNote.status)}`}>
+                    {selectedNote.status}
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button type="button" onClick={() => setIsDetailsDialogOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };

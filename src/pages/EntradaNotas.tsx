@@ -2,23 +2,46 @@
 import React, { useState } from 'react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
-import { FileText, Plus, Search, Filter, Download, Trash, Edit, Calendar, Info } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { FileText, Plus, Search, Filter, Download, Trash, Edit, Info, AlertCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { logOperation } from '@/utils/logOperations';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { toast } from 'sonner';
 
 const EntradaNotas = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedNote, setSelectedNote] = useState(null);
   
   // Dados simulados de notas
-  const notesData = [
+  const [notesData, setNotesData] = useState([
     { id: 'NF-12345', date: '10/04/2023', client: 'Empresa ABC Ltda', destination: 'São Paulo, SP', deliveryDate: '15/04/2023', value: 'R$ 15.450,00', status: 'Em trânsito' },
     { id: 'NF-12346', date: '11/04/2023', client: 'Distribuidora XYZ', destination: 'Rio de Janeiro, RJ', deliveryDate: '18/04/2023', value: 'R$ 8.720,50', status: 'Entregue' },
     { id: 'NF-12347', date: '12/04/2023', client: 'Indústria MNO', destination: 'Curitiba, PR', deliveryDate: '19/04/2023', value: 'R$ 22.150,00', status: 'Agendado' },
     { id: 'NF-12348', date: '13/04/2023', client: 'Comércio RST', destination: 'Belo Horizonte, MG', deliveryDate: '20/04/2023', value: 'R$ 5.890,75', status: 'Em trânsito' },
     { id: 'NF-12349', date: '14/04/2023', client: 'Atacadista UVW', destination: 'Salvador, BA', deliveryDate: '21/04/2023', value: 'R$ 12.540,30', status: 'Entregue' },
-  ];
+  ]);
 
   // Filtrar notas pelo termo de busca
   const filteredNotes = notesData.filter(note => 
@@ -29,6 +52,40 @@ const EntradaNotas = () => {
 
   const handleAddNote = () => {
     logOperation('EntradaNotas', 'Iniciou o cadastro de nova nota fiscal', false);
+  };
+
+  // Função para abrir o diálogo de exclusão
+  const handleDeleteClick = (note) => {
+    setSelectedNote(note);
+    setIsDeleteDialogOpen(true);
+    logOperation('EntradaNotas', `Iniciou exclusão da nota fiscal ${note.id}`, false);
+  };
+
+  // Função para confirmar exclusão
+  const confirmDelete = () => {
+    if (selectedNote) {
+      setNotesData(notesData.filter(note => note.id !== selectedNote.id));
+      toast.success(`Nota fiscal ${selectedNote.id} excluída com sucesso`);
+      logOperation('EntradaNotas', `Excluiu nota fiscal ${selectedNote.id}`, true);
+      setIsDeleteDialogOpen(false);
+      setSelectedNote(null);
+    }
+  };
+
+  // Função para editar nota
+  const handleEditClick = (note) => {
+    logOperation('EntradaNotas', `Iniciou edição da nota fiscal ${note.id}`, false);
+    // Em um sistema real isso redirecionaria para a página de edição com o ID
+    toast.info(`Iniciando edição da nota fiscal ${note.id}`);
+    // Simular navegação para edição
+    // navigate(`/entrada-notas/editar/${note.id}`);
+  };
+
+  // Função para ver detalhes
+  const handleDetailsClick = (note) => {
+    setSelectedNote(note);
+    setIsDetailsDialogOpen(true);
+    logOperation('EntradaNotas', `Visualizou detalhes da nota fiscal ${note.id}`, false);
   };
 
   return (
@@ -116,13 +173,25 @@ const EntradaNotas = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">
-                      <button className="text-gray-500 hover:text-sistema-primary transition-colors duration-200" title="Editar">
+                      <button 
+                        className="text-gray-500 hover:text-sistema-primary transition-colors duration-200" 
+                        title="Editar"
+                        onClick={() => handleEditClick(note)}
+                      >
                         <Edit size={18} />
                       </button>
-                      <button className="text-gray-500 hover:text-red-500 transition-colors duration-200" title="Excluir">
+                      <button 
+                        className="text-gray-500 hover:text-red-500 transition-colors duration-200" 
+                        title="Excluir"
+                        onClick={() => handleDeleteClick(note)}
+                      >
                         <Trash size={18} />
                       </button>
-                      <button className="text-gray-500 hover:text-blue-500 transition-colors duration-200" title="Detalhes">
+                      <button 
+                        className="text-gray-500 hover:text-blue-500 transition-colors duration-200" 
+                        title="Detalhes"
+                        onClick={() => handleDetailsClick(note)}
+                      >
                         <Info size={18} />
                       </button>
                     </div>
@@ -167,6 +236,86 @@ const EntradaNotas = () => {
           </div>
         </div>
       </div>
+
+      {/* Diálogo de confirmação para exclusão */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a nota fiscal {selectedNote?.id}?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo para exibição de detalhes */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-sistema-primary" />
+              Detalhes da Nota {selectedNote?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Informações detalhadas da nota fiscal.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedNote && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Cliente:</span>
+                <span className="col-span-3">{selectedNote.client}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Data Coleta:</span>
+                <span className="col-span-3">{selectedNote.date}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Destino:</span>
+                <span className="col-span-3">{selectedNote.destination}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Data Entrega:</span>
+                <span className="col-span-3">{selectedNote.deliveryDate}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Valor:</span>
+                <span className="col-span-3">{selectedNote.value}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium">Status:</span>
+                <span className="col-span-3">
+                  <span className={`px-2 py-1 text-xs rounded-full ${
+                    selectedNote.status === 'Entregue' 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                      : selectedNote.status === 'Em trânsito'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                  }`}>
+                    {selectedNote.status}
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button type="button" onClick={() => setIsDetailsDialogOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };
