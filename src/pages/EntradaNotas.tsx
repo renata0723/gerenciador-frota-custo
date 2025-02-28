@@ -33,6 +33,7 @@ const EntradaNotas = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState(null);
+  const [isDuplicateWarningOpen, setIsDuplicateWarningOpen] = useState(false);
   
   // Dados simulados de notas
   const [notesData, setNotesData] = useState([
@@ -52,6 +53,11 @@ const EntradaNotas = () => {
 
   const handleAddNote = () => {
     logOperation('EntradaNotas', 'Iniciou o cadastro de nova nota fiscal', false);
+  };
+
+  // Função para verificar se já existe nota com o mesmo número
+  const verificarNotaDuplicada = (numeroNota) => {
+    return notesData.some(note => note.id === numeroNota);
   };
 
   // Função para abrir o diálogo de exclusão
@@ -314,6 +320,27 @@ const EntradaNotas = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de alerta para nota fiscal duplicada */}
+      <AlertDialog open={isDuplicateWarningOpen} onOpenChange={setIsDuplicateWarningOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              Nota Fiscal Duplicada
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              A nota fiscal já está cadastrada no sistema. 
+              Não é possível cadastrar a mesma nota fiscal duas vezes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setIsDuplicateWarningOpen(false)}>
+              Entendi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageLayout>
   );
 };

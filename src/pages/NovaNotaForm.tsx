@@ -1,14 +1,24 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { FileText, Save, X, ArrowLeft } from 'lucide-react';
+import { FileText, Save, X, ArrowLeft, AlertCircle } from 'lucide-react';
 import DashboardCard from '@/components/dashboard/DashboardCard';
 import { logOperation } from '@/utils/logOperations';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Lista correta dos estados brasileiros em ordem alfabética
 const estados = [
@@ -19,6 +29,11 @@ const estados = [
 // Tipos de veículos
 const tiposVeiculos = [
   'Utilitário', 'VUC', '3/4', 'Toco', 'Truck', 'Carreta', 'Bitrem', 'Vanderleia'
+];
+
+// Banco de dados simulado de notas fiscais para verificar duplicidades
+const notasFiscaisExistentes = [
+  'NF-12345', 'NF-12346', 'NF-12347', 'NF-12348', 'NF-12349'
 ];
 
 const NovaNotaForm = () => {
@@ -43,9 +58,18 @@ const NovaNotaForm = () => {
     tipoVeiculo: ''
   });
 
+  const [isNotaDuplicada, setIsNotaDuplicada] = useState(false);
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Verifica duplicidade ao digitar o número da nota fiscal
+    if (name === 'numeroNotaFiscal') {
+      const isDuplicada = notasFiscaisExistentes.includes(value);
+      setIsNotaDuplicada(isDuplicada);
+    }
   };
 
   const handleCidadeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,9 +87,24 @@ const NovaNotaForm = () => {
     }));
   };
 
+  const verificarDuplicidade = () => {
+    return notasFiscaisExistentes.includes(formData.numeroNotaFiscal);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Verifica se a nota fiscal já existe
+    if (verificarDuplicidade()) {
+      setIsAlertDialogOpen(true);
+      return;
+    }
+    
+    // Continua com o salvamento se não houver duplicidade
+    finalizarSalvamento();
+  };
+
+  const finalizarSalvamento = () => {
     // Simular salvamento
     logOperation('EntradaNotas', `Cadastrou nova nota fiscal: ${formData.numeroNotaFiscal}`, false);
     
@@ -211,15 +250,28 @@ const NovaNotaForm = () => {
               <label htmlFor="numeroNotaFiscal" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Número da Nota Fiscal*
               </label>
-              <Input
-                id="numeroNotaFiscal"
-                name="numeroNotaFiscal"
-                type="text"
-                required
-                placeholder="NF-000000"
-                value={formData.numeroNotaFiscal}
-                onChange={handleInputChange}
-              />
+              <div className="relative">
+                <Input
+                  id="numeroNotaFiscal"
+                  name="numeroNotaFiscal"
+                  type="text"
+                  required
+                  placeholder="NF-000000"
+                  value={formData.numeroNotaFiscal}
+                  onChange={handleInputChange}
+                  className={isNotaDuplicada ? "border-red-500 pr-10" : ""}
+                />
+                {isNotaDuplicada && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                  </div>
+                )}
+              </div>
+              {isNotaDuplicada && (
+                <p className="mt-1 text-sm text-red-600">
+                  Esta nota fiscal já está cadastrada no sistema.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -416,6 +468,27 @@ const NovaNotaForm = () => {
           </Button>
         </div>
       </form>
+
+      {/* Diálogo de alerta para nota fiscal duplicada */}
+      <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              Nota Fiscal Duplicada
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              A nota fiscal <strong>{formData.numeroNotaFiscal}</strong> já está cadastrada no sistema. 
+              Não é possível cadastrar a mesma nota fiscal duas vezes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setIsAlertDialogOpen(false)}>
+              Entendi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageLayout>
   );
 };
