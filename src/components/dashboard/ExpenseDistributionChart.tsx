@@ -1,6 +1,7 @@
 
 import React from 'react';
 import DashboardCard from './DashboardCard';
+import { logOperation } from '@/utils/logOperations';
 
 interface ExpenseItem {
   label: string;
@@ -15,11 +16,15 @@ const ExpenseDistributionChart: React.FC = () => {
     { label: 'Outros', percentage: 10 },
   ];
 
+  const handleExpenseClick = (expense: ExpenseItem) => {
+    logOperation('Análise de Despesa', `Detalhes da categoria: ${expense.label} (${expense.percentage}%)`);
+  };
+
   return (
     <DashboardCard title="Distribuição de Despesas">
       <div className="space-y-4">
         {expenses.map((expense, index) => (
-          <div key={index}>
+          <div key={index} onClick={() => handleExpenseClick(expense)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 p-2 rounded-md">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600 dark:text-gray-400">{expense.label}</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white">{expense.percentage}%</p>

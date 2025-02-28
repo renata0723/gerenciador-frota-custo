@@ -2,6 +2,7 @@
 import React from 'react';
 import { Fuel } from 'lucide-react';
 import DashboardCard from './DashboardCard';
+import { logOperation } from '@/utils/logOperations';
 
 interface FuelItem {
   vehicle: string;
@@ -16,11 +17,19 @@ const FuelConsumptionCard: React.FC = () => {
     { vehicle: 'GHI-9012', lastFuel: '220 L', avgConsumption: '2,5 km/L' },
   ];
 
+  const handleVehicleClick = (vehicle: string) => {
+    logOperation('Visualização de Veículo', `Informações de combustível para: ${vehicle}`);
+  };
+
   return (
     <DashboardCard title="Consumo de Combustível">
       <div className="space-y-4">
         {fuelConsumption.map((item, index) => (
-          <div key={index} className="flex items-center p-3 border border-gray-100 dark:border-gray-800 rounded-lg">
+          <div 
+            key={index} 
+            className="flex items-center p-3 border border-gray-100 dark:border-gray-800 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            onClick={() => handleVehicleClick(item.vehicle)}
+          >
             <div className="w-10 h-10 rounded-full bg-sistema-primary/10 dark:bg-sistema-primary/20 flex items-center justify-center">
               <Fuel className="text-sistema-primary" size={20} />
             </div>
