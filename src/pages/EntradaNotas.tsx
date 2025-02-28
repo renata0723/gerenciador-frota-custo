@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
-import { FileText, Plus, Search, Filter, Download, Trash, Edit, Info, AlertCircle } from 'lucide-react';
+import { FileText, Plus, Search, Filter, Download, Trash, Edit, Info, AlertCircle, Pencil } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,10 +75,8 @@ const EntradaNotas = () => {
   // Função para editar nota
   const handleEditClick = (note) => {
     logOperation('EntradaNotas', `Iniciou edição da nota fiscal ${note.id}`, false);
-    // Em um sistema real isso redirecionaria para a página de edição com o ID
     toast.info(`Iniciando edição da nota fiscal ${note.id}`);
-    // Simular navegação para edição
-    // navigate(`/entrada-notas/editar/${note.id}`);
+    navigate(`/entrada-notas/editar/${note.id}`);
   };
 
   // Função para ver detalhes
@@ -178,7 +176,7 @@ const EntradaNotas = () => {
                         title="Editar"
                         onClick={() => handleEditClick(note)}
                       >
-                        <Edit size={18} />
+                        <Pencil size={18} />
                       </button>
                       <button 
                         className="text-gray-500 hover:text-red-500 transition-colors duration-200" 

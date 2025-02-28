@@ -42,7 +42,14 @@ const LatestInvoicesTable: React.FC = () => {
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {latestNotes.map((note) => (
               <tr key={note.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
-                <td className="table-cell font-medium">{note.id}</td>
+                <td className="table-cell font-medium">
+                  <Link 
+                    to={`/entrada-notas/editar/${note.id}`} 
+                    className="text-sistema-primary hover:underline"
+                  >
+                    {note.id}
+                  </Link>
+                </td>
                 <td className="table-cell">{note.client}</td>
                 <td className="table-cell">{note.destination}</td>
                 <td className="table-cell">{note.value}</td>
