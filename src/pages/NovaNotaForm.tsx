@@ -10,7 +10,7 @@ import DashboardCard from '@/components/dashboard/DashboardCard';
 import { logOperation } from '@/utils/logOperations';
 import { toast } from 'sonner';
 
-// Lista de estados brasileiros
+// Lista correta dos estados brasileiros
 const estados = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 
   'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
