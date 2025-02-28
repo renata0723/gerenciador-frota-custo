@@ -10,10 +10,10 @@ import DashboardCard from '@/components/dashboard/DashboardCard';
 import { logOperation } from '@/utils/logOperations';
 import { toast } from 'sonner';
 
-// Lista correta dos estados brasileiros
+// Lista correta dos estados brasileiros em ordem alfabética
 const estados = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 
-  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+  'AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 
+  'PA', 'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO'
 ];
 
 // Tipos de veículos
