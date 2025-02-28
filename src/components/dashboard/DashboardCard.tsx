@@ -5,6 +5,7 @@ import { logOperation } from '@/utils/logOperations';
 
 interface DashboardCardProps {
   title: string;
+  subtitle?: string;
   children: React.ReactNode;
   className?: string;
   action?: React.ReactNode;
@@ -12,6 +13,7 @@ interface DashboardCardProps {
 
 const DashboardCard: React.FC<DashboardCardProps> = ({
   title,
+  subtitle,
   children,
   className,
   action,
@@ -29,7 +31,10 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
       onClick={handleCardClick}
     >
       <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100">
-        <h3 className="text-sm font-medium text-gray-900">{title}</h3>
+        <div>
+          <h3 className="text-sm font-medium text-gray-900">{title}</h3>
+          {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+        </div>
         {action && (
           <div className="ml-4">
             {action}
