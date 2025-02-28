@@ -48,11 +48,14 @@ interface Manifesto {
 interface CTE {
   id: string;
   numero: string;
+  valorFrete?: string;  // Valor do frete vinculado ao CTe
+  valorCarga?: string;  // Valor da carga vinculado ao CTe
 }
 
 interface NotaFiscal {
   id: string;
   numero: string;
+  cteId?: string;  // Vinculação com o CTe
 }
 
 interface RejeicaoContrato {
@@ -90,6 +93,17 @@ export interface Contract {
   rejeicao?: RejeicaoContrato;
 }
 
+interface SaldoPagar {
+  id: string;
+  contratoId: string;
+  proprietario: string;
+  valorTotal: string;
+  dataPrevistaPagamento?: string;
+  status: 'Pendente' | 'Pago';
+  dataPagamento?: string;
+  bancoPagamento?: string;
+}
+
 const Contratos = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -98,6 +112,8 @@ const Contratos = () => {
   const [activeTab, setActiveTab] = useState('todos');
   const [activeContract, setActiveContract] = useState<Contract | null>(null);
   const [formTab, setFormTab] = useState('dados');
+  const [selectedCteId, setSelectedCteId] = useState<string>('');
+  const [showRejectionHistory, setShowRejectionHistory] = useState(false);
   
   // Estados para o formulário
   const [newContract, setNewContract] = useState<Omit<Contract, 'id'>>({
@@ -124,6 +140,8 @@ const Contratos = () => {
   const [novoManifesto, setNovoManifesto] = useState('');
   const [novoCte, setNovoCte] = useState('');
   const [novaNotaFiscal, setNovaNotaFiscal] = useState('');
+  const [valorFreteCte, setValorFreteCte] = useState('');
+  const [valorCargaCte, setValorCargaCte] = useState('');
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
   
   // Validação de campos duplicados
@@ -133,6 +151,18 @@ const Contratos = () => {
 
   // Estados para erros de validação
   const [erros, setErros] = useState<Record<string, string>>({});
+
+  // Histórico de rejeições
+  const [rejectionHistory, setRejectionHistory] = useState<{id: string, contratoId: string, data: string, motivo: string, responsavel: string}[]>(() => {
+    const savedHistory = localStorage.getItem('rejectionHistory');
+    return savedHistory ? JSON.parse(savedHistory) : [];
+  });
+
+  // Saldos a pagar
+  const [saldosPagar, setSaldosPagar] = useState<SaldoPagar[]>(() => {
+    const savedSaldos = localStorage.getItem('saldosPagar');
+    return savedSaldos ? JSON.parse(savedSaldos) : [];
+  });
 
   // Dados simulados
   const [contracts, setContracts] = useState<Contract[]>(() => {
@@ -152,10 +182,10 @@ const Contratos = () => {
         motorista: 'João Silva',
         proprietario: 'LogiFrota S.A.',
         manifestos: [{ id: '1', numero: 'MF-12345' }],
-        ctes: [{ id: '1', numero: 'CT-98765' }],
+        ctes: [{ id: '1', numero: 'CT-98765', valorFrete: 'R$ 3.500,00', valorCarga: 'R$ 120.000,00' }],
         valorFrete: 'R$ 3.500,00',
         valorCarga: 'R$ 120.000,00',
-        notasFiscais: [{ id: '1', numero: 'NF-123456' }, { id: '2', numero: 'NF-123457' }],
+        notasFiscais: [{ id: '1', numero: 'NF-123456', cteId: '1' }, { id: '2', numero: 'NF-123457', cteId: '1' }],
         status: 'Em andamento'
       },
       {
@@ -172,10 +202,10 @@ const Contratos = () => {
         motorista: 'Pedro Alves',
         proprietario: 'Transportes Rápidos Ltda',
         manifestos: [{ id: '2', numero: 'MF-54321' }],
-        ctes: [{ id: '2', numero: 'CT-12345' }],
+        ctes: [{ id: '2', numero: 'CT-12345', valorFrete: 'R$ 2.800,00', valorCarga: 'R$ 85.000,00' }],
         valorFrete: 'R$ 2.800,00',
         valorCarga: 'R$ 85.000,00',
-        notasFiscais: [{ id: '3', numero: 'NF-654321' }],
+        notasFiscais: [{ id: '3', numero: 'NF-654321', cteId: '2' }],
         valorFreteTerceiro: 'R$ 2.300,00',
         valorAdiantamento: 'R$ 1.000,00',
         valorPedagio: 'R$ 150,00',
@@ -199,10 +229,14 @@ const Contratos = () => {
         motorista: 'Carlos Ferreira',
         proprietario: 'LogiFrota S.A.',
         manifestos: [{ id: '3', numero: 'MF-67890' }],
-        ctes: [{ id: '3', numero: 'CT-54321' }],
+        ctes: [{ id: '3', numero: 'CT-54321', valorFrete: 'R$ 4.200,00', valorCarga: 'R$ 160.000,00' }],
         valorFrete: 'R$ 4.200,00',
         valorCarga: 'R$ 160.000,00',
-        notasFiscais: [{ id: '4', numero: 'NF-987654' }, { id: '5', numero: 'NF-987655' }, { id: '6', numero: 'NF-987656' }],
+        notasFiscais: [
+          { id: '4', numero: 'NF-987654', cteId: '3' }, 
+          { id: '5', numero: 'NF-987655', cteId: '3' }, 
+          { id: '6', numero: 'NF-987656', cteId: '3' }
+        ],
         responsavelEntrega: 'José Oliveira',
         dataEntrega: '2023-06-25',
         status: 'Aguardando canhoto'
@@ -214,6 +248,16 @@ const Contratos = () => {
   useEffect(() => {
     localStorage.setItem('contratos', JSON.stringify(contracts));
   }, [contracts]);
+
+  // Salvar histórico de rejeições no localStorage
+  useEffect(() => {
+    localStorage.setItem('rejectionHistory', JSON.stringify(rejectionHistory));
+  }, [rejectionHistory]);
+
+  // Salvar saldos a pagar no localStorage
+  useEffect(() => {
+    localStorage.setItem('saldosPagar', JSON.stringify(saldosPagar));
+  }, [saldosPagar]);
 
   // Funções
   const handleAddContract = () => {
@@ -245,8 +289,11 @@ const Contratos = () => {
     setNovoManifesto('');
     setNovoCte('');
     setNovaNotaFiscal('');
+    setValorFreteCte('');
+    setValorCargaCte('');
     setErros({});
     setFormTab('dados');
+    setSelectedCteId('');
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,8 +347,23 @@ const Contratos = () => {
     if (!newContract.placaCarreta) erros.placaCarreta = 'Placa da carreta é obrigatória';
     if (!newContract.motorista) erros.motorista = 'Motorista é obrigatório';
     if (!newContract.proprietario) erros.proprietario = 'Proprietário é obrigatório';
-    if (!newContract.valorFrete) erros.valorFrete = 'Valor do frete é obrigatório';
-    if (!newContract.valorCarga) erros.valorCarga = 'Valor da carga é obrigatório';
+    
+    // Verifica se há pelo menos um CTe e um valor de frete
+    if (newContract.ctes.length === 0) {
+      erros.cte = 'Adicione pelo menos um CTe';
+    } else {
+      // Verifica se todos os CTEs têm valores vinculados
+      let temCTEsSemValor = false;
+      newContract.ctes.forEach(cte => {
+        if (!cte.valorFrete || !cte.valorCarga) {
+          temCTEsSemValor = true;
+        }
+      });
+      
+      if (temCTEsSemValor) {
+        erros.cteValores = 'Todos os CTEs devem ter valores de frete e carga vinculados';
+      }
+    }
     
     if (newContract.tipo === 'Terceiro') {
       if (!newContract.valorFreteTerceiro) erros.valorFreteTerceiro = 'Valor do frete do terceiro é obrigatório';
@@ -365,20 +427,78 @@ const Contratos = () => {
       ctes: [...newContract.ctes, { id, numero: novoCte }]
     });
     setNovoCte('');
+    setSelectedCteId(id);
   };
 
   // Remover CTE
   const removerCte = (id: string) => {
+    // Remover também as notas fiscais associadas a esse CTE
+    const notasAtualizadas = newContract.notasFiscais.filter(n => n.cteId !== id);
+    
     setNewContract({
       ...newContract,
-      ctes: newContract.ctes.filter(c => c.id !== id)
+      ctes: newContract.ctes.filter(c => c.id !== id),
+      notasFiscais: notasAtualizadas
     });
+    
+    if (selectedCteId === id) {
+      setSelectedCteId('');
+    }
+  };
+
+  // Adicionar valores ao CTE
+  const adicionarValoresCte = () => {
+    if (!selectedCteId) {
+      toast.error('Selecione um CTe para adicionar valores');
+      return;
+    }
+    
+    if (!valorFreteCte || !valorCargaCte) {
+      toast.error('Informe os valores de frete e carga para o CTe');
+      return;
+    }
+    
+    const ctesAtualizados = newContract.ctes.map(cte => {
+      if (cte.id === selectedCteId) {
+        return { ...cte, valorFrete: valorFreteCte, valorCarga: valorCargaCte };
+      }
+      return cte;
+    });
+    
+    // Calcular totais de frete e carga
+    const totalFrete = ctesAtualizados.reduce((total, cte) => {
+      const valorFrete = cte.valorFrete ? parseFloat(cte.valorFrete.replace(/[^\d,.-]/g, '').replace(',', '.')) : 0;
+      return total + valorFrete;
+    }, 0);
+    
+    const totalCarga = ctesAtualizados.reduce((total, cte) => {
+      const valorCarga = cte.valorCarga ? parseFloat(cte.valorCarga.replace(/[^\d,.-]/g, '').replace(',', '.')) : 0;
+      return total + valorCarga;
+    }, 0);
+    
+    setNewContract({
+      ...newContract,
+      ctes: ctesAtualizados,
+      valorFrete: `R$ ${totalFrete.toFixed(2)}`,
+      valorCarga: `R$ ${totalCarga.toFixed(2)}`
+    });
+    
+    setValorFreteCte('');
+    setValorCargaCte('');
+    setSelectedCteId('');
+    
+    toast.success('Valores adicionados ao CTe com sucesso');
   };
 
   // Adicionar nova nota fiscal
   const adicionarNotaFiscal = () => {
     if (!novaNotaFiscal.trim()) {
       toast.error('Número da nota fiscal não pode estar vazio');
+      return;
+    }
+    
+    if (!selectedCteId) {
+      toast.error('Selecione um CTe para vincular a nota fiscal');
       return;
     }
     
@@ -394,7 +514,7 @@ const Contratos = () => {
     const id = Date.now().toString();
     setNewContract({
       ...newContract,
-      notasFiscais: [...newContract.notasFiscais, { id, numero: novaNotaFiscal }]
+      notasFiscais: [...newContract.notasFiscais, { id, numero: novaNotaFiscal, cteId: selectedCteId }]
     });
     setNovaNotaFiscal('');
   };
@@ -407,6 +527,22 @@ const Contratos = () => {
     });
   };
 
+  // Criar entrada no controle de saldo a pagar
+  const criarSaldoPagar = (contratoId: string, proprietario: string, valorTotal: string) => {
+    const novoSaldo: SaldoPagar = {
+      id: `SP-${Date.now()}`,
+      contratoId,
+      proprietario,
+      valorTotal,
+      status: 'Pendente',
+      dataPrevistaPagamento: format(new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd') // 15 dias a frente
+    };
+    
+    setSaldosPagar([...saldosPagar, novoSaldo]);
+    toast.success('Saldo a pagar registrado com sucesso');
+    return novoSaldo;
+  };
+
   // Salvar contrato
   const salvarContrato = () => {
     if (!validarFormulario()) {
@@ -415,20 +551,58 @@ const Contratos = () => {
     }
     
     // Calcular saldo a pagar para terceiros
+    let saldoAtualizadoId = '';
     if (newContract.tipo === 'Terceiro') {
-      const valorFrete = parseFloat(newContract.valorFreteTerceiro || '0');
-      const valorAdiantamento = parseFloat(newContract.valorAdiantamento || '0');
-      const valorPedagio = parseFloat(newContract.valorPedagio || '0');
+      const valorFrete = parseFloat(newContract.valorFreteTerceiro?.replace(/[^\d,.-]/g, '').replace(',', '.') || '0');
+      const valorAdiantamento = parseFloat(newContract.valorAdiantamento?.replace(/[^\d,.-]/g, '').replace(',', '.') || '0');
+      const valorPedagio = parseFloat(newContract.valorPedagio?.replace(/[^\d,.-]/g, '').replace(',', '.') || '0');
       const saldo = valorFrete - valorAdiantamento - valorPedagio;
       
-      newContract.saldoPagar = saldo.toFixed(2);
+      newContract.saldoPagar = `R$ ${saldo.toFixed(2)}`;
     }
     
     if (activeContract) {
       // Editar contrato existente
-      const updatedContracts = contracts.map(c => 
-        c.id === activeContract.id ? { ...newContract, id: activeContract.id } : c
-      );
+      const updatedContracts = contracts.map(c => {
+        if (c.id === activeContract.id) {
+          // Se o tipo mudou para terceiro e não havia saldo a pagar antes, criar um
+          if (newContract.tipo === 'Terceiro' && c.tipo !== 'Terceiro' && newContract.saldoPagar) {
+            const saldoExistente = saldosPagar.find(s => s.contratoId === c.id);
+            if (!saldoExistente) {
+              const novoSaldo = criarSaldoPagar(
+                c.id, 
+                newContract.proprietario, 
+                newContract.saldoPagar
+              );
+              saldoAtualizadoId = novoSaldo.id;
+            }
+          }
+          
+          // Se já era terceiro e o valor mudou, atualizar o saldo a pagar
+          if (newContract.tipo === 'Terceiro' && c.tipo === 'Terceiro' && 
+              newContract.saldoPagar !== c.saldoPagar) {
+            const saldoExistente = saldosPagar.find(s => s.contratoId === c.id && s.status === 'Pendente');
+            if (saldoExistente) {
+              setSaldosPagar(saldosPagar.map(s => {
+                if (s.id === saldoExistente.id) {
+                  return { ...s, valorTotal: newContract.saldoPagar || '0' };
+                }
+                return s;
+              }));
+            } else if (newContract.saldoPagar) {
+              const novoSaldo = criarSaldoPagar(
+                c.id, 
+                newContract.proprietario, 
+                newContract.saldoPagar
+              );
+              saldoAtualizadoId = novoSaldo.id;
+            }
+          }
+          
+          return { ...newContract, id: activeContract.id, status: activeContract.status as Contract['status'] };
+        }
+        return c;
+      });
       setContracts(updatedContracts);
       toast.success('Contrato atualizado com sucesso');
       logOperation('Atualizar Contrato', `Contrato ID: ${activeContract.id}`, true);
@@ -437,6 +611,17 @@ const Contratos = () => {
       const newId = `CT-${(contracts.length + 1).toString().padStart(3, '0')}`;
       const contractToAdd = { ...newContract, id: newId };
       setContracts([...contracts, contractToAdd]);
+      
+      // Criar saldo a pagar para contratos de terceiros
+      if (newContract.tipo === 'Terceiro' && newContract.saldoPagar) {
+        const novoSaldo = criarSaldoPagar(
+          newId, 
+          newContract.proprietario, 
+          newContract.saldoPagar
+        );
+        saldoAtualizadoId = novoSaldo.id;
+      }
+      
       toast.success('Contrato adicionado com sucesso');
       logOperation('Adicionar Contrato', `Contrato ID: ${newId}`, true);
     }
@@ -444,6 +629,17 @@ const Contratos = () => {
     setShowAddDialog(false);
     setActiveContract(null);
     resetForm();
+    
+    // Se criou um saldo a pagar, oferecer redirecionamento
+    if (saldoAtualizadoId) {
+      toast('Saldo a pagar registrado', {
+        description: 'Deseja ir para o controle de saldos a pagar?',
+        action: {
+          label: 'Ver agora',
+          onClick: () => navigate('/saldopagar')
+        },
+      });
+    }
   };
 
   // Rejeitar contrato
@@ -455,16 +651,29 @@ const Contratos = () => {
       return;
     }
     
+    const rejeicaoData = {
+      data: format(new Date(), 'yyyy-MM-dd'),
+      motivo: motivoRejeicao,
+      responsavel: 'Controladoria'
+    };
+    
+    // Adicionar ao histórico de rejeições
+    const novaRejeicao = {
+      id: `REJ-${Date.now()}`,
+      contratoId: activeContract.id,
+      data: rejeicaoData.data,
+      motivo: rejeicaoData.motivo,
+      responsavel: rejeicaoData.responsavel
+    };
+    
+    setRejectionHistory([...rejectionHistory, novaRejeicao]);
+    
     const updatedContracts = contracts.map(c => {
       if (c.id === activeContract.id) {
         return {
           ...c,
-          status: 'Rejeitado',
-          rejeicao: {
-            data: format(new Date(), 'yyyy-MM-dd'),
-            motivo: motivoRejeicao,
-            responsavel: 'Controladoria'
-          }
+          status: 'Rejeitado' as Contract['status'],
+          rejeicao: rejeicaoData
         };
       }
       return c;
@@ -486,7 +695,7 @@ const Contratos = () => {
       if (c.id === activeContract.id) {
         return {
           ...c,
-          status: 'Correção pendente'
+          status: 'Correção pendente' as Contract['status']
         };
       }
       return c;
@@ -506,7 +715,7 @@ const Contratos = () => {
       if (c.id === activeContract.id) {
         return {
           ...c,
-          status: 'Concluído',
+          status: 'Concluído' as Contract['status'],
           dataEntrega: format(new Date(), 'yyyy-MM-dd'),
           responsavelEntrega: 'Controladoria'
         };
@@ -528,7 +737,7 @@ const Contratos = () => {
       if (c.id === activeContract.id) {
         return {
           ...c,
-          status: 'Aguardando canhoto'
+          status: 'Aguardando canhoto' as Contract['status']
         };
       }
       return c;
@@ -542,6 +751,10 @@ const Contratos = () => {
 
   // Excluir contrato
   const excluirContrato = (id: string) => {
+    // Remover saldos a pagar associados ao contrato
+    const saldosAtualizados = saldosPagar.filter(s => s.contratoId !== id);
+    setSaldosPagar(saldosAtualizados);
+    
     const updatedContracts = contracts.filter(c => c.id !== id);
     setContracts(updatedContracts);
     toast.success('Contrato excluído com sucesso');
@@ -568,6 +781,11 @@ const Contratos = () => {
     concluidos: contracts.filter(c => c.status === 'Concluído').length,
     aguardandoCanhoto: contracts.filter(c => c.status === 'Aguardando canhoto').length,
     rejeitados: contracts.filter(c => c.status === 'Rejeitado' || c.status === 'Correção pendente').length,
+  };
+
+  // Encontrar as notas fiscais associadas a um CTe específico
+  const getNotasFiscaisByCte = (cteId: string) => {
+    return newContract.notasFiscais.filter(nota => nota.cteId === cteId);
   };
 
   return (
@@ -663,6 +881,16 @@ const Contratos = () => {
             <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={handleExportContracts}>
               <Download size={16} />
               <span className="hidden md:inline">Exportar</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1"
+              onClick={() => setShowRejectionHistory(true)}
+            >
+              <ThumbsDown size={16} />
+              <span className="hidden md:inline">Histórico de Rejeições</span>
             </Button>
             
             <Button variant="default" size="sm" className="ml-auto flex items-center gap-1" onClick={handleAddContract}>
@@ -1128,6 +1356,9 @@ const Contratos = () => {
                   {cteDuplicado && (
                     <p className="text-red-500 text-xs">Este CTe já foi adicionado</p>
                   )}
+                  {erros.cte && (
+                    <p className="text-red-500 text-xs mt-1">{erros.cte}</p>
+                  )}
                 </div>
                 
                 {/* Lista de CTEs */}
@@ -1139,19 +1370,75 @@ const Contratos = () => {
                     <div className="border rounded-md divide-y">
                       {newContract.ctes.map((cte) => (
                         <div key={cte.id} className="flex items-center justify-between p-2">
-                          <span>{cte.numero}</span>
-                          {(activeContract?.status !== 'Concluído' && activeContract?.status !== 'Aguardando canhoto') && (
+                          <div className="flex flex-col">
+                            <span className="font-medium">{cte.numero}</span>
+                            {cte.valorFrete && cte.valorCarga && (
+                              <span className="text-xs text-gray-500">
+                                Frete: {cte.valorFrete} | Carga: {cte.valorCarga}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
                             <Button 
                               variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-red-500"
-                              onClick={() => removerCte(cte.id)}
+                              size="sm"
+                              className="h-8 text-blue-500"
+                              onClick={() => {
+                                setSelectedCteId(cte.id);
+                                setValorFreteCte(cte.valorFrete || '');
+                                setValorCargaCte(cte.valorCarga || '');
+                              }}
+                              disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
                             >
-                              <X size={16} />
+                              Valores
                             </Button>
-                          )}
+                            {(activeContract?.status !== 'Concluído' && activeContract?.status !== 'Aguardando canhoto') && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-red-500"
+                                onClick={() => removerCte(cte.id)}
+                              >
+                                <X size={16} />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Valores do CTe selecionado */}
+                {selectedCteId && (
+                  <div className="mt-4 p-4 border rounded-md">
+                    <h4 className="font-medium mb-3">
+                      Vincular valores ao CTe {newContract.ctes.find(c => c.id === selectedCteId)?.numero}
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="valorFreteCte">Valor do Frete (Receita)</Label>
+                        <Input 
+                          id="valorFreteCte" 
+                          placeholder="R$ 0,00" 
+                          value={valorFreteCte}
+                          onChange={(e) => setValorFreteCte(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="valorCargaCte">Valor da Carga</Label>
+                        <Input 
+                          id="valorCargaCte" 
+                          placeholder="R$ 0,00" 
+                          value={valorCargaCte}
+                          onChange={(e) => setValorCargaCte(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end mt-4">
+                      <Button size="sm" onClick={adicionarValoresCte}>
+                        Salvar valores
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1161,7 +1448,7 @@ const Contratos = () => {
                   <Label htmlFor="notaFiscal" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Número da Nota Fiscal
                   </Label>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <Input 
                       id="notaFiscal" 
                       placeholder="NF-00000" 
@@ -1173,11 +1460,27 @@ const Contratos = () => {
                       className={notaFiscalDuplicada ? "border-red-500" : ""}
                       disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
                     />
+                    <Select 
+                      value={selectedCteId} 
+                      onValueChange={setSelectedCteId}
+                      disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um CTe" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {newContract.ctes.map(cte => (
+                          <SelectItem key={cte.id} value={cte.id}>
+                            {cte.numero}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Button 
                       size="sm" 
                       variant="outline" 
                       onClick={adicionarNotaFiscal}
-                      disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
+                      disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto' || !selectedCteId}
                     >
                       + Adicionar
                     </Button>
@@ -1187,29 +1490,53 @@ const Contratos = () => {
                   )}
                 </div>
                 
-                {/* Lista de Notas Fiscais */}
-                {newContract.notasFiscais.length > 0 && (
-                  <div className="space-y-2">
+                {/* Lista de Notas Fiscais agrupadas por CTe */}
+                {newContract.ctes.length > 0 && newContract.notasFiscais.length > 0 && (
+                  <div className="space-y-4 mt-4">
                     <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Notas Fiscais Adicionadas
+                      Notas Fiscais por CTe
                     </Label>
-                    <div className="border rounded-md divide-y">
-                      {newContract.notasFiscais.map((nota) => (
-                        <div key={nota.id} className="flex items-center justify-between p-2">
-                          <span>{nota.numero}</span>
-                          {(activeContract?.status !== 'Concluído' && activeContract?.status !== 'Aguardando canhoto') && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-red-500"
-                              onClick={() => removerNotaFiscal(nota.id)}
-                            >
-                              <X size={16} />
-                            </Button>
-                          )}
+                    
+                    {newContract.ctes.map(cte => {
+                      const notasFiscaisDoCte = getNotasFiscaisByCte(cte.id);
+                      
+                      if (notasFiscaisDoCte.length === 0) return null;
+                      
+                      return (
+                        <div key={cte.id} className="border rounded-md overflow-hidden">
+                          <div className="bg-gray-50 dark:bg-gray-800/50 p-2 font-medium flex justify-between">
+                            <span>{cte.numero}</span>
+                            <span className="text-xs text-gray-500 self-center">
+                              {notasFiscaisDoCte.length} nota(s)
+                            </span>
+                          </div>
+                          <div className="divide-y">
+                            {notasFiscaisDoCte.map(nota => (
+                              <div key={nota.id} className="flex items-center justify-between p-2">
+                                <span>{nota.numero}</span>
+                                {(activeContract?.status !== 'Concluído' && activeContract?.status !== 'Aguardando canhoto') && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-red-500"
+                                    onClick={() => removerNotaFiscal(nota.id)}
+                                  >
+                                    <X size={16} />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {erros.cteValores && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                    <p>{erros.cteValores}</p>
+                    <p className="mt-1 text-xs">Clique no botão "Valores" ao lado de cada CTe para adicionar os valores de frete e carga.</p>
                   </div>
                 )}
               </div>
@@ -1218,88 +1545,94 @@ const Contratos = () => {
             <TabsContent value="valores">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="valorFrete">Valor do Frete (Receita)</Label>
+                  <Label htmlFor="valorFrete">Valor Total do Frete (Receita)</Label>
                   <Input 
                     id="valorFrete" 
                     placeholder="R$ 0,00" 
                     value={newContract.valorFrete}
                     onChange={(e) => setNewContract({...newContract, valorFrete: e.target.value})}
                     className={erros.valorFrete ? "border-red-500" : ""}
-                    disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
+                    disabled={true} // Valor calculado automaticamente com base nos CTEs
                   />
-                  {erros.valorFrete && (
-                    <p className="text-red-500 text-xs mt-1">{erros.valorFrete}</p>
-                  )}
+                  <p className="text-xs text-gray-500">Soma dos valores de frete dos CTEs</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="valorCarga">Valor da Carga</Label>
+                  <Label htmlFor="valorCarga">Valor Total da Carga</Label>
                   <Input 
                     id="valorCarga" 
                     placeholder="R$ 0,00" 
                     value={newContract.valorCarga}
                     onChange={(e) => setNewContract({...newContract, valorCarga: e.target.value})}
                     className={erros.valorCarga ? "border-red-500" : ""}
-                    disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
+                    disabled={true} // Valor calculado automaticamente com base nos CTEs
                   />
-                  {erros.valorCarga && (
-                    <p className="text-red-500 text-xs mt-1">{erros.valorCarga}</p>
-                  )}
+                  <p className="text-xs text-gray-500">Soma dos valores de carga dos CTEs</p>
                 </div>
               </div>
               
               {/* Valores específicos para Terceiros */}
               {newContract.tipo === 'Terceiro' && (
                 <div className="mt-6 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="valorFreteTerceiro">Valor do Frete Contratado</Label>
-                      <Input 
-                        id="valorFreteTerceiro" 
-                        placeholder="R$ 0,00" 
-                        value={newContract.valorFreteTerceiro || ''}
-                        onChange={(e) => setNewContract({...newContract, valorFreteTerceiro: e.target.value})}
-                        className={erros.valorFreteTerceiro ? "border-red-500" : ""}
-                        disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
-                      />
-                      {erros.valorFreteTerceiro && (
-                        <p className="text-red-500 text-xs mt-1">{erros.valorFreteTerceiro}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="valorAdiantamento">Valor Adiantamento</Label>
-                      <Input 
-                        id="valorAdiantamento" 
-                        placeholder="R$ 0,00" 
-                        value={newContract.valorAdiantamento || ''}
-                        onChange={(e) => setNewContract({...newContract, valorAdiantamento: e.target.value})}
-                        disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="valorPedagio">Valor Pedágio</Label>
-                      <Input 
-                        id="valorPedagio" 
-                        placeholder="R$ 0,00" 
-                        value={newContract.valorPedagio || ''}
-                        onChange={(e) => setNewContract({...newContract, valorPedagio: e.target.value})}
-                        disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Saldo a Pagar (calculado automaticamente) */}
-                  <div className="p-4 border rounded-md bg-gray-50 dark:bg-gray-800/50">
-                    <div className="flex justify-between items-center">
-                      <Label>Saldo a Pagar</Label>
-                      <div className="text-xl font-semibold">
-                        R$ {(
-                          parseFloat(newContract.valorFreteTerceiro || '0') - 
-                          parseFloat(newContract.valorAdiantamento || '0') - 
-                          parseFloat(newContract.valorPedagio || '0')
-                        ).toFixed(2)}
+                  <Card className="border border-purple-200 bg-purple-50/50 dark:bg-purple-900/10 dark:border-purple-800/30">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-md">Valores de Frete para Terceiros</CardTitle>
+                      <CardDescription>
+                        Preencha os valores relacionados ao terceiro contratado
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="valorFreteTerceiro">Valor do Frete Contratado</Label>
+                          <Input 
+                            id="valorFreteTerceiro" 
+                            placeholder="R$ 0,00" 
+                            value={newContract.valorFreteTerceiro || ''}
+                            onChange={(e) => setNewContract({...newContract, valorFreteTerceiro: e.target.value})}
+                            className={erros.valorFreteTerceiro ? "border-red-500" : ""}
+                            disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
+                          />
+                          {erros.valorFreteTerceiro && (
+                            <p className="text-red-500 text-xs mt-1">{erros.valorFreteTerceiro}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="valorAdiantamento">Valor Adiantamento</Label>
+                          <Input 
+                            id="valorAdiantamento" 
+                            placeholder="R$ 0,00" 
+                            value={newContract.valorAdiantamento || ''}
+                            onChange={(e) => setNewContract({...newContract, valorAdiantamento: e.target.value})}
+                            disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="valorPedagio">Valor Pedágio</Label>
+                          <Input 
+                            id="valorPedagio" 
+                            placeholder="R$ 0,00" 
+                            value={newContract.valorPedagio || ''}
+                            onChange={(e) => setNewContract({...newContract, valorPedagio: e.target.value})}
+                            disabled={activeContract?.status === 'Concluído' || activeContract?.status === 'Aguardando canhoto'}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                      
+                      {/* Saldo a Pagar (calculado automaticamente) */}
+                      <div className="p-4 border rounded-md bg-gray-50 dark:bg-gray-800/50">
+                        <div className="flex justify-between items-center">
+                          <Label>Saldo a Pagar (será registrado automaticamente)</Label>
+                          <div className="text-xl font-semibold">
+                            R$ {(
+                              parseFloat(newContract.valorFreteTerceiro?.replace(/[^\d,.-]/g, '').replace(',', '.') || '0') - 
+                              parseFloat(newContract.valorAdiantamento?.replace(/[^\d,.-]/g, '').replace(',', '.') || '0') - 
+                              parseFloat(newContract.valorPedagio?.replace(/[^\d,.-]/g, '').replace(',', '.') || '0')
+                            ).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
             </TabsContent>
@@ -1457,8 +1790,92 @@ const Contratos = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Dialog para Histórico de Rejeições */}
+      <Dialog open={showRejectionHistory} onOpenChange={setShowRejectionHistory}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ThumbsDown size={18} className="text-red-600" />
+              Histórico de Rejeições de Contratos
+            </DialogTitle>
+            <DialogDescription>
+              Veja todas as rejeições de contratos e os motivos informados.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {rejectionHistory.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-gray-800/50">
+                      <th className="border px-4 py-2 text-left">Data</th>
+                      <th className="border px-4 py-2 text-left">Contrato</th>
+                      <th className="border px-4 py-2 text-left">Responsável</th>
+                      <th className="border px-4 py-2 text-left">Motivo</th>
+                      <th className="border px-4 py-2 text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rejectionHistory.map((rejeicao) => {
+                      const contrato = contracts.find(c => c.id === rejeicao.contratoId);
+                      return (
+                        <tr key={rejeicao.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <td className="border px-4 py-2">
+                            {format(new Date(rejeicao.data), 'dd/MM/yyyy')}
+                          </td>
+                          <td className="border px-4 py-2">
+                            {contrato ? contrato.id : rejeicao.contratoId}
+                          </td>
+                          <td className="border px-4 py-2">
+                            {rejeicao.responsavel}
+                          </td>
+                          <td className="border px-4 py-2">
+                            {rejeicao.motivo.length > 50 
+                              ? rejeicao.motivo.substring(0, 50) + '...' 
+                              : rejeicao.motivo}
+                          </td>
+                          <td className="border px-4 py-2 text-center">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setShowRejectionHistory(false);
+                                const contract = contracts.find(c => c.id === rejeicao.contratoId);
+                                if (contract) {
+                                  setActiveContract(contract);
+                                  setShowAddDialog(true);
+                                  setFormTab('observacoes');
+                                } else {
+                                  toast.error('Contrato não encontrado ou já excluído');
+                                }
+                              }}
+                            >
+                              Ver Detalhes
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Nenhum histórico de rejeição encontrado</p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setShowRejectionHistory(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };
 
 export default Contratos;
+
