@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 interface FormularioFreteContratadoProps {
@@ -123,7 +122,7 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
 
       <div className="flex justify-end mt-4">
         <Button type="submit" variant="default">
-          Salvar Dados do Frete
+          Salvar e Lançar Saldo a Pagar
         </Button>
       </div>
     </form>

@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import FormularioCTeDados from "./FormularioCTeDados";
-import { FormularioFreteContratado, FreteContratadoData } from "./FormularioFreteContratado";
+import FormularioFreteContratado, { FreteContratadoData } from "./FormularioFreteContratado";
 import FormularioRejeicaoContrato from "./FormularioRejeicaoContrato";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -38,7 +38,6 @@ export const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, init
   const [freteContratadoData, setFreteContratadoData] = useState<FreteContratadoData | undefined>(
     initialData?.freteContratadoData
   );
-  const [rejeicaoData, setRejeicaoData] = useState<RejeicaoData | undefined>(initialData?.rejeicaoData);
 
   const handleSaveCTe = (data: CTeDadosData) => {
     setCteData(data);
@@ -49,18 +48,14 @@ export const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, init
   const handleSaveFreteContratado = (data: FreteContratadoData) => {
     setFreteContratadoData(data);
     toast.success("Dados do frete contratado salvos!");
-  };
-
-  const handleSaveRejeicao = (data: RejeicaoData) => {
-    setRejeicaoData(data);
-    toast.success("Dados de rejeição salvos!");
+    // Aqui podemos adicionar lógica para lançar no módulo de saldo a pagar
+    toast.info("Saldo a pagar lançado no módulo correspondente");
   };
 
   const handleSalvarContrato = () => {
     onSave({
       cteData,
-      freteContratadoData,
-      rejeicaoData
+      freteContratadoData
     });
   };
 
@@ -69,8 +64,6 @@ export const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, init
       <div className="flex justify-end mb-4">
         <FormularioRejeicaoContrato 
           idContrato="123" 
-          onSave={handleSaveRejeicao} 
-          initialData={initialData?.rejeicaoData}
           onRejeicaoRegistrada={() => toast.info("Contrato rejeitado com sucesso!")}
         />
       </div>
