@@ -18,7 +18,7 @@ export interface FreteContratadoData {
   saldoPagar: number;
 }
 
-export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
+const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
   onSave,
   initialData
 }) => {

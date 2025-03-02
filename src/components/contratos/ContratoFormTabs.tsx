@@ -32,7 +32,7 @@ interface ContratoFormTabsProps {
   };
 }
 
-export const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, initialData }) => {
+const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, initialData }) => {
   const [activeTab, setActiveTab] = useState("cte");
   const [cteData, setCteData] = useState<CTeDadosData | undefined>(initialData?.cteData);
   const [freteContratadoData, setFreteContratadoData] = useState<FreteContratadoData | undefined>(
