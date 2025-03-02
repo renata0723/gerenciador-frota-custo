@@ -6,6 +6,9 @@ import FormularioFreteContratado, { FreteContratadoData } from "./FormularioFret
 import FormularioRejeicaoContrato from "./FormularioRejeicaoContrato";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 // Interfaces para os dados dos formulários
 interface CTeDadosData {
@@ -14,21 +17,22 @@ interface CTeDadosData {
   valorFrete: number;
 }
 
-interface RejeicaoData {
-  motivo: string;
-  data: string;
+interface ObservacoesData {
+  responsavelEntrega: string;
+  dataEntrega: string;
+  observacoes: string;
 }
 
 interface ContratoFormTabsProps {
   onSave: (data: {
     cteData?: CTeDadosData;
     freteContratadoData?: FreteContratadoData;
-    rejeicaoData?: RejeicaoData;
+    observacoesData?: ObservacoesData;
   }) => void;
   initialData?: {
     cteData?: CTeDadosData;
     freteContratadoData?: FreteContratadoData;
-    rejeicaoData?: RejeicaoData;
+    observacoesData?: ObservacoesData;
   };
 }
 
@@ -37,6 +41,13 @@ const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, initialData
   const [cteData, setCteData] = useState<CTeDadosData | undefined>(initialData?.cteData);
   const [freteContratadoData, setFreteContratadoData] = useState<FreteContratadoData | undefined>(
     initialData?.freteContratadoData
+  );
+  const [observacoesData, setObservacoesData] = useState<ObservacoesData | undefined>(
+    initialData?.observacoesData || {
+      responsavelEntrega: '',
+      dataEntrega: '',
+      observacoes: ''
+    }
   );
 
   const handleSaveCTe = (data: CTeDadosData) => {
@@ -50,12 +61,22 @@ const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, initialData
     toast.success("Dados do frete contratado salvos!");
     // Aqui podemos adicionar lógica para lançar no módulo de saldo a pagar
     toast.info("Saldo a pagar lançado no módulo correspondente");
+    setActiveTab("observacoes");
+  };
+
+  const handleObservacoesChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setObservacoesData(prev => ({
+      ...prev!,
+      [name]: value
+    }));
   };
 
   const handleSalvarContrato = () => {
     onSave({
       cteData,
-      freteContratadoData
+      freteContratadoData,
+      observacoesData
     });
   };
 
@@ -76,6 +97,9 @@ const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, initialData
           <TabsTrigger value="frete-contratado" className="flex-1">
             Frete Contratado
           </TabsTrigger>
+          <TabsTrigger value="observacoes" className="flex-1">
+            Observações
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="cte">
@@ -84,6 +108,43 @@ const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, initialData
 
         <TabsContent value="frete-contratado">
           <FormularioFreteContratado onSave={handleSaveFreteContratado} initialData={freteContratadoData} />
+        </TabsContent>
+
+        <TabsContent value="observacoes">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="responsavelEntrega">Responsável pela Entrega do Contrato</Label>
+                <Input
+                  id="responsavelEntrega"
+                  name="responsavelEntrega"
+                  value={observacoesData?.responsavelEntrega}
+                  onChange={handleObservacoesChange}
+                />
+              </div>
+              <div>
+                <Label htmlFor="dataEntrega">Data de Entrega</Label>
+                <Input
+                  id="dataEntrega"
+                  name="dataEntrega"
+                  type="date"
+                  value={observacoesData?.dataEntrega}
+                  onChange={handleObservacoesChange}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="observacoes">Observações</Label>
+              <Textarea
+                id="observacoes"
+                name="observacoes"
+                rows={4}
+                value={observacoesData?.observacoes}
+                onChange={handleObservacoesChange}
+                placeholder="Insira aqui quaisquer observações relevantes sobre o contrato..."
+              />
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 

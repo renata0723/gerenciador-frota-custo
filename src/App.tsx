@@ -17,6 +17,9 @@ import Veiculos from "./pages/Veiculos";
 import NovoVeiculoForm from "./pages/NovoVeiculoForm";
 import RelatoriosVeiculos from "./pages/RelatoriosVeiculos";
 import SaldoPagar from "./pages/SaldoPagar";
+import Abastecimentos from "./pages/Abastecimentos";
+import Manutencao from "./pages/Manutencao";
+import DespesasGerais from "./pages/DespesasGerais";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +44,9 @@ const App = () => (
           <Route path="/veiculos/editar/:id" element={<NovoVeiculoForm />} />
           <Route path="/veiculos/relatorios" element={<RelatoriosVeiculos />} />
           <Route path="/saldo-pagar" element={<SaldoPagar />} />
+          <Route path="/abastecimentos" element={<Abastecimentos />} />
+          <Route path="/manutencao" element={<Manutencao />} />
+          <Route path="/despesas" element={<DespesasGerais />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
