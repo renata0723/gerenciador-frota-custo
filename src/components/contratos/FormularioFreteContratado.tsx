@@ -1,260 +1,131 @@
 
-import React, { useState } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import React, { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from "sonner";
+
+interface FormularioFreteContratadoProps {
+  onSave: (data: FreteContratadoData) => void;
+  initialData?: FreteContratadoData;
+}
 
 export interface FreteContratadoData {
   valorFreteContratado: number;
   valorAdiantamento: number;
-  dataAdiantamento: Date | undefined;
+  dataPagamentoAdiantamento: string;
   valorPedagio: number;
-  saldoAPagar: number;
-  aguardandoCanhoto: boolean;
+  saldoPagar: number;
 }
 
-interface FormularioFreteContratadoProps {
-  contratoId?: string;
-  valorTotalCTes?: number;
-  tipoVeiculo?: string;
-  onTipoVeiculoChange?: (tipo: string) => void;
-  onSave: (dados: FreteContratadoData) => void;
-  initialData?: FreteContratadoData;
-}
-
-const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({ 
-  contratoId, 
-  valorTotalCTes = 0,
-  tipoVeiculo = "terceiro",
-  onTipoVeiculoChange,
-  initialData,
-  onSave 
+export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
+  onSave,
+  initialData
 }) => {
-  const [dadosFrete, setDadosFrete] = useState<FreteContratadoData>(
-    initialData || {
-      valorFreteContratado: 0,
-      valorAdiantamento: 0,
-      dataAdiantamento: undefined,
-      valorPedagio: 0,
-      saldoAPagar: 0,
-      aguardandoCanhoto: true
-    }
+  const [valorFreteContratado, setValorFreteContratado] = useState<number>(initialData?.valorFreteContratado || 0);
+  const [valorAdiantamento, setValorAdiantamento] = useState<number>(initialData?.valorAdiantamento || 0);
+  const [dataPagamentoAdiantamento, setDataPagamentoAdiantamento] = useState<string>(
+    initialData?.dataPagamentoAdiantamento || ""
   );
+  const [valorPedagio, setValorPedagio] = useState<number>(initialData?.valorPedagio || 0);
+  const [saldoPagar, setSaldoPagar] = useState<number>(initialData?.saldoPagar || 0);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    
-    if (type === 'checkbox') {
-      setDadosFrete(prev => ({
-        ...prev,
-        [name]: checked
-      }));
-    } else {
-      // Converter para número e garantir que seja um número válido
-      const numValue = parseFloat(value);
-      const valorAtualizado = isNaN(numValue) ? 0 : numValue;
-      
-      setDadosFrete(prev => {
-        // Calcular o novo valor do saldo a pagar baseado nos outros campos
-        let newState = {
-          ...prev,
-          [name]: valorAtualizado
-        };
-        
-        // Atualizar automaticamente o saldo a pagar
-        if (['valorFreteContratado', 'valorAdiantamento', 'valorPedagio'].includes(name)) {
-          newState.saldoAPagar = newState.valorFreteContratado - newState.valorAdiantamento - newState.valorPedagio;
-        }
-        
-        return newState;
-      });
-    }
-  };
-
-  const handleTipoVeiculoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    if (onTipoVeiculoChange) {
-      onTipoVeiculoChange(e.target.value);
-    }
-  };
+  // Calcular saldo a pagar automaticamente
+  useEffect(() => {
+    const calculoSaldo = valorFreteContratado - valorAdiantamento - valorPedagio;
+    setSaldoPagar(calculoSaldo >= 0 ? calculoSaldo : 0);
+  }, [valorFreteContratado, valorAdiantamento, valorPedagio]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação básica
-    if (dadosFrete.valorFreteContratado <= 0) {
-      toast.error('O valor do frete contratado deve ser maior que zero');
+    if (valorFreteContratado <= 0) {
+      toast.error("O valor do frete contratado deve ser maior que zero");
       return;
     }
-    
-    if (dadosFrete.valorAdiantamento < 0 || dadosFrete.valorPedagio < 0) {
-      toast.error('Os valores de adiantamento e pedágio não podem ser negativos');
-      return;
-    }
-    
-    console.log('Dados do frete contratado salvos:', dadosFrete);
-    
-    // Registrar o saldo a pagar no módulo de Saldo a Pagar (se houver saldo)
-    if (dadosFrete.saldoAPagar > 0) {
-      // Aqui seria o código para registrar o saldo no módulo de Saldo a Pagar
-      console.log('Saldo a pagar registrado no módulo:', dadosFrete.saldoAPagar);
-      toast.success('Saldo a pagar de R$ ' + dadosFrete.saldoAPagar.toFixed(2) + ' registrado no módulo Saldo a Pagar');
-    }
-    
-    onSave(dadosFrete);
-    toast.success('Dados do frete contratado salvos com sucesso');
+
+    const data: FreteContratadoData = {
+      valorFreteContratado,
+      valorAdiantamento,
+      dataPagamentoAdiantamento,
+      valorPedagio,
+      saldoPagar
+    };
+
+    onSave(data);
+    toast.success("Dados do frete contratado salvos com sucesso!");
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="tipoVeiculo">Tipo de Veículo</Label>
-            <select
-              id="tipoVeiculo"
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-              value={tipoVeiculo}
-              onChange={handleTipoVeiculoChange}
-            >
-              <option value="frota">Frota Própria</option>
-              <option value="terceiro">Terceirizado</option>
-            </select>
-          </div>
-          
-          <div>
-            <Label htmlFor="valorFreteContratado">Valor do Frete Contratado (R$)</Label>
-            <Input
-              id="valorFreteContratado"
-              name="valorFreteContratado"
-              type="number"
-              step="0.01"
-              min="0"
-              value={dadosFrete.valorFreteContratado || ''}
-              onChange={handleChange}
-              placeholder="0,00"
-              required
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="valorAdiantamento">Valor do Adiantamento (R$)</Label>
-            <Input
-              id="valorAdiantamento"
-              name="valorAdiantamento"
-              type="number"
-              step="0.01"
-              min="0"
-              value={dadosFrete.valorAdiantamento || ''}
-              onChange={handleChange}
-              placeholder="0,00"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="dataAdiantamento">Data de Pagamento do Adiantamento</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dadosFrete.dataAdiantamento && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dadosFrete.dataAdiantamento ? (
-                    format(dadosFrete.dataAdiantamento, "PP", { locale: ptBR })
-                  ) : (
-                    <span>Selecione uma data</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dadosFrete.dataAdiantamento}
-                  onSelect={(date) => 
-                    setDadosFrete(prev => ({
-                      ...prev,
-                      dataAdiantamento: date
-                    }))
-                  }
-                  initialFocus
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          
-          <div>
-            <Label htmlFor="valorPedagio">Valor do Pedágio (R$)</Label>
-            <Input
-              id="valorPedagio"
-              name="valorPedagio"
-              type="number"
-              step="0.01"
-              min="0"
-              value={dadosFrete.valorPedagio || ''}
-              onChange={handleChange}
-              placeholder="0,00"
-            />
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="valorFreteContratado">Valor do Frete Contratado (R$)</Label>
+          <Input
+            id="valorFreteContratado"
+            type="number"
+            step="0.01"
+            value={valorFreteContratado}
+            onChange={(e) => setValorFreteContratado(parseFloat(e.target.value) || 0)}
+            placeholder="0,00"
+            required
+          />
         </div>
-        
-        <div className="space-y-4">
-          <div className="p-4 bg-gray-50 rounded-md">
-            <div className="mb-4">
-              <Label>Valor Total dos CTes:</Label>
-              <div className="text-lg font-medium">
-                R$ {valorTotalCTes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-            </div>
-            
-            <div>
-              <Label>Saldo a Pagar:</Label>
-              <div className="text-xl font-semibold text-green-600">
-                R$ {dadosFrete.saldoAPagar.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Este saldo será registrado automaticamente no módulo de Saldo a Pagar
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2 mt-4 p-4 border rounded-md">
-            <Switch
-              id="aguardandoCanhoto"
-              name="aguardandoCanhoto"
-              checked={dadosFrete.aguardandoCanhoto}
-              onCheckedChange={(checked) => {
-                setDadosFrete(prev => ({
-                  ...prev,
-                  aguardandoCanhoto: checked
-                }));
-              }}
-            />
-            <Label htmlFor="aguardandoCanhoto" className="cursor-pointer">
-              Aguardando Canhoto
-            </Label>
-          </div>
-          
-          <div className="text-sm text-gray-500 mt-2">
-            O saldo a pagar será registrado no módulo de Saldo a Pagar com status de "Aguardando Canhoto" se esta opção estiver marcada.
-          </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="valorAdiantamento">Valor do Adiantamento (R$)</Label>
+          <Input
+            id="valorAdiantamento"
+            type="number"
+            step="0.01"
+            value={valorAdiantamento}
+            onChange={(e) => setValorAdiantamento(parseFloat(e.target.value) || 0)}
+            placeholder="0,00"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="dataPagamentoAdiantamento">Data do Pagamento do Adiantamento</Label>
+          <Input
+            id="dataPagamentoAdiantamento"
+            type="date"
+            value={dataPagamentoAdiantamento}
+            onChange={(e) => setDataPagamentoAdiantamento(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="valorPedagio">Valor do Pedágio (R$)</Label>
+          <Input
+            id="valorPedagio"
+            type="number"
+            step="0.01"
+            value={valorPedagio}
+            onChange={(e) => setValorPedagio(parseFloat(e.target.value) || 0)}
+            placeholder="0,00"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="saldoPagar">Saldo a Pagar (R$)</Label>
+          <Input
+            id="saldoPagar"
+            type="number"
+            step="0.01"
+            value={saldoPagar}
+            readOnly
+            className="bg-gray-100"
+          />
+          <p className="text-sm text-gray-500">Valor calculado automaticamente</p>
         </div>
       </div>
-      
-      <Button type="submit" className="w-full">
-        Salvar Dados do Frete Contratado
-      </Button>
+
+      <div className="flex justify-end mt-4">
+        <Button type="submit" variant="default">
+          Salvar Dados do Frete
+        </Button>
+      </div>
     </form>
   );
 };
