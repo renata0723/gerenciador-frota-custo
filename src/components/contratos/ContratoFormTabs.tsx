@@ -66,6 +66,15 @@ export const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, init
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end mb-4">
+        <FormularioRejeicaoContrato 
+          idContrato="123" 
+          onSave={handleSaveRejeicao} 
+          initialData={initialData?.rejeicaoData}
+          onRejeicaoRegistrada={() => toast.info("Contrato rejeitado com sucesso!")}
+        />
+      </div>
+
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full">
           <TabsTrigger value="cte" className="flex-1">
@@ -73,9 +82,6 @@ export const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, init
           </TabsTrigger>
           <TabsTrigger value="frete-contratado" className="flex-1">
             Frete Contratado
-          </TabsTrigger>
-          <TabsTrigger value="rejeicao" className="flex-1">
-            Rejeição
           </TabsTrigger>
         </TabsList>
 
@@ -85,10 +91,6 @@ export const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, init
 
         <TabsContent value="frete-contratado">
           <FormularioFreteContratado onSave={handleSaveFreteContratado} initialData={freteContratadoData} />
-        </TabsContent>
-
-        <TabsContent value="rejeicao">
-          <FormularioRejeicaoContrato onSave={handleSaveRejeicao} initialData={rejeicaoData} />
         </TabsContent>
       </Tabs>
 
