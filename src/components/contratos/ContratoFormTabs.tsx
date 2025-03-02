@@ -1,9 +1,9 @@
 
 import React, { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FormularioCTeDados } from "./FormularioCTeDados";
+import FormularioCTeDados from "./FormularioCTeDados";
 import { FormularioFreteContratado, FreteContratadoData } from "./FormularioFreteContratado";
-import { FormularioRejeicaoContrato } from "./FormularioRejeicaoContrato";
+import FormularioRejeicaoContrato from "./FormularioRejeicaoContrato";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
