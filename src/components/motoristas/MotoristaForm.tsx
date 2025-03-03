@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -82,12 +83,22 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
           { nome: 'Transportes Rápidos' }
         ]);
       } else if (data) {
-        setProprietarios(data);
+        // Garantir que os dados estão no formato esperado
+        const proprietariosFormatados = data.map((item: any) => {
+          // Verificar se o item tem a propriedade 'nome'
+          if (typeof item === 'object' && item.nome) {
+            return { nome: item.nome };
+          }
+          // Caso contrário, tentar extrair a informação do JSON
+          return { nome: typeof item === 'object' ? JSON.stringify(item) : String(item) };
+        });
+        
+        setProprietarios(proprietariosFormatados);
       } else {
         // Se a função RPC falhar ou não retornar dados, tentar consulta direta
         try {
           const { data: directData, error: directError } = await supabase
-            .from('Proprietarios' as any)
+            .from('Proprietarios')
             .select('nome');
             
           if (directError) {

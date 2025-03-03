@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +64,6 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
     
     try {
       // Verificar se o proprietário já existe
-      // Usando o método genérico para evitar erros de tipagem
       const { data: existingOwner, error: checkError } = await supabase
         .rpc('check_proprietario_exists', { proprietario_nome: nome });
         
@@ -74,7 +72,7 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
         
         // Alternativa: fazer consulta direta apesar dos erros de tipagem
         const { data: directQuery, error: directError } = await supabase
-          .from('Proprietarios' as any)
+          .from('Proprietarios')
           .select('*')
           .eq('nome', nome)
           .single();
@@ -90,7 +88,7 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
           setLoading(false);
           return;
         }
-      } else if (existingOwner && existingOwner.exists) {
+      } else if (existingOwner && existingOwner.exists === true) {
         toast.error('Este proprietário já está cadastrado no sistema');
         setLoading(false);
         return;
@@ -104,9 +102,9 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
         tipoConta
       });
       
-      // Inserir novo proprietário - usando any temporariamente para evitar erro de tipagem
+      // Inserir novo proprietário
       const { error } = await supabase
-        .from('Proprietarios' as any)
+        .from('Proprietarios')
         .insert({
           nome,
           documento,

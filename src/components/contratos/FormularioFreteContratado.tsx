@@ -52,12 +52,12 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
       if (dadosContrato.proprietarioInfo) {
         setFormData(prev => ({
           ...prev,
-          proprietarioInfo: dadosContrato.proprietarioInfo,
+          proprietarioInfo: dadosContrato.proprietarioInfo as ProprietarioData,
           gerarSaldoPagar: true
         }));
       } else {
         // Simulação de busca de dados do proprietário se não estiver disponível
-        const proprietarioInfo = {
+        const proprietarioInfo: ProprietarioData = {
           nome: dadosContrato.proprietario,
           documento: 'Documento do proprietário', // Simulado
           dadosBancarios: {
