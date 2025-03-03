@@ -9,6 +9,9 @@ export interface PageHeaderProps {
   description?: string;
   backButton?: boolean;
   backLink?: string;
+  icon?: React.ReactNode;
+  breadcrumbs?: Array<{label: string; href?: string}>;
+  actions?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -17,6 +20,9 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   description,
   backButton = false,
   backLink,
+  icon,
+  breadcrumbs,
+  actions,
   children
 }) => {
   const navigate = useNavigate();
@@ -31,6 +37,23 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   
   return (
     <div className="flex flex-col space-y-2 mb-6">
+      {breadcrumbs && (
+        <div className="flex items-center gap-1 text-sm text-gray-500 mb-2">
+          {breadcrumbs.map((item, index) => (
+            <React.Fragment key={index}>
+              {index > 0 && <span className="mx-1">/</span>}
+              {item.href ? (
+                <button onClick={() => navigate(item.href)} className="hover:text-blue-500">
+                  {item.label}
+                </button>
+              ) : (
+                <span>{item.label}</span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+      
       <div className="flex items-center space-x-4">
         {backButton && (
           <Button
@@ -44,13 +67,18 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           </Button>
         )}
         
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-          {description && (
-            <p className="text-muted-foreground">{description}</p>
-          )}
+        <div className="flex items-center gap-2">
+          {icon && <div className="text-blue-500">{icon}</div>}
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+            {description && (
+              <p className="text-muted-foreground">{description}</p>
+            )}
+          </div>
         </div>
       </div>
+      
+      {actions && <div className="flex items-center justify-end mt-2">{actions}</div>}
       
       {children && <div className="flex items-center justify-between">{children}</div>}
     </div>

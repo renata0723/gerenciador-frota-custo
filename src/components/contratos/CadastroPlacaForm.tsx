@@ -9,8 +9,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { logOperation } from '@/utils/logOperations';
 import { validarPlaca, formatarPlaca } from '@/utils/veiculoUtils';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface Proprietario {
   nome: string;
@@ -40,7 +40,6 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
   isCarreta = false 
 }) => {
   const [placaCavalo, setPlacaCavalo] = useState('');
-  const [placaCarreta, setPlacaCarreta] = useState('');
   const [tipoFrota, setTipoFrota] = useState<'frota' | 'terceiro'>('frota');
   const [proprietario, setProprietario] = useState('');
   const [proprietarios, setProprietarios] = useState<Proprietario[]>([]);
@@ -110,7 +109,7 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
     try {
       if (isCarreta) {
         // Formatar e validar a placa da carreta
-        const placaFormatada = formatarPlaca(placaCarreta);
+        const placaFormatada = formatarPlaca(placaCavalo);
         
         if (!placaFormatada || !validarPlaca(placaFormatada)) {
           setErro('Por favor, insira uma placa de carreta válida (formato: ABC-1234 ou ABC1D23)');
@@ -204,21 +203,11 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
           return;
         }
 
-        const placaCarretaFormatada = placaCarreta ? formatarPlaca(placaCarreta) : null;
-        
-        // Se informou placa da carreta, validar também
-        if (placaCarretaFormatada && !validarPlaca(placaCarretaFormatada)) {
-          setErro('Por favor, insira uma placa de carreta válida (formato: ABC-1234 ou ABC1D23)');
-          setCarregando(false);
-          return;
-        }
-
         // Inserir o veículo
         const { data: veiculo, error } = await supabase
           .from('Veiculos')
           .insert({
             placa_cavalo: placaFormatada,
-            placa_carreta: placaCarretaFormatada || null,
             tipo_frota: tipoFrota,
             status_veiculo: 'Ativo'
           })
@@ -252,8 +241,7 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         toast.success('Veículo cadastrado com sucesso!');
         
         const resultData = { 
-          placaCavalo: placaFormatada, 
-          placaCarreta: placaCarretaFormatada || undefined, 
+          placaCavalo: placaFormatada,
           tipoFrota 
         };
         
@@ -295,35 +283,23 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
           <Label htmlFor="placaCarreta">Placa da Carreta *</Label>
           <Input
             id="placaCarreta"
-            value={placaCarreta}
-            onChange={(e) => setPlacaCarreta(e.target.value.toUpperCase())}
+            value={placaCavalo}
+            onChange={(e) => setPlacaCavalo(e.target.value.toUpperCase())}
             placeholder="Formato: ABC-1234 ou ABC1D23"
             required
           />
         </div>
       ) : (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor="placaCavalo">Placa do Cavalo *</Label>
-            <Input
-              id="placaCavalo"
-              value={placaCavalo}
-              onChange={(e) => setPlacaCavalo(e.target.value.toUpperCase())}
-              placeholder="Formato: ABC-1234 ou ABC1D23"
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="placaCarreta">Placa da Carreta (opcional)</Label>
-            <Input
-              id="placaCarreta"
-              value={placaCarreta}
-              onChange={(e) => setPlacaCarreta(e.target.value.toUpperCase())}
-              placeholder="Formato: ABC-1234 ou ABC1D23"
-            />
-          </div>
-        </>
+        <div className="space-y-2">
+          <Label htmlFor="placaCavalo">Placa do Cavalo *</Label>
+          <Input
+            id="placaCavalo"
+            value={placaCavalo}
+            onChange={(e) => setPlacaCavalo(e.target.value.toUpperCase())}
+            placeholder="Formato: ABC-1234 ou ABC1D23"
+            required
+          />
+        </div>
       )}
       
       <div className="space-y-2">

@@ -52,7 +52,7 @@ const Login = () => {
     <div className="flex h-screen w-full items-center justify-center bg-gray-100">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">ControlFrota</CardTitle>
+          <CardTitle className="text-2xl font-bold">Controladoria</CardTitle>
           <CardDescription>
             Sistema de Controle de Frotas e Logística
           </CardDescription>
@@ -90,7 +90,7 @@ const Login = () => {
           </form>
         </CardContent>
         <CardFooter className="flex justify-center text-sm text-gray-500">
-          © {new Date().getFullYear()} ControlFrota - Todos os direitos reservados
+          © {new Date().getFullYear()} Controladoria - Todos os direitos reservados
         </CardFooter>
       </Card>
     </div>
