@@ -7,6 +7,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { ProprietarioData } from './CadastroProprietarioForm';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 export interface FreteContratadoData {
   valorFreteContratado: number;
@@ -16,6 +22,7 @@ export interface FreteContratadoData {
   observacoes: string;
   gerarSaldoPagar: boolean;
   proprietarioInfo: ProprietarioData | null;
+  dataVencimento?: Date | null;
 }
 
 interface FormularioFreteContratadoProps {
@@ -41,7 +48,8 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
       saldoPagar: 0,
       observacoes: '',
       gerarSaldoPagar: false,
-      proprietarioInfo: null
+      proprietarioInfo: null,
+      dataVencimento: null
     }
   );
 
@@ -112,6 +120,13 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
     }));
   };
 
+  const handleDateSelect = (date: Date | undefined) => {
+    setFormData(prev => ({
+      ...prev,
+      dataVencimento: date || null
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -127,10 +142,16 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
         return;
       }
       
+      if (!formData.dataVencimento) {
+        toast.error('Por favor, defina uma data de vencimento para o saldo a pagar');
+        return;
+      }
+      
       // Aqui você poderia adicionar lógica para gerar o saldo a pagar
       // Esta lógica seria implementada no componente pai ou em um serviço
       console.log('Gerando saldo a pagar para o proprietário:', formData.proprietarioInfo.nome);
-      toast.success(`Saldo a pagar será gerado para ${formData.proprietarioInfo.nome}`);
+      console.log('Data de vencimento:', formData.dataVencimento);
+      toast.success(`Saldo a pagar será gerado para ${formData.proprietarioInfo.nome} com vencimento em ${format(formData.dataVencimento, 'dd/MM/yyyy')}`);
     }
     
     onSubmit(formData);
@@ -224,17 +245,53 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
               </Label>
             </div>
             
-            {formData.gerarSaldoPagar && formData.proprietarioInfo && (
-              <div className="space-y-3">
-                <h3 className="font-medium text-sm">Dados do Proprietário</h3>
-                <p className="text-sm"><strong>Nome:</strong> {formData.proprietarioInfo.nome}</p>
-                <p className="text-sm"><strong>Documento:</strong> {formData.proprietarioInfo.documento}</p>
+            {formData.gerarSaldoPagar && (
+              <div className="space-y-4">
+                {formData.proprietarioInfo && (
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-sm">Dados do Proprietário</h3>
+                    <p className="text-sm"><strong>Nome:</strong> {formData.proprietarioInfo.nome}</p>
+                    <p className="text-sm"><strong>Documento:</strong> {formData.proprietarioInfo.documento}</p>
+                    
+                    <h3 className="font-medium text-sm mt-3">Dados Bancários</h3>
+                    <p className="text-sm"><strong>Banco:</strong> {formData.proprietarioInfo.dadosBancarios.banco}</p>
+                    <p className="text-sm"><strong>Agência:</strong> {formData.proprietarioInfo.dadosBancarios.agencia}</p>
+                    <p className="text-sm"><strong>Conta:</strong> {formData.proprietarioInfo.dadosBancarios.conta}</p>
+                    <p className="text-sm"><strong>Tipo de Conta:</strong> {formData.proprietarioInfo.dadosBancarios.tipoConta === 'corrente' ? 'Conta Corrente' : 'Conta Poupança'}</p>
+                  </div>
+                )}
                 
-                <h3 className="font-medium text-sm mt-3">Dados Bancários</h3>
-                <p className="text-sm"><strong>Banco:</strong> {formData.proprietarioInfo.dadosBancarios.banco}</p>
-                <p className="text-sm"><strong>Agência:</strong> {formData.proprietarioInfo.dadosBancarios.agencia}</p>
-                <p className="text-sm"><strong>Conta:</strong> {formData.proprietarioInfo.dadosBancarios.conta}</p>
-                <p className="text-sm"><strong>Tipo de Conta:</strong> {formData.proprietarioInfo.dadosBancarios.tipoConta === 'corrente' ? 'Conta Corrente' : 'Conta Poupança'}</p>
+                <div className="space-y-2">
+                  <Label htmlFor="dataVencimento">Data de Vencimento *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="dataVencimento"
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !formData.dataVencimento && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.dataVencimento ? (
+                          format(formData.dataVencimento, "PPP", { locale: ptBR })
+                        ) : (
+                          <span>Selecione a data de vencimento</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={formData.dataVencimento || undefined}
+                        onSelect={handleDateSelect}
+                        locale={ptBR}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             )}
           </Card>

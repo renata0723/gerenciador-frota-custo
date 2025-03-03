@@ -9,6 +9,7 @@ import FormularioObservacoes from '@/components/contratos/FormularioObservacoes'
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
 interface ContratoFormCompletoProps {
   contratoId?: string;
@@ -69,12 +70,24 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
     
     // Se for frete terceirizado e a opção de gerar saldo a pagar estiver marcada
     if (dadosContrato?.tipo === 'terceiro' && data.gerarSaldoPagar && data.saldoPagar > 0) {
+      // Formatar a data de vencimento
+      const dataVencimentoFormatada = data.dataVencimento ? 
+        format(data.dataVencimento, 'yyyy-MM-dd') : null;
+        
+      // Verificar se a data de vencimento foi definida
+      if (!dataVencimentoFormatada) {
+        toast.error("Data de vencimento é obrigatória para gerar saldo a pagar");
+        return;
+      }
+      
       // Gerar entrada no saldo a pagar
       const saldoPagarData = {
         parceiro: dadosContrato.proprietario,
         valorTotal: data.saldoPagar,
         contrato: dadosContrato.idContrato,
-        proprietarioInfo: data.proprietarioInfo || dadosContrato.proprietarioInfo
+        proprietarioInfo: data.proprietarioInfo || dadosContrato.proprietarioInfo,
+        dataVencimento: dataVencimentoFormatada,
+        notasFiscais: dadosDocumentos?.notasFiscais?.map((nf: any) => nf.numero).join(', ') || ''
       };
       
       console.log("Gerando saldo a pagar:", saldoPagarData);
@@ -84,6 +97,10 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
         const dadosBancariosJSON = saldoPagarData.proprietarioInfo ? 
           JSON.stringify(saldoPagarData.proprietarioInfo.dadosBancarios) : null;
           
+        // Preparar informações de notas fiscais associadas
+        const notasFiscaisInfo = dadosDocumentos?.notasFiscais?.length > 0 ? 
+          `Notas: ${saldoPagarData.notasFiscais}` : '';
+          
         // Inserir no saldo a pagar
         const { error } = await supabase
           .from('Saldo a pagar')
@@ -91,14 +108,16 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
             parceiro: saldoPagarData.parceiro,
             valor_total: saldoPagarData.valorTotal,
             contratos_associados: saldoPagarData.contrato,
-            dados_bancarios: dadosBancariosJSON
+            dados_bancarios: dadosBancariosJSON,
+            data_vencimento: dataVencimentoFormatada,
+            info_adicional: notasFiscaisInfo
           });
           
         if (error) {
           console.error('Erro ao gerar saldo a pagar:', error);
           toast.error('Erro ao gerar saldo a pagar para o proprietário');
         } else {
-          toast.success(`Saldo de R$ ${data.saldoPagar.toFixed(2)} gerado para o proprietário ${dadosContrato.proprietario}`);
+          toast.success(`Saldo de R$ ${data.saldoPagar.toFixed(2)} gerado para o proprietário ${dadosContrato.proprietario} com vencimento em ${format(data.dataVencimento, 'dd/MM/yyyy')}`);
         }
       } catch (error) {
         console.error('Erro ao processar saldo a pagar:', error);
@@ -176,7 +195,8 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
             numero_nota_fiscal: primeiraNotaFiscal,
             proprietario_veiculo: dadosContrato.tipo === 'terceiro' ? dadosContrato.proprietario : null,
             status: 'Pendente',
-            saldo_a_pagar: dadosContrato.tipo === 'terceiro' ? (dadosFrete?.saldoPagar || 0) : null
+            saldo_a_pagar: dadosContrato.tipo === 'terceiro' ? (dadosFrete?.saldoPagar || 0) : null,
+            data_programada_pagamento: dadosFrete?.dataVencimento ? format(dadosFrete.dataVencimento, 'yyyy-MM-dd') : null
           });
           
         if (canhotoError) {
