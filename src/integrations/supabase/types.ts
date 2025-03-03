@@ -53,22 +53,52 @@ export type Database = {
       }
       Canhoto: {
         Row: {
+          cliente: string | null
+          contrato_id: string | null
           data_entrega_cliente: string | null
+          data_programada_pagamento: string | null
           data_recebimento_canhoto: string | null
           id: number | null
+          motorista: string | null
+          numero_cte: string | null
+          numero_manifesto: string | null
+          numero_nota_fiscal: string | null
+          proprietario_veiculo: string | null
+          responsavel_recebimento: string | null
           saldo_a_pagar: number | null
+          status: string | null
         }
         Insert: {
+          cliente?: string | null
+          contrato_id?: string | null
           data_entrega_cliente?: string | null
+          data_programada_pagamento?: string | null
           data_recebimento_canhoto?: string | null
           id?: number | null
+          motorista?: string | null
+          numero_cte?: string | null
+          numero_manifesto?: string | null
+          numero_nota_fiscal?: string | null
+          proprietario_veiculo?: string | null
+          responsavel_recebimento?: string | null
           saldo_a_pagar?: number | null
+          status?: string | null
         }
         Update: {
+          cliente?: string | null
+          contrato_id?: string | null
           data_entrega_cliente?: string | null
+          data_programada_pagamento?: string | null
           data_recebimento_canhoto?: string | null
           id?: number | null
+          motorista?: string | null
+          numero_cte?: string | null
+          numero_manifesto?: string | null
+          numero_nota_fiscal?: string | null
+          proprietario_veiculo?: string | null
+          responsavel_recebimento?: string | null
           saldo_a_pagar?: number | null
+          status?: string | null
         }
         Relationships: []
       }
