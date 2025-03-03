@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
 import { Building, SaveIcon, Upload, MapPin, Tag, Phone, Mail, Globe } from 'lucide-react';
@@ -7,8 +7,39 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 
 const ConfiguracoesEmpresa = () => {
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>('/lovable-uploads/75203c5e-30d1-4ee0-ad01-02f3fb13db92.png');
   const [formSubmitting, setFormSubmitting] = useState(false);
+  
+  // Dados da empresa pré-preenchidos
+  const [dadosEmpresa, setDadosEmpresa] = useState({
+    nome: 'Sslog Transportes LTDA',
+    nomeFantasia: 'Sslog Transportes',
+    cnpj: '44.712.877/0001-80',
+    inscricaoEstadual: '90924698-99',
+    telefone: '(41) 3589-2829',
+    telefoneCelular: '(41) 99863-3118',
+    email: 'samia@sslogtransporte.com.br',
+    website: 'sslogtransporte.com.br',
+    slogan: 'Soluções em Logística e Transporte',
+    dataAbertura: '03/01/2022',
+    porte: 'Micro Empresa',
+    naturezaJuridica: 'Sociedade Empresária Limitada',
+    optanteMEI: 'Não',
+    optanteSimples: 'Não',
+    dataOpcaoSimples: '03/01/2022',
+    dataExclusaoSimples: '31/07/2024',
+    capitalSocial: 'R$ 15.000,00',
+    tipoEmpresa: 'Matriz',
+    situacao: 'Ativa',
+    dataSituacaoCadastral: '03/01/2022',
+    cep: '83309-030',
+    logradouro: 'Rua Vagner Luis Boscardin',
+    numero: '7015',
+    complemento: '',
+    bairro: 'Aguas Claras',
+    cidade: 'Piraquara',
+    estado: 'PR'
+  });
   
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -35,6 +66,14 @@ const ConfiguracoesEmpresa = () => {
     }, 1500);
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { id, value } = e.target;
+    setDadosEmpresa(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
   return (
     <PageLayout>
       <PageHeader 
@@ -59,16 +98,32 @@ const ConfiguracoesEmpresa = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="nome" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Nome da Empresa
+                    Razão Social
                   </label>
                   <input
                     type="text"
                     id="nome"
+                    value={dadosEmpresa.nome}
+                    onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
-                    placeholder="Nome da sua empresa"
                   />
                 </div>
                 
+                <div>
+                  <label htmlFor="nomeFantasia" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Nome Fantasia
+                  </label>
+                  <input
+                    type="text"
+                    id="nomeFantasia"
+                    value={dadosEmpresa.nomeFantasia}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="cnpj" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     CNPJ
@@ -76,8 +131,22 @@ const ConfiguracoesEmpresa = () => {
                   <input
                     type="text"
                     id="cnpj"
+                    value={dadosEmpresa.cnpj}
+                    onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
-                    placeholder="00.000.000/0001-00"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="inscricaoEstadual" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Inscrição Estadual
+                  </label>
+                  <input
+                    type="text"
+                    id="inscricaoEstadual"
+                    value={dadosEmpresa.inscricaoEstadual}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                   />
                 </div>
               </div>
@@ -85,7 +154,7 @@ const ConfiguracoesEmpresa = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Telefone
+                    Telefone Fixo
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -94,12 +163,33 @@ const ConfiguracoesEmpresa = () => {
                     <input
                       type="text"
                       id="telefone"
+                      value={dadosEmpresa.telefone}
+                      onChange={handleInputChange}
                       className="w-full pl-10 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
-                      placeholder="(00) 0000-0000"
                     />
                   </div>
                 </div>
                 
+                <div>
+                  <label htmlFor="telefoneCelular" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Telefone Celular / WhatsApp
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <Phone size={16} className="text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      id="telefoneCelular"
+                      value={dadosEmpresa.telefoneCelular}
+                      onChange={handleInputChange}
+                      className="w-full pl-10 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     E-mail
@@ -111,27 +201,29 @@ const ConfiguracoesEmpresa = () => {
                     <input
                       type="email"
                       id="email"
+                      value={dadosEmpresa.email}
+                      onChange={handleInputChange}
                       className="w-full pl-10 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
-                      placeholder="contato@empresa.com.br"
                     />
                   </div>
                 </div>
-              </div>
-              
-              <div>
-                <label htmlFor="website" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Website
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Globe size={16} className="text-gray-400" />
+                
+                <div>
+                  <label htmlFor="website" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Website
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <Globe size={16} className="text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      id="website"
+                      value={dadosEmpresa.website}
+                      onChange={handleInputChange}
+                      className="w-full pl-10 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                    />
                   </div>
-                  <input
-                    type="text"
-                    id="website"
-                    className="w-full pl-10 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
-                    placeholder="www.suaempresa.com.br"
-                  />
                 </div>
               </div>
               
@@ -142,9 +234,178 @@ const ConfiguracoesEmpresa = () => {
                 <textarea
                   id="slogan"
                   rows={3}
+                  value={dadosEmpresa.slogan}
+                  onChange={handleInputChange}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
-                  placeholder="Descreva brevemente sua empresa..."
                 ></textarea>
+              </div>
+            </div>
+          </div>
+          
+          {/* Informações Fiscais */}
+          <div className="bg-white dark:bg-sistema-dark rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center">
+              <Tag className="text-sistema-primary mr-2" size={20} />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Informações Fiscais</h3>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label htmlFor="dataAbertura" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Data de Abertura
+                  </label>
+                  <input
+                    type="text"
+                    id="dataAbertura"
+                    value={dadosEmpresa.dataAbertura}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="porte" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Porte
+                  </label>
+                  <input
+                    type="text"
+                    id="porte"
+                    value={dadosEmpresa.porte}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="naturezaJuridica" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Natureza Jurídica
+                  </label>
+                  <input
+                    type="text"
+                    id="naturezaJuridica"
+                    value={dadosEmpresa.naturezaJuridica}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div>
+                  <label htmlFor="optanteMEI" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Optante MEI
+                  </label>
+                  <select
+                    id="optanteMEI"
+                    value={dadosEmpresa.optanteMEI}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                  >
+                    <option value="Sim">Sim</option>
+                    <option value="Não">Não</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="optanteSimples" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Optante Simples
+                  </label>
+                  <select
+                    id="optanteSimples"
+                    value={dadosEmpresa.optanteSimples}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                  >
+                    <option value="Sim">Sim</option>
+                    <option value="Não">Não</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="dataOpcaoSimples" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Data Opção Simples
+                  </label>
+                  <input
+                    type="text"
+                    id="dataOpcaoSimples"
+                    value={dadosEmpresa.dataOpcaoSimples}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="dataExclusaoSimples" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Data Exclusão Simples
+                  </label>
+                  <input
+                    type="text"
+                    id="dataExclusaoSimples"
+                    value={dadosEmpresa.dataExclusaoSimples}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label htmlFor="capitalSocial" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Capital Social
+                  </label>
+                  <input
+                    type="text"
+                    id="capitalSocial"
+                    value={dadosEmpresa.capitalSocial}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="tipoEmpresa" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Tipo
+                  </label>
+                  <select
+                    id="tipoEmpresa"
+                    value={dadosEmpresa.tipoEmpresa}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                  >
+                    <option value="Matriz">Matriz</option>
+                    <option value="Filial">Filial</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="situacao" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Situação
+                  </label>
+                  <select
+                    id="situacao"
+                    value={dadosEmpresa.situacao}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                  >
+                    <option value="Ativa">Ativa</option>
+                    <option value="Inativa">Inativa</option>
+                    <option value="Suspensa">Suspensa</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="dataSituacaoCadastral" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Data Situação Cadastral
+                </label>
+                <input
+                  type="text"
+                  id="dataSituacaoCadastral"
+                  value={dadosEmpresa.dataSituacaoCadastral}
+                  onChange={handleInputChange}
+                  className="w-full max-w-xs px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
+                />
               </div>
             </div>
           </div>
@@ -164,8 +425,9 @@ const ConfiguracoesEmpresa = () => {
                 <input
                   type="text"
                   id="cep"
+                  value={dadosEmpresa.cep}
+                  onChange={handleInputChange}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white max-w-xs"
-                  placeholder="00000-000"
                 />
               </div>
               
@@ -177,8 +439,9 @@ const ConfiguracoesEmpresa = () => {
                   <input
                     type="text"
                     id="logradouro"
+                    value={dadosEmpresa.logradouro}
+                    onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
-                    placeholder="Rua, Avenida, etc."
                   />
                 </div>
                 
@@ -190,8 +453,9 @@ const ConfiguracoesEmpresa = () => {
                     <input
                       type="text"
                       id="numero"
+                      value={dadosEmpresa.numero}
+                      onChange={handleInputChange}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
-                      placeholder="Nº"
                     />
                   </div>
                   
@@ -202,8 +466,9 @@ const ConfiguracoesEmpresa = () => {
                     <input
                       type="text"
                       id="complemento"
+                      value={dadosEmpresa.complemento}
+                      onChange={handleInputChange}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
-                      placeholder="Sala, Andar, etc."
                     />
                   </div>
                 </div>
@@ -217,8 +482,9 @@ const ConfiguracoesEmpresa = () => {
                   <input
                     type="text"
                     id="bairro"
+                    value={dadosEmpresa.bairro}
+                    onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
-                    placeholder="Bairro"
                   />
                 </div>
                 
@@ -229,8 +495,9 @@ const ConfiguracoesEmpresa = () => {
                   <input
                     type="text"
                     id="cidade"
+                    value={dadosEmpresa.cidade}
+                    onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
-                    placeholder="Cidade"
                   />
                 </div>
                 
@@ -240,6 +507,8 @@ const ConfiguracoesEmpresa = () => {
                   </label>
                   <select
                     id="estado"
+                    value={dadosEmpresa.estado}
+                    onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                   >
                     <option value="">Selecione</option>
@@ -293,6 +562,7 @@ const ConfiguracoesEmpresa = () => {
                   id="cabecalho"
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-sistema-primary focus:border-sistema-primary dark:bg-gray-800 dark:text-white"
                   placeholder="Texto que aparecerá no cabeçalho dos documentos"
+                  defaultValue="Sslog Transportes - Soluções em Logística"
                 />
               </div>
               
@@ -383,9 +653,9 @@ const ConfiguracoesEmpresa = () => {
                   )}
                   
                   <div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">LogiFrota Transportes</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">CNPJ: 00.000.000/0001-00</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">São Paulo, SP</div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">Sslog Transportes LTDA</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">CNPJ: 44.712.877/0001-80</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Piraquara, PR</div>
                   </div>
                 </div>
               </div>

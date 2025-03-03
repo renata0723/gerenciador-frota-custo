@@ -52,7 +52,14 @@ const Login = () => {
     <div className="flex h-screen w-full items-center justify-center bg-gray-100">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Controladoria</CardTitle>
+          <div className="mx-auto mb-4">
+            <img 
+              src="/lovable-uploads/75203c5e-30d1-4ee0-ad01-02f3fb13db92.png" 
+              alt="Sslog Transportes" 
+              className="h-24 mx-auto"
+            />
+          </div>
+          <CardTitle className="text-2xl font-bold text-sistema-primary">Controladoria</CardTitle>
           <CardDescription>
             Sistema de Controle de Frotas e Logística
           </CardDescription>
@@ -83,14 +90,14 @@ const Login = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full bg-sistema-primary hover:bg-sistema-primary-dark" disabled={loading}>
                 {loading ? 'Entrando...' : 'Entrar'}
               </Button>
             </div>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center text-sm text-gray-500">
-          © {new Date().getFullYear()} Controladoria - Todos os direitos reservados
+          © {new Date().getFullYear()} Sslog Transportes - Todos os direitos reservados
         </CardFooter>
       </Card>
     </div>
