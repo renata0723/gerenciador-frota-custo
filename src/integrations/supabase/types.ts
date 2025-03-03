@@ -339,6 +339,27 @@ export type Database = {
         }
         Relationships: []
       }
+      Proprietarios: {
+        Row: {
+          created_at: string | null
+          dados_bancarios: string | null
+          documento: string | null
+          nome: string
+        }
+        Insert: {
+          created_at?: string | null
+          dados_bancarios?: string | null
+          documento?: string | null
+          nome: string
+        }
+        Update: {
+          created_at?: string | null
+          dados_bancarios?: string | null
+          documento?: string | null
+          nome?: string
+        }
+        Relationships: []
+      }
       Relatórios: {
         Row: {
           data_geracao: string | null
@@ -392,6 +413,42 @@ export type Database = {
           valor_total?: number | null
         }
         Relationships: []
+      }
+      VeiculoProprietarios: {
+        Row: {
+          created_at: string | null
+          id: number
+          placa_cavalo: string
+          proprietario_nome: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          placa_cavalo: string
+          proprietario_nome: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          placa_cavalo?: string
+          proprietario_nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "VeiculoProprietarios_placa_cavalo_fkey"
+            columns: ["placa_cavalo"]
+            isOneToOne: false
+            referencedRelation: "Veiculos"
+            referencedColumns: ["placa_cavalo"]
+          },
+          {
+            foreignKeyName: "VeiculoProprietarios_proprietario_nome_fkey"
+            columns: ["proprietario_nome"]
+            isOneToOne: false
+            referencedRelation: "Proprietarios"
+            referencedColumns: ["nome"]
+          },
+        ]
       }
       Veiculos: {
         Row: {

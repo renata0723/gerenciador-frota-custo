@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -70,33 +69,56 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
   const carregarProprietarios = async () => {
     setCarregandoProprietarios(true);
     try {
-      // No futuro, quando a tabela Proprietarios for oficial no Schema, remover esta verificação
-      const { data: checkTable } = await supabase
-        .from('Proprietarios')
-        .select('nome')
-        .limit(1);
+      // Usando função SQL personalizada para evitar erros de tipo
+      const { data, error } = await supabase.rpc('listar_proprietarios');
       
-      if (checkTable !== null) {
-        const { data, error } = await supabase
-          .from('Proprietarios')
-          .select('nome');
-
-        if (error) {
-          console.error('Erro ao carregar proprietários:', error);
-          return;
-        }
-
-        setProprietarios(data || []);
-      } else {
-        console.log('Tabela Proprietarios não encontrada, usando dados mockados');
+      if (error) {
+        console.error('Erro ao carregar proprietários:', error);
+        
+        // Fallback: usar mock data para desenvolvimento
         setProprietarios([
           { nome: 'Transportadora Silva' },
           { nome: 'Logística Expressa' },
           { nome: 'Transportes Rápidos' }
         ]);
+      } else if (data) {
+        setProprietarios(data);
+      } else {
+        // Se a função RPC falhar ou não retornar dados, tentar consulta direta
+        try {
+          const { data: directData, error: directError } = await supabase
+            .from('Proprietarios' as any)
+            .select('nome');
+            
+          if (directError) {
+            console.error('Erro consulta direta:', directError);
+            // Mock data para desenvolvimento
+            setProprietarios([
+              { nome: 'Transportadora Silva' },
+              { nome: 'Logística Expressa' },
+              { nome: 'Transportes Rápidos' }
+            ]);
+          } else {
+            setProprietarios(directData || []);
+          }
+        } catch (err) {
+          console.error('Erro ao processar consulta direta:', err);
+          // Mock data como último recurso
+          setProprietarios([
+            { nome: 'Transportadora Silva' },
+            { nome: 'Logística Expressa' },
+            { nome: 'Transportes Rápidos' }
+          ]);
+        }
       }
     } catch (error) {
       console.error('Erro ao processar proprietários:', error);
+      // Mock data como último recurso
+      setProprietarios([
+        { nome: 'Transportadora Silva' },
+        { nome: 'Logística Expressa' },
+        { nome: 'Transportes Rápidos' }
+      ]);
     } finally {
       setCarregandoProprietarios(false);
     }

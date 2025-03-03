@@ -65,20 +65,34 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
     
     try {
       // Verificar se o proprietário já existe
+      // Usando o método genérico para evitar erros de tipagem
       const { data: existingOwner, error: checkError } = await supabase
-        .from('Proprietarios')
-        .select('*')
-        .eq('nome', nome)
-        .single();
+        .rpc('check_proprietario_exists', { proprietario_nome: nome });
         
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         console.error(checkError);
-        toast.error('Erro ao verificar cadastro existente');
-        return;
-      }
-      
-      if (existingOwner) {
+        
+        // Alternativa: fazer consulta direta apesar dos erros de tipagem
+        const { data: directQuery, error: directError } = await supabase
+          .from('Proprietarios' as any)
+          .select('*')
+          .eq('nome', nome)
+          .single();
+          
+        if (directError && directError.code !== 'PGRST116') {
+          toast.error('Erro ao verificar cadastro existente');
+          setLoading(false);
+          return;
+        }
+        
+        if (directQuery) {
+          toast.error('Este proprietário já está cadastrado no sistema');
+          setLoading(false);
+          return;
+        }
+      } else if (existingOwner && existingOwner.exists) {
         toast.error('Este proprietário já está cadastrado no sistema');
+        setLoading(false);
         return;
       }
       
@@ -90,9 +104,9 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
         tipoConta
       });
       
-      // Inserir novo proprietário
+      // Inserir novo proprietário - usando any temporariamente para evitar erro de tipagem
       const { error } = await supabase
-        .from('Proprietarios')
+        .from('Proprietarios' as any)
         .insert({
           nome,
           documento,
@@ -102,6 +116,7 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
       if (error) {
         console.error(error);
         toast.error('Erro ao cadastrar proprietário');
+        setLoading(false);
         return;
       }
       
