@@ -30,6 +30,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
       setTimeout(() => {
         // Dados de exemplo
         setDadosContrato({
+          idContrato: contratoId, // Usando o contratoId como ID do contrato
           dataSaida: '2023-11-15',
           cidadeOrigem: 'São Paulo',
           estadoOrigem: 'SP',

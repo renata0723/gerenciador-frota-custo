@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 
 export interface DadosContratoFormData {
+  idContrato: string;
   dataSaida: string;
   cidadeOrigem: string;
   estadoOrigem: string;
@@ -32,6 +33,7 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
   initialData
 }) => {
   const [formData, setFormData] = useState<DadosContratoFormData>({
+    idContrato: initialData?.idContrato || '',
     dataSaida: initialData?.dataSaida || '',
     cidadeOrigem: initialData?.cidadeOrigem || '',
     estadoOrigem: initialData?.estadoOrigem || '',
@@ -71,6 +73,11 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
     e.preventDefault();
     
     // Validação básica
+    if (!formData.idContrato) {
+      toast.error('O número do contrato é obrigatório');
+      return;
+    }
+    
     if (!formData.dataSaida) {
       toast.error('A data de saída é obrigatória');
       return;
@@ -105,6 +112,18 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
       <h2 className="text-xl font-bold">Dados do Contrato</h2>
       
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="idContrato">Número do Contrato *</Label>
+          <Input
+            id="idContrato"
+            name="idContrato"
+            value={formData.idContrato}
+            onChange={handleChange}
+            placeholder="Número gerado pelo setor de operação"
+            required
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="dataSaida">Data de Saída *</Label>
