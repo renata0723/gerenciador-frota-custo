@@ -1,9 +1,15 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { AbastecimentoFormData, TipoCombustivel } from '@/types/abastecimento';
+import { logOperation } from '@/utils/logOperations';
 
 export async function cadastrarAbastecimento(data: AbastecimentoFormData) {
   try {
+    const itensAbastecidos = [{
+      tipo: data.tipoCombustivel,
+      quantidade: data.quantidade
+    }];
+
     const { error } = await supabase
       .from('Abastecimentos')
       .insert({
@@ -16,13 +22,12 @@ export async function cadastrarAbastecimento(data: AbastecimentoFormData) {
         quilometragem: data.quilometragem,
         posto: data.posto,
         responsavel_autorizacao: data.responsavel,
-        itens_abastecidos: JSON.stringify([{ 
-          tipo: data.tipoCombustivel, 
-          quantidade: data.quantidade 
-        }])
+        itens_abastecidos: JSON.stringify(itensAbastecidos)
       });
 
     if (error) throw error;
+    
+    logOperation('Abastecimentos', `Abastecimento registrado para veículo ${data.placa}`);
     return { success: true };
   } catch (error) {
     console.error('Erro ao cadastrar abastecimento:', error);
@@ -45,19 +50,33 @@ export async function buscarAbastecimentos() {
   }
 }
 
-export async function buscarTiposCombustivel(): Promise<TipoCombustivel[]> {
-  // Esta função eventualmente poderia buscar tipos de combustível do banco de dados
-  // Por enquanto retorna dados estáticos
-  return [
-    { id: "1", nome: 'Diesel S10', descricao: 'Combustível Diesel com baixo teor de enxofre' },
-    { id: "2", nome: 'Diesel Comum', descricao: 'Combustível Diesel comum' },
-    { id: "3", nome: 'Arla 32', descricao: 'Agente Redutor Líquido Automotivo' },
-    { id: "4", nome: 'Gasolina', descricao: 'Gasolina comum' }
-  ];
+export async function buscarTiposCombustivel() {
+  try {
+    const { data, error } = await supabase
+      .from('TiposCombustivel')
+      .select('*')
+      .order('nome');
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('Erro ao buscar tipos de combustível:', error);
+    return { success: false, error, data: [] };
+  }
 }
 
 export async function cadastrarTipoCombustivel(tipo: TipoCombustivel) {
-  // Esta função simularia adicionar um tipo de combustível ao banco
-  console.log('Tipo de combustível cadastrado (simulação):', tipo);
-  return { success: true, id: Date.now().toString() };
+  try {
+    const { error } = await supabase
+      .from('TiposCombustivel')
+      .insert(tipo);
+
+    if (error) throw error;
+    
+    logOperation('Abastecimentos', `Tipo de combustível cadastrado: ${tipo.nome}`);
+    return { success: true, id: tipo.id };
+  } catch (error) {
+    console.error('Erro ao cadastrar tipo de combustível:', error);
+    return { success: false, error };
+  }
 }

@@ -414,6 +414,27 @@ export type Database = {
         }
         Relationships: []
       }
+      TiposCombustivel: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id: string
+          nome: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       VeiculoProprietarios: {
         Row: {
           created_at: string | null

@@ -27,3 +27,17 @@ export interface AbastecimentoItem {
   tipo: string;
   quantidade: number;
 }
+
+export interface Abastecimento {
+  id: number;
+  data_abastecimento: string;
+  placa_veiculo: string;
+  motorista_solicitante: string;
+  tipo_combustivel: string;
+  valor_abastecimento: number;
+  valor_total: number;
+  posto: string;
+  responsavel_autorizacao: string;
+  quilometragem: number;
+  itens_abastecidos: string; // JSON string que será convertido para AbastecimentoItem[]
+}
