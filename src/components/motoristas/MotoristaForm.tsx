@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface MotoristaData {
   nome: string;
@@ -20,7 +21,10 @@ export interface MotoristaData {
   dataNascimento: string;
   dataContratacao: string;
   status: 'active' | 'inactive';
+  tipo: 'frota' | 'parceiro';
+  proprietarioVinculado?: string;
   observacoes: string;
+  tipoCadastro: 'simples' | 'completo';
 }
 
 interface MotoristaFormProps {
@@ -45,10 +49,58 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
     dataNascimento: initialData?.dataNascimento || '',
     dataContratacao: initialData?.dataContratacao || '',
     status: initialData?.status || 'active',
-    observacoes: initialData?.observacoes || ''
+    tipo: initialData?.tipo || 'frota',
+    proprietarioVinculado: initialData?.proprietarioVinculado || '',
+    observacoes: initialData?.observacoes || '',
+    tipoCadastro: 'simples'
   });
 
   const [tipoFormulario, setTipoFormulario] = useState<'simples' | 'completo'>('simples');
+  const [loading, setLoading] = useState(false);
+  const [proprietarios, setProprietarios] = useState<{nome: string}[]>([]);
+  const [carregandoProprietarios, setCarregandoProprietarios] = useState(false);
+
+  // Carregar proprietários quando o tipo for 'parceiro'
+  useEffect(() => {
+    if (formData.tipo === 'parceiro') {
+      carregarProprietarios();
+    }
+  }, [formData.tipo]);
+
+  const carregarProprietarios = async () => {
+    setCarregandoProprietarios(true);
+    try {
+      // No futuro, quando a tabela Proprietarios for oficial no Schema, remover esta verificação
+      const { data: checkTable } = await supabase
+        .from('Proprietarios')
+        .select('nome')
+        .limit(1);
+      
+      if (checkTable !== null) {
+        const { data, error } = await supabase
+          .from('Proprietarios')
+          .select('nome');
+
+        if (error) {
+          console.error('Erro ao carregar proprietários:', error);
+          return;
+        }
+
+        setProprietarios(data || []);
+      } else {
+        console.log('Tabela Proprietarios não encontrada, usando dados mockados');
+        setProprietarios([
+          { nome: 'Transportadora Silva' },
+          { nome: 'Logística Expressa' },
+          { nome: 'Transportes Rápidos' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Erro ao processar proprietários:', error);
+    } finally {
+      setCarregandoProprietarios(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -65,21 +117,85 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     
     // Validação básica
     if (!formData.nome || !formData.cpf) {
       toast.error('Nome e CPF são campos obrigatórios');
+      setLoading(false);
       return;
     }
     
     if (tipoFormulario === 'completo' && (!formData.cnh || !formData.vencimentoCnh)) {
       toast.error('CNH e data de vencimento são obrigatórios no cadastro completo');
+      setLoading(false);
       return;
     }
 
-    onSave(formData);
+    // Atualizar o tipo de cadastro
+    const motoristaDados = {
+      ...formData,
+      tipoCadastro: tipoFormulario
+    };
+    
+    try {
+      // Verificar se o motorista já existe
+      const { data: existingMotorista, error: checkError } = await supabase
+        .from('Motoristas')
+        .select('*')
+        .eq('cpf', formData.cpf)
+        .maybeSingle();
+        
+      if (checkError && checkError.code !== 'PGRST116') {
+        toast.error('Erro ao verificar CPF existente');
+        console.error(checkError);
+        setLoading(false);
+        return;
+      }
+      
+      if (existingMotorista) {
+        toast.error('Este CPF já está cadastrado no sistema');
+        setLoading(false);
+        return;
+      }
+      
+      // Inserir novo motorista
+      const { error } = await supabase
+        .from('Motoristas')
+        .insert({
+          nome: motoristaDados.nome,
+          cpf: motoristaDados.cpf,
+          cnh: motoristaDados.cnh,
+          categoria_cnh: motoristaDados.categoriaCnh,
+          vencimento_cnh: motoristaDados.vencimentoCnh ? new Date(motoristaDados.vencimentoCnh).toISOString() : null,
+          telefone: motoristaDados.telefone,
+          endereco: motoristaDados.endereco,
+          data_nascimento: motoristaDados.dataNascimento ? new Date(motoristaDados.dataNascimento).toISOString() : null,
+          data_contratacao: motoristaDados.dataContratacao ? new Date(motoristaDados.dataContratacao).toISOString() : null,
+          status: motoristaDados.status,
+          tipo: motoristaDados.tipo,
+          proprietario_vinculado: motoristaDados.tipo === 'parceiro' ? motoristaDados.proprietarioVinculado : null,
+          observacoes: motoristaDados.observacoes,
+          tipo_cadastro: motoristaDados.tipoCadastro
+        });
+        
+      if (error) {
+        toast.error('Erro ao cadastrar motorista');
+        console.error(error);
+        setLoading(false);
+        return;
+      }
+      
+      toast.success('Motorista cadastrado com sucesso!');
+      onSave(motoristaDados);
+    } catch (error) {
+      console.error('Erro ao processar:', error);
+      toast.error('Ocorreu um erro ao processar o cadastro');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -131,6 +247,42 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
                   placeholder="(00) 00000-0000"
                 />
               </div>
+              
+              <div>
+                <Label htmlFor="tipo">Tipo de Motorista *</Label>
+                <Select 
+                  value={formData.tipo} 
+                  onValueChange={(value) => handleSelectChange('tipo', value as 'frota' | 'parceiro')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="frota">Frota Própria</SelectItem>
+                    <SelectItem value="parceiro">Parceiro/Terceirizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {formData.tipo === 'parceiro' && (
+                <div>
+                  <Label htmlFor="proprietarioVinculado">Proprietário Vinculado *</Label>
+                  <Select 
+                    value={formData.proprietarioVinculado} 
+                    onValueChange={(value) => handleSelectChange('proprietarioVinculado', value)}
+                    disabled={carregandoProprietarios}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={carregandoProprietarios ? "Carregando..." : "Selecione o proprietário"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {proprietarios.map(prop => (
+                        <SelectItem key={prop.nome} value={prop.nome}>{prop.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </TabsContent>
           
@@ -246,6 +398,42 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
               </div>
               
               <div>
+                <Label htmlFor="tipo">Tipo de Motorista *</Label>
+                <Select 
+                  value={formData.tipo} 
+                  onValueChange={(value) => handleSelectChange('tipo', value as 'frota' | 'parceiro')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="frota">Frota Própria</SelectItem>
+                    <SelectItem value="parceiro">Parceiro/Terceirizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {formData.tipo === 'parceiro' && (
+                <div>
+                  <Label htmlFor="proprietarioVinculado">Proprietário Vinculado *</Label>
+                  <Select 
+                    value={formData.proprietarioVinculado} 
+                    onValueChange={(value) => handleSelectChange('proprietarioVinculado', value)}
+                    disabled={carregandoProprietarios}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={carregandoProprietarios ? "Carregando..." : "Selecione o proprietário"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {proprietarios.map(prop => (
+                        <SelectItem key={prop.nome} value={prop.nome}>{prop.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              <div>
                 <Label htmlFor="status">Status</Label>
                 <Select 
                   value={formData.status} 
@@ -275,11 +463,11 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
           </TabsContent>
           
           <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
               Cancelar
             </Button>
-            <Button type="submit">
-              {tipoFormulario === 'simples' ? 'Salvar Cadastro Simples' : 'Salvar Cadastro Completo'}
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Salvando...' : tipoFormulario === 'simples' ? 'Salvar Cadastro Simples' : 'Salvar Cadastro Completo'}
             </Button>
           </DialogFooter>
         </form>
