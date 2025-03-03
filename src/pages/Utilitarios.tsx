@@ -1,162 +1,135 @@
 
-import React, { useState } from 'react';
-import PageLayout from '@/components/layout/PageLayout';
-import PageHeader from '@/components/ui/PageHeader';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Trash2, Database, Download, FileWarning } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import PageLayout from '../components/layout/PageLayout';
+import PageHeader from '../components/ui/PageHeader';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, Database, FileCog, FileWarning, HardDrive, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { clearAllLocalData, clearLocalDataByKey, getLocalStorageUsage, clearAllSupabaseTables, clearSupabaseTable } from '@/utils/dbCleanup';
-import { SUPABASE_TABLES } from '@/utils/constants';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { calculateLocalStorageSize, cleanupAllTables } from '@/utils/dbCleanup';
+import { logOperation } from '@/utils/logOperations';
 
 const Utilitarios = () => {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogTable, setDialogTable] = useState('');
-  const [dialogAction, setDialogAction] = useState<'limpar' | 'resetar' | 'limparTudo'>('limpar');
-  const [selectedTable, setSelectedTable] = useState('');
-  const [usage, setUsage] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleCheckStorage = () => {
-    const storageUsage = getLocalStorageUsage();
-    setUsage(storageUsage);
-    toast.info(`Tamanho total dos dados: ${storageUsage.formattedSize}`);
+  const [localStorageSize, setLocalStorageSize] = useState<{ totalSize: string, items: { key: string, size: string }[] } | null>(null);
+  const [showCleanupDialog, setShowCleanupDialog] = useState(false);
+  
+  useEffect(() => {
+    refreshStorageSize();
+  }, []);
+  
+  const refreshStorageSize = () => {
+    const size = calculateLocalStorageSize();
+    setLocalStorageSize(size);
   };
-
-  const handleClearTableConfirm = () => {
-    setDialogOpen(false);
-    setLoading(true);
-
-    if (dialogAction === 'limparTudo') {
-      clearAllLocalData();
-      toast.success('Todos os dados locais foram removidos');
-      setLoading(false);
-      return;
-    }
-
-    if (!selectedTable) {
-      toast.error('Selecione uma tabela para limpar');
-      setLoading(false);
-      return;
-    }
-
-    const success = clearLocalDataByKey(selectedTable);
-    
-    if (success) {
-      toast.success(`Dados de ${selectedTable} removidos com sucesso`);
-    } else {
-      toast.error(`Erro ao remover dados de ${selectedTable}`);
-    }
-    
-    setLoading(false);
-  };
-
-  const handleClearTable = (table: string) => {
-    setSelectedTable(table);
-    setDialogTable(table);
-    setDialogAction('limpar');
-    setDialogOpen(true);
-  };
-
-  const handleClearAllTables = () => {
-    setDialogAction('limparTudo');
-    setDialogOpen(true);
-  };
-
-  const handleClearSupabaseTable = async (tableName: string) => {
-    setLoading(true);
-    const result = await clearSupabaseTable(tableName as any);
-    
-    if (result) {
-      toast.success(`Tabela ${tableName} limpa com sucesso no Supabase`);
-    } else {
-      toast.error(`Erro ao limpar tabela ${tableName} no Supabase`);
-    }
-    
-    setLoading(false);
-  };
-
-  const handleClearAllSupabaseTables = async () => {
-    setLoading(true);
-    const result = await clearAllSupabaseTables();
-    setLoading(false);
-    
-    if (result) {
-      toast.success('Todas as tabelas do Supabase foram limpas com sucesso');
+  
+  const handleCleanAllData = () => {
+    try {
+      cleanupAllTables();
+      toast.success('Todos os dados foram limpos com sucesso!');
+      logOperation('Utilitários', 'Limpeza completa de dados', true);
+      refreshStorageSize();
+      setShowCleanupDialog(false);
+    } catch (error) {
+      console.error('Erro:', error);
+      toast.error('Ocorreu um erro ao limpar os dados');
+      logOperation('Utilitários', 'Erro na limpeza de dados', String(error));
     }
   };
 
   return (
     <PageLayout>
       <PageHeader 
-        title="Utilitários de Sistema" 
-        description="Ferramentas para manutenção e limpeza de dados"
+        title="Utilitários do Sistema" 
+        description="Ferramentas de manutenção e suporte do sistema"
+        icon={<FileCog size={26} className="text-sistema-primary" />}
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Database className="mr-2 h-5 w-5" />
-              Limpeza de Dados Locais
+              <HardDrive className="mr-2 h-5 w-5" />
+              Armazenamento Local
             </CardTitle>
             <CardDescription>
-              Remova dados armazenados no navegador para limpar o sistema
+              Dados armazenados no navegador
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="table-select">Selecione a tabela para limpar</Label>
-              <Select value={selectedTable} onValueChange={setSelectedTable}>
-                <SelectTrigger id="table-select">
-                  <SelectValue placeholder="Selecione uma tabela" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="controlfrota_notas_fiscais">Notas Fiscais</SelectItem>
-                  <SelectItem value="contratos">Contratos</SelectItem>
-                  <SelectItem value="canhotos">Canhotos</SelectItem>
-                  <SelectItem value="motoristas">Motoristas</SelectItem>
-                  <SelectItem value="proprietarios">Proprietários</SelectItem>
-                  <SelectItem value="veiculos">Veículos</SelectItem>
-                  <SelectItem value="abastecimentos">Abastecimentos</SelectItem>
-                  <SelectItem value="manutencoes">Manutenções</SelectItem>
-                  <SelectItem value="despesas">Despesas</SelectItem>
-                </SelectContent>
-              </Select>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Tamanho total:</span>
+                <Badge variant="outline" className="text-lg py-1 px-3">
+                  {localStorageSize?.totalSize || '0 B'}
+                </Badge>
+              </div>
+              
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">Por tabela:</h4>
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {localStorageSize?.items.map((item, index) => (
+                    <div key={index} className="flex justify-between items-center text-sm px-2 py-1 rounded even:bg-muted/30">
+                      <span className="truncate max-w-[170px]">{item.key}</span>
+                      <span className="text-right">{item.size}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            
-            <Button 
-              variant="destructive" 
-              className="w-full" 
-              disabled={!selectedTable || loading}
-              onClick={() => handleClearTable(selectedTable)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Limpar Tabela Selecionada
-            </Button>
-            
-            <Button 
-              variant="destructive" 
-              className="w-full" 
-              disabled={loading}
-              onClick={handleClearAllTables}
-            >
-              <FileWarning className="mr-2 h-4 w-4" />
-              Limpar Todos os Dados
-            </Button>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex justify-between">
             <Button 
               variant="outline" 
-              className="w-full" 
-              onClick={handleCheckStorage}
+              size="sm"
+              onClick={refreshStorageSize}
+              className="gap-1"
             >
-              <Download className="mr-2 h-4 w-4" />
-              Verificar Uso de Armazenamento
+              <RefreshCw className="h-4 w-4" />
+              Atualizar
             </Button>
+            
+            <Dialog open={showCleanupDialog} onOpenChange={setShowCleanupDialog}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  className="gap-1"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Limpar Tudo
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Confirmar limpeza de dados</DialogTitle>
+                  <DialogDescription>
+                    Esta ação irá apagar todos os dados armazenados localmente e não pode ser desfeita.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Atenção!</AlertTitle>
+                  <AlertDescription>
+                    Todos os dados do sistema serão excluídos permanentemente. 
+                    Use esta função apenas para fins de teste ou quando orientado pelo suporte técnico.
+                  </AlertDescription>
+                </Alert>
+                
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowCleanupDialog(false)}>
+                    Cancelar
+                  </Button>
+                  <Button variant="destructive" onClick={handleCleanAllData}>
+                    Sim, limpar todos os dados
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardFooter>
         </Card>
         
@@ -164,98 +137,41 @@ const Utilitarios = () => {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Database className="mr-2 h-5 w-5" />
-              Limpeza de Dados no Supabase
+              Cache do Sistema
             </CardTitle>
             <CardDescription>
-              Remova dados armazenados no servidor para limpar o sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="supabase-table-select">Selecione a tabela para limpar</Label>
-              <Select value={selectedTable} onValueChange={setSelectedTable}>
-                <SelectTrigger id="supabase-table-select">
-                  <SelectValue placeholder="Selecione uma tabela" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SUPABASE_TABLES.map((table) => (
-                    <SelectItem key={table} value={table}>{table}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <Button 
-              variant="destructive" 
-              className="w-full" 
-              disabled={!selectedTable || loading}
-              onClick={() => handleClearSupabaseTable(selectedTable)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Limpar Tabela Selecionada no Supabase
-            </Button>
-            
-            <Button 
-              variant="destructive" 
-              className="w-full" 
-              disabled={loading}
-              onClick={handleClearAllSupabaseTables}
-            >
-              <FileWarning className="mr-2 h-4 w-4" />
-              Limpar Todas as Tabelas no Supabase
-            </Button>
-          </CardContent>
-          <CardFooter>
-            <p className="text-xs text-gray-500 italic">
-              Atenção: A limpeza de dados no servidor é permanente e não pode ser desfeita.
-              Tenha certeza antes de prosseguir.
-            </p>
-          </CardFooter>
-        </Card>
-      </div>
-      
-      {usage && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Uso de Armazenamento Local</CardTitle>
-            <CardDescription>
-              Tamanho total dos dados: {usage.formattedSize}
+              Gerenciamento de cache do navegador
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {Object.entries(usage.byKey).map(([key, size]: [string, any]) => (
-                <div key={key} className="flex justify-between items-center border-b pb-2">
-                  <span>{key}</span>
-                  <span>{(size / 1024).toFixed(2)} KB</span>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Limpar o cache pode resolver problemas de exibição ou comportamento 
+              inesperado do sistema.
+            </p>
+            
+            <Alert>
+              <FileWarning className="h-4 w-4" />
+              <AlertTitle>Informação</AlertTitle>
+              <AlertDescription>
+                A limpeza do cache não afeta seus dados, apenas recarrega componentes do sistema.
+              </AlertDescription>
+            </Alert>
           </CardContent>
+          <CardFooter>
+            <Button 
+              variant="secondary" 
+              className="w-full gap-1"
+              onClick={() => {
+                window.location.reload();
+                logOperation('Utilitários', 'Recarga da aplicação', true);
+              }}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Recarregar Aplicação
+            </Button>
+          </CardFooter>
         </Card>
-      )}
-      
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar limpeza de dados</DialogTitle>
-            <DialogDescription>
-              {dialogAction === 'limparTudo' 
-                ? 'Você tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.'
-                : `Você tem certeza que deseja limpar os dados da tabela ${dialogTable}? Esta ação não pode ser desfeita.`
-              }
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleClearTableConfirm}>
-              Limpar Dados
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </div>
     </PageLayout>
   );
 };
