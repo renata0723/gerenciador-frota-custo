@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Plus, Trash2, Link as LinkIcon } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, DollarSign } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 export interface DocumentoRegistro {
   id: string;
@@ -30,6 +31,12 @@ interface FormularioDocumentosRegistrosProps {
   initialData?: Partial<DocumentosRegistrosData>;
 }
 
+interface CTEDialogData {
+  numero: string;
+  valorFrete: number;
+  valorCarga: number;
+}
+
 const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps> = ({
   onSubmit,
   onBack,
@@ -49,6 +56,14 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
   const [novoCTe, setNovoCTe] = useState('');
   const [novaNota, setNovaNota] = useState('');
   
+  // Estado para o diálogo de criação de CTE
+  const [cteDialogOpen, setCteDialogOpen] = useState(false);
+  const [cteDialogData, setCteDialogData] = useState<CTEDialogData>({
+    numero: '',
+    valorFrete: 0,
+    valorCarga: 0
+  });
+  
   // Atualizar os valores totais quando os CTes forem modificados
   useEffect(() => {
     if (formData.ctes.length > 0) {
@@ -67,61 +82,99 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
         valorFrete: totalFrete,
         valorCarga: totalCarga
       }));
+    } else {
+      // Se não há CTEs, zerar os valores totais
+      setFormData(prev => ({
+        ...prev,
+        valorFrete: 0,
+        valorCarga: 0
+      }));
     }
   }, [formData.ctes]);
 
-  const handleNumberChange = (field: 'valorFrete' | 'valorCarga', value: string) => {
-    const numValue = parseFloat(value);
-    setFormData(prev => ({
-      ...prev,
-      [field]: isNaN(numValue) ? 0 : numValue
-    }));
-  };
-
-  const adicionarItem = (tipo: 'manifesto' | 'cte' | 'nota', valor: string) => {
+  const adicionarManifesto = (valor: string) => {
     if (!valor.trim()) {
-      toast.error(`Por favor, digite um número válido para o ${tipo}`);
+      toast.error(`Por favor, digite um número válido para o manifesto`);
       return;
     }
 
     const novoItem: DocumentoRegistro = {
       id: crypto.randomUUID(),
       numero: valor.trim(),
-      tipo
+      tipo: 'manifesto'
     };
     
-    // Para CTes, solicitar valores de frete e carga
-    if (tipo === 'cte') {
-      const valorFrete = prompt('Digite o valor do frete para este CTe (R$):');
-      const valorCarga = prompt('Digite o valor da carga para este CTe (R$):');
-      
-      if (valorFrete) {
-        novoItem.valorFrete = parseFloat(valorFrete);
-      }
-      
-      if (valorCarga) {
-        novoItem.valorCarga = parseFloat(valorCarga);
-      }
+    setFormData(prev => ({
+      ...prev,
+      manifestos: [...prev.manifestos, novoItem]
+    }));
+    
+    setNovoManifesto('');
+    toast.success(`Manifesto adicionado com sucesso`);
+  };
+
+  const abrirDialogCTE = () => {
+    setCteDialogData({
+      numero: novoCTe,
+      valorFrete: 0,
+      valorCarga: 0
+    });
+    setCteDialogOpen(true);
+  };
+
+  const adicionarCTE = () => {
+    if (!cteDialogData.numero.trim()) {
+      toast.error(`Por favor, digite um número válido para o CTe`);
+      return;
     }
 
-    setFormData(prev => {
-      let novaLista;
-      
-      if (tipo === 'manifesto') {
-        novaLista = { ...prev, manifestos: [...prev.manifestos, novoItem] };
-        setNovoManifesto('');
-      } else if (tipo === 'cte') {
-        novaLista = { ...prev, ctes: [...prev.ctes, novoItem] };
-        setNovoCTe('');
-      } else {
-        novaLista = { ...prev, notas: [...prev.notas, novoItem] };
-        setNovaNota('');
-      }
-      
-      return novaLista;
-    });
+    if (cteDialogData.valorFrete <= 0) {
+      toast.error(`O valor do frete deve ser maior que zero`);
+      return;
+    }
+
+    if (cteDialogData.valorCarga <= 0) {
+      toast.error(`O valor da carga deve ser maior que zero`);
+      return;
+    }
+
+    const novoItem: DocumentoRegistro = {
+      id: crypto.randomUUID(),
+      numero: cteDialogData.numero.trim(),
+      tipo: 'cte',
+      valorFrete: cteDialogData.valorFrete,
+      valorCarga: cteDialogData.valorCarga
+    };
     
-    toast.success(`${tipo.charAt(0).toUpperCase() + tipo.slice(1)} adicionado com sucesso`);
+    setFormData(prev => ({
+      ...prev,
+      ctes: [...prev.ctes, novoItem]
+    }));
+    
+    setNovoCTe('');
+    setCteDialogOpen(false);
+    toast.success(`CTe adicionado com sucesso`);
+  };
+
+  const adicionarNota = (valor: string) => {
+    if (!valor.trim()) {
+      toast.error(`Por favor, digite um número válido para a nota fiscal`);
+      return;
+    }
+
+    const novoItem: DocumentoRegistro = {
+      id: crypto.randomUUID(),
+      numero: valor.trim(),
+      tipo: 'nota'
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      notas: [...prev.notas, novoItem]
+    }));
+    
+    setNovaNota('');
+    toast.success(`Nota fiscal adicionada com sucesso`);
   };
 
   const removerItem = (tipo: 'manifesto' | 'cte' | 'nota', id: string) => {
@@ -149,6 +202,23 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
     });
     
     toast.success(`Item removido com sucesso`);
+  };
+
+  const handleChangeCteDialog = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'valorFrete' || name === 'valorCarga') {
+      const numValue = parseFloat(value);
+      setCteDialogData(prev => ({
+        ...prev,
+        [name]: isNaN(numValue) ? 0 : numValue
+      }));
+    } else {
+      setCteDialogData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -190,7 +260,7 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
             </div>
             <Button 
               type="button" 
-              onClick={() => adicionarItem('manifesto', novoManifesto)}
+              onClick={() => adicionarManifesto(novoManifesto)}
               className="flex gap-1 items-center"
             >
               <Plus size={16} /> Adicionar
@@ -237,7 +307,7 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
             </div>
             <Button 
               type="button" 
-              onClick={() => adicionarItem('cte', novoCTe)}
+              onClick={() => abrirDialogCTE()}
               className="flex gap-1 items-center"
             >
               <Plus size={16} /> Adicionar
@@ -251,13 +321,10 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
                   <li key={item.id} className="flex justify-between items-center p-2 bg-white rounded border">
                     <div className="flex flex-col">
                       <span className="font-medium">{item.numero}</span>
-                      {(item.valorFrete || item.valorCarga) && (
-                        <span className="text-xs text-gray-600">
-                          {item.valorFrete ? `Frete: R$ ${item.valorFrete.toFixed(2)}` : ''} 
-                          {item.valorFrete && item.valorCarga ? ' | ' : ''}
-                          {item.valorCarga ? `Carga: R$ ${item.valorCarga.toFixed(2)}` : ''}
-                        </span>
-                      )}
+                      <span className="text-xs text-gray-600">
+                        Frete: R$ {(item.valorFrete || 0).toFixed(2)} | 
+                        Carga: R$ {(item.valorCarga || 0).toFixed(2)}
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <Button
@@ -295,7 +362,7 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
             </div>
             <Button 
               type="button" 
-              onClick={() => adicionarItem('nota', novaNota)}
+              onClick={() => adicionarNota(novaNota)}
               className="flex gap-1 items-center"
             >
               <Plus size={16} /> Adicionar
@@ -330,44 +397,44 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="valorFrete">Valor do Frete (Receita da Empresa) (R$) *</Label>
-            <Input
-              id="valorFrete"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.valorFrete || ''}
-              onChange={(e) => handleNumberChange('valorFrete', e.target.value)}
-              required
-              className={formData.ctes.length > 0 ? "bg-gray-100" : ""}
-              readOnly={formData.ctes.length > 0}
-            />
-            {formData.ctes.length > 0 && (
-              <p className="text-sm text-gray-500 mt-1">
-                <LinkIcon size={12} className="inline mr-1" />
-                Valor calculado automaticamente a partir dos CTes
-              </p>
-            )}
+            <div className="flex items-center">
+              <Input
+                id="valorFrete"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.valorFrete || ''}
+                className="bg-gray-100 border-r-0 rounded-r-none"
+                readOnly
+              />
+              <div className="bg-gray-100 border border-l-0 rounded-l-none px-3 py-2 text-gray-600 flex items-center">
+                <LinkIcon size={16} className="inline" />
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              Valor calculado automaticamente a partir dos CTes
+            </p>
           </div>
           
           <div>
             <Label htmlFor="valorCarga">Valor da Carga (R$) *</Label>
-            <Input
-              id="valorCarga"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.valorCarga || ''}
-              onChange={(e) => handleNumberChange('valorCarga', e.target.value)}
-              required
-              className={formData.ctes.length > 0 ? "bg-gray-100" : ""}
-              readOnly={formData.ctes.length > 0}
-            />
-            {formData.ctes.length > 0 && (
-              <p className="text-sm text-gray-500 mt-1">
-                <LinkIcon size={12} className="inline mr-1" />
-                Valor calculado automaticamente a partir dos CTes
-              </p>
-            )}
+            <div className="flex items-center">
+              <Input
+                id="valorCarga"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.valorCarga || ''}
+                className="bg-gray-100 border-r-0 rounded-r-none"
+                readOnly
+              />
+              <div className="bg-gray-100 border border-l-0 rounded-l-none px-3 py-2 text-gray-600 flex items-center">
+                <LinkIcon size={16} className="inline" />
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              Valor calculado automaticamente a partir dos CTes
+            </p>
           </div>
         </div>
         
@@ -380,6 +447,68 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
           </Button>
         </div>
       </form>
+
+      {/* Diálogo para adicionar CTe com valores */}
+      <Dialog open={cteDialogOpen} onOpenChange={setCteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Adicionar CTe</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label htmlFor="numero">Número do CTe *</Label>
+                <Input
+                  id="numero"
+                  name="numero"
+                  value={cteDialogData.numero}
+                  onChange={handleChangeCteDialog}
+                  placeholder="Digite o número do CTe"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="valorFrete">Valor do Frete (R$) *</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                  <Input
+                    id="valorFrete"
+                    name="valorFrete"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={cteDialogData.valorFrete || ''}
+                    onChange={handleChangeCteDialog}
+                    className="pl-9"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="valorCarga">Valor da Carga (R$) *</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                  <Input
+                    id="valorCarga"
+                    name="valorCarga"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={cteDialogData.valorCarga || ''}
+                    onChange={handleChangeCteDialog}
+                    className="pl-9"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCteDialogOpen(false)}>Cancelar</Button>
+            <Button type="button" onClick={adicionarCTE}>Adicionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
