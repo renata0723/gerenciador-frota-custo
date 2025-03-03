@@ -20,6 +20,12 @@ import ConfiguracoesEmpresa from "./pages/ConfiguracoesEmpresa";
 import NotFound from "./pages/NotFound";
 import Utilitarios from "./pages/Utilitarios";
 import Relatorios from "./pages/Relatorios";
+import Contabilidade from "./pages/Contabilidade";
+import LancamentosContabeis from "./pages/contabilidade/LancamentosContabeis";
+import PlanoContas from "./pages/contabilidade/PlanoContas";
+import BalancoPatrimonial from "./pages/contabilidade/BalancoPatrimonial";
+import DRE from "./pages/contabilidade/DRE";
+import LivroCaixa from "./pages/contabilidade/LivroCaixa";
 
 import "./App.css";
 
@@ -48,6 +54,12 @@ function App() {
         <Route path="/tv-dashboard" element={<TVDashboard />} />
         <Route path="/configuracoes" element={<ConfiguracoesEmpresa />} />
         <Route path="/utilitarios" element={<Utilitarios />} />
+        <Route path="/contabilidade" element={<Contabilidade />} />
+        <Route path="/contabilidade/lancamentos" element={<LancamentosContabeis />} />
+        <Route path="/contabilidade/plano-contas" element={<PlanoContas />} />
+        <Route path="/contabilidade/balanco" element={<BalancoPatrimonial />} />
+        <Route path="/contabilidade/dre" element={<DRE />} />
+        <Route path="/contabilidade/livro-caixa" element={<LivroCaixa />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

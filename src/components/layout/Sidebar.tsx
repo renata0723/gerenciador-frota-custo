@@ -20,7 +20,8 @@ import {
   BellRing,
   Plus,
   Loader2,
-  BarChart2
+  BarChart2,
+  Calculator
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -188,6 +189,19 @@ const Sidebar = ({ isOpen = true }: SidebarProps) => {
             >
               <BarChart2 className="mr-2 h-5 w-5" />
               Relatórios
+            </Button>
+          </Link>
+          
+          <Link to="/contabilidade" className="block">
+            <Button 
+              variant="ghost" 
+              className={cn(
+                "w-full justify-start text-white hover:bg-slate-800 hover:text-white",
+                isActive('/contabilidade') && "bg-slate-800 text-white"
+              )}
+            >
+              <Calculator className="mr-2 h-5 w-5" />
+              Contabilidade
             </Button>
           </Link>
           
