@@ -1,118 +1,155 @@
 
-import React, { useState, useEffect } from "react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import React from 'react';
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
+import { useState, useEffect } from 'react';
 
 interface FormularioFreteContratadoProps {
-  onSave: (data: FreteContratadoData) => void;
-  initialData?: FreteContratadoData;
+  onSubmit: (data: any) => void;
+  onBack: () => void;
 }
 
-export interface FreteContratadoData {
-  valorFreteContratado: number;
-  valorAdiantamento: number;
-  dataAdiantamento: string;
-  valorPedagio: number;
-  saldoPagar: number;
-}
-
-const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
-  onSave,
-  initialData
+export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
+  onSubmit,
+  onBack,
 }) => {
-  const [valorFreteContratado, setValorFreteContratado] = useState(initialData?.valorFreteContratado || 0);
-  const [valorAdiantamento, setValorAdiantamento] = useState(initialData?.valorAdiantamento || 0);
-  const [dataAdiantamento, setDataAdiantamento] = useState(initialData?.dataAdiantamento || "");
-  const [valorPedagio, setValorPedagio] = useState(initialData?.valorPedagio || 0);
-  const [saldoPagar, setSaldoPagar] = useState(initialData?.saldoPagar || 0);
+  const [valorFrete, setValorFrete] = useState('');
+  const [valorAdiantamento, setValorAdiantamento] = useState('');
+  const [dataAdiantamento, setDataAdiantamento] = useState('');
+  const [valorPedagio, setValorPedagio] = useState('');
+  const [saldoPagar, setSaldoPagar] = useState('0,00');
 
   useEffect(() => {
-    // Calcula o saldo a pagar
-    const calculaSaldo = Number(valorFreteContratado) - (Number(valorAdiantamento) + Number(valorPedagio));
-    setSaldoPagar(calculaSaldo > 0 ? calculaSaldo : 0);
-  }, [valorFreteContratado, valorAdiantamento, valorPedagio]);
+    // Calcular o saldo a pagar
+    const calcularSaldo = () => {
+      try {
+        const frete = parseFloat(valorFrete.replace('.', '').replace(',', '.')) || 0;
+        const adiantamento = parseFloat(valorAdiantamento.replace('.', '').replace(',', '.')) || 0;
+        const pedagio = parseFloat(valorPedagio.replace('.', '').replace(',', '.')) || 0;
+        
+        const saldo = frete - adiantamento - pedagio;
+        return saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      } catch (error) {
+        return '0,00';
+      }
+    };
+
+    setSaldoPagar(calcularSaldo());
+  }, [valorFrete, valorAdiantamento, valorPedagio]);
+
+  const formatarValor = (valor: string) => {
+    // Remove tudo que não for número
+    let numero = valor.replace(/\D/g, '');
+    
+    // Converte para número e formata para reais
+    if (numero.length > 0) {
+      numero = (parseInt(numero) / 100).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    } else {
+      numero = '0,00';
+    }
+    
+    return numero;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const data: FreteContratadoData = {
-      valorFreteContratado: Number(valorFreteContratado),
-      valorAdiantamento: Number(valorAdiantamento),
+    const formData = {
+      valorFrete,
+      valorAdiantamento,
       dataAdiantamento,
-      valorPedagio: Number(valorPedagio),
+      valorPedagio,
       saldoPagar
     };
-    
-    onSave(data);
-    toast.success("Dados do frete contratado salvos com sucesso!");
+    onSubmit(formData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="valorFreteContratado">Valor do Frete Contratado (R$)</Label>
-          <Input
-            id="valorFreteContratado"
-            type="number"
-            step="0.01"
-            value={valorFreteContratado}
-            onChange={(e) => setValorFreteContratado(Number(e.target.value))}
-            required
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="valorAdiantamento">Valor do Adiantamento (R$)</Label>
-          <Input
-            id="valorAdiantamento"
-            type="number"
-            step="0.01"
-            value={valorAdiantamento}
-            onChange={(e) => setValorAdiantamento(Number(e.target.value))}
-          />
-        </div>
+    <Card className="p-6">
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium" htmlFor="valorFrete">
+                Valor do Frete Contratado (R$)
+              </label>
+              <input
+                id="valorFrete"
+                name="valorFrete"
+                value={valorFrete}
+                onChange={(e) => setValorFrete(formatarValor(e.target.value))}
+                className="w-full px-3 py-2 border rounded-md"
+                placeholder="0,00"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium" htmlFor="valorAdiantamento">
+                Valor do Adiantamento (R$)
+              </label>
+              <input
+                id="valorAdiantamento"
+                name="valorAdiantamento"
+                value={valorAdiantamento}
+                onChange={(e) => setValorAdiantamento(formatarValor(e.target.value))}
+                className="w-full px-3 py-2 border rounded-md"
+                placeholder="0,00"
+              />
+            </div>
+          </div>
 
-        <div>
-          <Label htmlFor="dataAdiantamento">Data do Adiantamento</Label>
-          <Input
-            id="dataAdiantamento"
-            type="date"
-            value={dataAdiantamento}
-            onChange={(e) => setDataAdiantamento(e.target.value)}
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="valorPedagio">Valor do Pedágio (R$)</Label>
-          <Input
-            id="valorPedagio"
-            type="number"
-            step="0.01"
-            value={valorPedagio}
-            onChange={(e) => setValorPedagio(Number(e.target.value))}
-          />
-        </div>
-      </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium" htmlFor="dataAdiantamento">
+                Data do Adiantamento
+              </label>
+              <input
+                id="dataAdiantamento"
+                name="dataAdiantamento"
+                type="date"
+                value={dataAdiantamento}
+                onChange={(e) => setDataAdiantamento(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium" htmlFor="valorPedagio">
+                Valor do Pedágio (R$)
+              </label>
+              <input
+                id="valorPedagio"
+                name="valorPedagio"
+                value={valorPedagio}
+                onChange={(e) => setValorPedagio(formatarValor(e.target.value))}
+                className="w-full px-3 py-2 border rounded-md"
+                placeholder="0,00"
+              />
+            </div>
+          </div>
 
-      <div>
-        <Label htmlFor="saldoPagar">Saldo a Pagar (R$)</Label>
-        <Input
-          id="saldoPagar"
-          type="number"
-          step="0.01"
-          value={saldoPagar}
-          readOnly
-          className="bg-gray-100"
-        />
-        <p className="text-sm text-gray-500 mt-1">Valor calculado automaticamente</p>
-      </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium" htmlFor="saldoPagar">
+              Saldo a Pagar (R$)
+            </label>
+            <input
+              id="saldoPagar"
+              name="saldoPagar"
+              value={saldoPagar}
+              className="w-full px-3 py-2 border rounded-md bg-gray-100"
+              readOnly
+            />
+          </div>
 
-      <Button type="submit" className="w-full">Salvar Dados do Frete</Button>
-    </form>
+          <div className="flex justify-between pt-4">
+            <Button variant="outline" type="button" onClick={onBack}>
+              Voltar
+            </Button>
+            <Button type="submit">Continuar</Button>
+          </div>
+        </div>
+      </form>
+    </Card>
   );
 };
-
-export default FormularioFreteContratado;

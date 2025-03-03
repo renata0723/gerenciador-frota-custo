@@ -1,160 +1,351 @@
 
-import React, { useState } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import FormularioCTeDados from "./FormularioCTeDados";
-import FormularioFreteContratado, { FreteContratadoData } from "./FormularioFreteContratado";
-import FormularioRejeicaoContrato from "./FormularioRejeicaoContrato";
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-
-// Interfaces para os dados dos formulários
-interface CTeDadosData {
-  numeroCTe: string;
-  valorCarga: number;
-  valorFrete: number;
-}
-
-interface ObservacoesData {
-  responsavelEntrega: string;
-  dataEntrega: string;
-  observacoes: string;
-}
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FormularioCTeDados } from "./FormularioCTeDados";
+import { FormularioFreteContratado } from "./FormularioFreteContratado";
+import { FormularioRejeicaoContrato } from "./FormularioRejeicaoContrato";
 
 interface ContratoFormTabsProps {
-  onSave: (data: {
-    cteData?: CTeDadosData;
-    freteContratadoData?: FreteContratadoData;
-    observacoesData?: ObservacoesData;
-  }) => void;
-  initialData?: {
-    cteData?: CTeDadosData;
-    freteContratadoData?: FreteContratadoData;
-    observacoesData?: ObservacoesData;
-  };
+  onSave: (data: any) => void;
+  onCancel: () => void;
 }
 
-const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ onSave, initialData }) => {
-  const [activeTab, setActiveTab] = useState("cte");
-  const [cteData, setCteData] = useState<CTeDadosData | undefined>(initialData?.cteData);
-  const [freteContratadoData, setFreteContratadoData] = useState<FreteContratadoData | undefined>(
-    initialData?.freteContratadoData
-  );
-  const [observacoesData, setObservacoesData] = useState<ObservacoesData | undefined>(
-    initialData?.observacoesData || {
-      responsavelEntrega: '',
-      dataEntrega: '',
-      observacoes: ''
-    }
-  );
+export const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({
+  onSave,
+  onCancel,
+}) => {
+  const [formData, setFormData] = useState<any>({
+    dadosContrato: {},
+    freteContratado: {},
+    documentos: {},
+    observacoes: {},
+  });
+  const [activeTab, setActiveTab] = useState("dados");
+  const [showRejeicaoForm, setShowRejeicaoForm] = useState(false);
 
-  const handleSaveCTe = (data: CTeDadosData) => {
-    setCteData(data);
-    toast.success("Dados do CTe salvos!");
-    setActiveTab("frete-contratado");
+  const handleDadosContratoSubmit = (data: any) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      dadosContrato: data,
+    }));
+    setActiveTab("frete");
   };
 
-  const handleSaveFreteContratado = (data: FreteContratadoData) => {
-    setFreteContratadoData(data);
-    toast.success("Dados do frete contratado salvos!");
-    // Aqui podemos adicionar lógica para lançar no módulo de saldo a pagar
-    toast.info("Saldo a pagar lançado no módulo correspondente");
+  const handleFreteContratadoSubmit = (data: any) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      freteContratado: data,
+    }));
+    setActiveTab("documentos");
+  };
+
+  const handleDocumentosSubmit = (data: any) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      documentos: data,
+    }));
     setActiveTab("observacoes");
   };
 
-  const handleObservacoesChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setObservacoesData(prev => ({
-      ...prev!,
-      [name]: value
-    }));
+  const handleObservacoesSubmit = (data: any) => {
+    const finalData = {
+      ...formData,
+      observacoes: data,
+    };
+    onSave(finalData);
   };
 
-  const handleSalvarContrato = () => {
-    onSave({
-      cteData,
-      freteContratadoData,
-      observacoesData
-    });
+  const handleRejeicao = (motivo: string) => {
+    // Lógica para rejeição do contrato
+    console.log("Contrato rejeitado:", motivo);
+    setShowRejeicaoForm(false);
+    onCancel();
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end mb-4">
-        <FormularioRejeicaoContrato 
-          idContrato="123" 
-          onRejeicaoRegistrada={() => toast.info("Contrato rejeitado com sucesso!")}
-        />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Adicionar Novo Contrato</h1>
+        <p className="text-gray-500">
+          Preencha os dados do contrato. Clique em salvar quando finalizar.
+        </p>
       </div>
 
-      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger value="cte" className="flex-1">
-            CTe/Dados
-          </TabsTrigger>
-          <TabsTrigger value="frete-contratado" className="flex-1">
-            Frete Contratado
-          </TabsTrigger>
-          <TabsTrigger value="observacoes" className="flex-1">
-            Observações
-          </TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="dados">Dados do Contrato</TabsTrigger>
+          <TabsTrigger value="frete">Frete Contratado</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos</TabsTrigger>
+          <TabsTrigger value="observacoes">Observações</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="cte">
-          <FormularioCTeDados onSave={handleSaveCTe} initialData={cteData} />
+        <TabsContent value="dados" className="space-y-4 mt-4">
+          <Card className="p-6">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formElements = e.target as HTMLFormElement;
+              const formData = new FormData(formElements);
+              const data = Object.fromEntries(formData.entries());
+              handleDadosContratoSubmit(data);
+            }}>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium" htmlFor="tipo">
+                      Tipo
+                    </label>
+                    <select
+                      id="tipo"
+                      name="tipo"
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    >
+                      <option value="">Selecione</option>
+                      <option value="frota">Frota</option>
+                      <option value="terceiro">Terceiro</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium" htmlFor="dataSaida">
+                      Data Saída
+                    </label>
+                    <input
+                      id="dataSaida"
+                      name="dataSaida"
+                      type="date"
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium" htmlFor="cidadeOrigem">
+                      Cidade Origem
+                    </label>
+                    <input
+                      id="cidadeOrigem"
+                      name="cidadeOrigem"
+                      placeholder="Cidade"
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium" htmlFor="estadoOrigem">
+                      Estado Origem
+                    </label>
+                    <input
+                      id="estadoOrigem"
+                      name="estadoOrigem"
+                      placeholder="UF"
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium" htmlFor="cidadeDestino">
+                      Cidade Destino
+                    </label>
+                    <input
+                      id="cidadeDestino"
+                      name="cidadeDestino"
+                      placeholder="Cidade"
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium" htmlFor="estadoDestino">
+                      Estado Destino
+                    </label>
+                    <input
+                      id="estadoDestino"
+                      name="estadoDestino"
+                      placeholder="UF"
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium" htmlFor="cliente">
+                    Cliente
+                  </label>
+                  <input
+                    id="cliente"
+                    name="cliente"
+                    placeholder="Nome do cliente"
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium" htmlFor="placaCavalo">
+                      Placa do Cavalo
+                    </label>
+                    <input
+                      id="placaCavalo"
+                      name="placaCavalo"
+                      placeholder="ABC1234"
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium" htmlFor="placaCarreta">
+                      Placa da Carreta
+                    </label>
+                    <input
+                      id="placaCarreta"
+                      name="placaCarreta"
+                      placeholder="XYZ5678"
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium" htmlFor="motorista">
+                      Motorista
+                    </label>
+                    <input
+                      id="motorista"
+                      name="motorista"
+                      placeholder="Nome do motorista"
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium" htmlFor="proprietario">
+                      Proprietário
+                    </label>
+                    <input
+                      id="proprietario"
+                      name="proprietario"
+                      placeholder="Nome do proprietário"
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-between pt-4">
+                  <Button variant="outline" type="button" onClick={onCancel}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Continuar</Button>
+                </div>
+              </div>
+            </form>
+          </Card>
         </TabsContent>
 
-        <TabsContent value="frete-contratado">
-          <FormularioFreteContratado onSave={handleSaveFreteContratado} initialData={freteContratadoData} />
+        <TabsContent value="frete" className="space-y-4 mt-4">
+          <FormularioFreteContratado 
+            onSubmit={handleFreteContratadoSubmit} 
+            onBack={() => setActiveTab("dados")} 
+          />
         </TabsContent>
 
-        <TabsContent value="observacoes">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="responsavelEntrega">Responsável pela Entrega do Contrato</Label>
-                <Input
-                  id="responsavelEntrega"
-                  name="responsavelEntrega"
-                  value={observacoesData?.responsavelEntrega}
-                  onChange={handleObservacoesChange}
-                />
+        <TabsContent value="documentos" className="space-y-4 mt-4">
+          <FormularioCTeDados 
+            onSubmit={handleDocumentosSubmit} 
+            onBack={() => setActiveTab("frete")} 
+          />
+        </TabsContent>
+
+        <TabsContent value="observacoes" className="space-y-4 mt-4">
+          <Card className="p-6">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formElements = e.target as HTMLFormElement;
+              const formData = new FormData(formElements);
+              const data = Object.fromEntries(formData.entries());
+              handleObservacoesSubmit(data);
+            }}>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium" htmlFor="responsavel">
+                    Responsável pela entrega à controladoria
+                  </label>
+                  <input
+                    id="responsavel"
+                    name="responsavel"
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium" htmlFor="dataEntrega">
+                    Data de entrega
+                  </label>
+                  <input
+                    id="dataEntrega"
+                    name="dataEntrega"
+                    type="date"
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium" htmlFor="observacoes">
+                    Observações
+                  </label>
+                  <textarea
+                    id="observacoes"
+                    name="observacoes"
+                    rows={4}
+                    className="w-full px-3 py-2 border rounded-md"
+                  ></textarea>
+                </div>
+
+                <div className="flex justify-between pt-4">
+                  <Button variant="outline" type="button" onClick={() => setActiveTab("documentos")}>
+                    Voltar
+                  </Button>
+                  <Button type="submit">Salvar Contrato</Button>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="dataEntrega">Data de Entrega</Label>
-                <Input
-                  id="dataEntrega"
-                  name="dataEntrega"
-                  type="date"
-                  value={observacoesData?.dataEntrega}
-                  onChange={handleObservacoesChange}
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="observacoes">Observações</Label>
-              <Textarea
-                id="observacoes"
-                name="observacoes"
-                rows={4}
-                value={observacoesData?.observacoes}
-                onChange={handleObservacoesChange}
-                placeholder="Insira aqui quaisquer observações relevantes sobre o contrato..."
-              />
-            </div>
-          </div>
+            </form>
+          </Card>
         </TabsContent>
       </Tabs>
 
-      <div className="flex justify-end mt-8">
-        <Button onClick={handleSalvarContrato} className="px-8">
-          Salvar Contrato
+      <div className="flex justify-center mt-4">
+        <Button 
+          variant="destructive" 
+          onClick={() => setShowRejeicaoForm(true)}
+        >
+          Rejeitar Contrato
         </Button>
       </div>
+
+      {showRejeicaoForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Rejeitar Contrato</h2>
+            <FormularioRejeicaoContrato 
+              onSubmit={handleRejeicao} 
+              onCancel={() => setShowRejeicaoForm(false)} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-export default ContratoFormTabs;
