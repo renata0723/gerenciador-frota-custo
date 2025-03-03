@@ -10,16 +10,14 @@ export const verificarAdministrador = async (usuarioId: number): Promise<Adminis
       .from('Administradores')
       .select('*')
       .eq('usuario_id', usuarioId)
-      .single();
+      .maybeSingle();
     
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // Usuário não é administrador
-      }
-      throw error;
+      console.error('Erro ao verificar administrador:', error);
+      return null;
     }
     
-    return data as unknown as Administrador;
+    return data as Administrador;
   } catch (error) {
     console.error('Erro ao verificar administrador:', error);
     return null;
@@ -29,16 +27,23 @@ export const verificarAdministrador = async (usuarioId: number): Promise<Adminis
 // Autenticar administrador geral
 export const autenticarAdministradorGeral = async (credenciais: CredenciaisAdministrador): Promise<boolean> => {
   try {
+    console.log('Verificando credenciais de administrador:', credenciais.email);
+    
     // Verificar usuário e senha
     const { data: usuarioData, error: usuarioError } = await supabase
       .from('Usuarios')
       .select('id, senha')
       .eq('email', credenciais.email)
       .eq('senha', credenciais.senha)
-      .single();
+      .maybeSingle();
     
-    if (usuarioError || !usuarioData) {
+    if (usuarioError) {
       console.log('Erro na autenticação (usuário):', usuarioError);
+      return false;
+    }
+    
+    if (!usuarioData) {
+      console.log('Usuário não encontrado:', credenciais.email);
       return false;
     }
     
@@ -48,18 +53,28 @@ export const autenticarAdministradorGeral = async (credenciais: CredenciaisAdmin
       .select('nivel_acesso')
       .eq('usuario_id', usuarioData.id)
       .eq('nivel_acesso', 'Geral')
-      .single();
+      .maybeSingle();
     
-    if (adminError || !adminData) {
+    if (adminError) {
       console.log('Erro na autenticação (admin):', adminError);
       return false;
     }
     
+    if (!adminData) {
+      console.log('Usuário não é administrador geral:', credenciais.email);
+      return false;
+    }
+    
     // Atualizar último acesso
-    await supabase
+    const { error: updateError } = await supabase
       .from('Administradores')
       .update({ ultimo_acesso: new Date().toISOString() })
       .eq('usuario_id', usuarioData.id);
+      
+    if (updateError) {
+      console.log('Erro ao atualizar último acesso:', updateError);
+      // Não retornar false aqui, pois o login já está autenticado
+    }
     
     // Registrar no log
     logOperation('Administradores', 'Login de administrador geral', `Email: ${credenciais.email}`);
@@ -81,7 +96,10 @@ export const criarAdministrador = async (dados: { usuario_id: number, nivel_aces
         nivel_acesso: dados.nivel_acesso
       });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao criar administrador:', error);
+      return false;
+    }
     
     logOperation('Administradores', 'Novo administrador criado', `ID: ${dados.usuario_id}, Nível: ${dados.nivel_acesso}`);
     return true;
@@ -92,7 +110,7 @@ export const criarAdministrador = async (dados: { usuario_id: number, nivel_aces
 };
 
 // Obter todos os administradores
-export const getAdministradores = async (): Promise<any[]> => {
+export const getAdministradores = async (): Promise<Administrador[]> => {
   try {
     const { data, error } = await supabase
       .from('Administradores')
@@ -106,9 +124,12 @@ export const getAdministradores = async (): Promise<any[]> => {
         )
       `);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao buscar administradores:', error);
+      return [];
+    }
     
-    return data || [];
+    return data as unknown as Administrador[];
   } catch (error) {
     console.error('Erro ao buscar administradores:', error);
     return [];

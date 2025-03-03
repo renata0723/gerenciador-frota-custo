@@ -51,6 +51,7 @@ const Login = () => {
         // Redirecionar para a página inicial
         navigate('/');
       } else {
+        console.log('Usuário ou senha incorretos');
         toast.error('E-mail ou senha incorretos');
       }
     } catch (error) {
@@ -228,18 +229,18 @@ const Login = () => {
                       </div>
                     )}
                   </Button>
-                  
-                  <div className="text-xs text-center text-gray-500 mt-2">
-                    <p>E-mail padrão: admin@controlfrota.com.br</p>
-                    <p>Senha padrão: admin123</p>
-                  </div>
                 </form>
               </TabsContent>
             </CardContent>
           </Tabs>
           
-          <CardFooter className="text-center text-sm text-gray-600">
-            © 2023 ControlFrota - Todos os direitos reservados
+          <CardFooter className="text-center text-sm text-gray-600 flex-col space-y-2">
+            <div>
+              <p className="font-semibold">Credenciais de teste:</p>
+              <p>Email: admin@controlfrota.com.br</p>
+              <p>Senha: admin123</p>
+            </div>
+            <p>© 2023 ControlFrota - Todos os direitos reservados</p>
           </CardFooter>
         </Card>
       </div>

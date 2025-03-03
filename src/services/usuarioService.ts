@@ -11,7 +11,11 @@ export const getUsuarios = async (): Promise<Usuario[]> => {
       .select('*')
       .order('nome');
     
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao buscar usuários:', error);
+      logOperation('Usuários', 'Buscar usuários', 'false');
+      return [];
+    }
     
     return data || [];
   } catch (error) {
@@ -31,9 +35,13 @@ export const criarUsuario = async (usuario: Usuario): Promise<Usuario | null> =>
       .from('Usuarios')
       .insert(usuario)
       .select()
-      .single();
+      .maybeSingle();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao criar usuário:', error);
+      logOperation('Usuários', 'Criar usuário', 'false');
+      return null;
+    }
     
     logOperation('Usuários', 'Criar usuário', 'true');
     return data;
@@ -55,9 +63,13 @@ export const atualizarUsuario = async (id: number, usuario: Partial<Usuario>): P
       .update(usuario)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      logOperation('Usuários', 'Atualizar usuário', 'false');
+      return null;
+    }
     
     logOperation('Usuários', 'Atualizar usuário', 'true');
     return data;
@@ -75,7 +87,11 @@ export const getPermissoes = async (): Promise<Permissao[]> => {
       .select('*')
       .order('modulo');
     
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao buscar permissões:', error);
+      logOperation('Usuários', 'Buscar permissões', 'false');
+      return [];
+    }
     
     return data || [];
   } catch (error) {
@@ -91,11 +107,18 @@ export const getPermissoesUsuario = async (usuarioId: number): Promise<Permissao
       .from('UsuarioPermissoes')
       .select(`
         *,
-        permissao:permissao_id (modulo, acao)
+        permissao:permissao_id (
+          modulo, 
+          acao
+        )
       `)
       .eq('usuario_id', usuarioId);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao buscar permissões do usuário:', error);
+      logOperation('Usuários', 'Buscar permissões do usuário', 'false');
+      return [];
+    }
     
     // Converter para o formato esperado
     return (data || []).map(item => ({
@@ -124,7 +147,11 @@ export const atribuirPermissao = async (usuarioId: number, permissaoId: number, 
         concedido_por: concedidoPor
       });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao atribuir permissão:', error);
+      logOperation('Usuários', 'Atribuir permissão', 'false');
+      return false;
+    }
     
     logOperation('Usuários', 'Atribuir permissão', 'true');
     return true;
@@ -142,7 +169,11 @@ export const removerPermissao = async (id: number): Promise<boolean> => {
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao remover permissão:', error);
+      logOperation('Usuários', 'Remover permissão', 'false');
+      return false;
+    }
     
     logOperation('Usuários', 'Remover permissão', 'true');
     return true;
@@ -156,23 +187,35 @@ export const removerPermissao = async (id: number): Promise<boolean> => {
 // Autenticação simples
 export const autenticarUsuario = async (email: string, senha: string): Promise<Usuario | null> => {
   try {
+    console.log('Tentando autenticar usuário:', email);
+    
     const { data, error } = await supabase
       .from('Usuarios')
       .select('*')
       .eq('email', email)
       .eq('senha', senha) // Em produção, usar hash de senha
-      .single();
+      .maybeSingle();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao autenticar usuário:', error);
+      logOperation('Usuários', 'Login', 'false');
+      return null;
+    }
     
     if (data) {
       // Atualizar último acesso
-      await supabase
+      const { error: updateError } = await supabase
         .from('Usuarios')
         .update({ ultimo_acesso: new Date().toISOString() })
         .eq('id', data.id);
+        
+      if (updateError) {
+        console.error('Erro ao atualizar último acesso:', updateError);
+      }
       
       logOperation('Usuários', 'Login', 'true');
+    } else {
+      console.log('Usuário ou senha incorretos');
     }
     
     return data;

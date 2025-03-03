@@ -14,32 +14,49 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
-    // Verificar se o usuário está autenticado
-    const usuarioString = sessionStorage.getItem('usuario');
-    const adminGeral = sessionStorage.getItem('adminGeral');
-    
-    // Verificar se é usuário ou admin
-    if (usuarioString) {
+    const verificarAutenticacao = () => {
       try {
-        const usuario: Usuario = JSON.parse(usuarioString);
+        // Verificar se o usuário está autenticado
+        const usuarioString = sessionStorage.getItem('usuario');
+        const adminGeral = sessionStorage.getItem('adminGeral');
         
-        if (usuario && usuario.id) {
+        console.log('Verificando autenticação:');
+        console.log('- usuarioString:', !!usuarioString);
+        console.log('- adminGeral:', adminGeral);
+        
+        // Verificar se é usuário ou admin
+        if (usuarioString) {
+          try {
+            const usuario: Usuario = JSON.parse(usuarioString);
+            
+            if (usuario && usuario.id) {
+              console.log('Usuário autenticado:', usuario.nome);
+              setIsAuthenticated(true);
+            } else {
+              console.log('Dados de usuário inválidos');
+              setIsAuthenticated(false);
+            }
+          } catch (error) {
+            console.error('Erro ao processar dados de autenticação:', error);
+            setIsAuthenticated(false);
+          }
+        } else if (adminGeral === 'true') {
+          // Se for administrador geral
+          console.log('Administrador geral autenticado');
           setIsAuthenticated(true);
         } else {
+          console.log('Nenhum usuário autenticado');
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('Erro ao processar dados de autenticação:', error);
+        console.error('Erro ao verificar autenticação:', error);
         setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
       }
-    } else if (adminGeral === 'true') {
-      // Se for administrador geral
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-    }
-    
-    setLoading(false);
+    };
+
+    verificarAutenticacao();
   }, []);
 
   if (loading) {
@@ -53,6 +70,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
   if (!isAuthenticated) {
     // Redirecionando para a página de login
+    console.log('Redirecionando para login');
     toast.info('Faça login para acessar o sistema', {
       id: 'auth-redirect',
     });
@@ -60,6 +78,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  console.log('Renderizando conteúdo protegido');
   return <>{children}</>;
 };
 

@@ -69,9 +69,12 @@ export const getCancelamentos = async (): Promise<CancelamentoDocumento[]> => {
       .select('*')
       .order('data_cancelamento', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao buscar cancelamentos:', error);
+      return [];
+    }
     
-    return data as unknown as CancelamentoDocumento[];
+    return data as CancelamentoDocumento[];
   } catch (error) {
     console.error('Erro ao buscar cancelamentos:', error);
     return [];
@@ -87,9 +90,12 @@ export const getCancelamentosPorTipo = async (tipo: 'Contrato' | 'CT-e' | 'Manif
       .eq('tipo_documento', tipo)
       .order('data_cancelamento', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error(`Erro ao buscar cancelamentos de ${tipo}:`, error);
+      return [];
+    }
     
-    return data as unknown as CancelamentoDocumento[];
+    return data as CancelamentoDocumento[];
   } catch (error) {
     console.error(`Erro ao buscar cancelamentos de ${tipo}:`, error);
     return [];
@@ -105,7 +111,7 @@ export const atualizarDREAposCancelamento = async (tipo: string, numeroDocumento
         .from('Contratos')
         .select('valor_frete')
         .eq('numero_cte', numeroDocumento)
-        .single();
+        .maybeSingle();
       
       if (contratoError) {
         console.error('Erro ao buscar contrato por CT-e:', contratoError);
@@ -123,21 +129,25 @@ export const atualizarDREAposCancelamento = async (tipo: string, numeroDocumento
           .like('periodo_inicio', `${mesAtual}%`)
           .maybeSingle();
         
-        if (dreError && dreError.code !== 'PGRST116') {
+        if (dreError) {
           console.error('Erro ao buscar DRE:', dreError);
           return false;
         }
         
         // Se encontrou DRE, atualizar receita
         if (dreData) {
-          const novaReceita = parseFloat(dreData.receita_bruta || '0') - parseFloat(contratoData.valor_frete || '0');
-          const novaReceitaLiquida = parseFloat(dreData.receita_liquida || '0') - parseFloat(contratoData.valor_frete || '0');
+          const valorFrete = parseFloat(contratoData.valor_frete || '0');
+          const receitaBruta = parseFloat(dreData.receita_bruta || '0');
+          const receitaLiquida = parseFloat(dreData.receita_liquida || '0');
+          
+          const novaReceita = receitaBruta - valorFrete;
+          const novaReceitaLiquida = receitaLiquida - valorFrete;
           
           const { error: updateError } = await supabase
             .from('DRE')
             .update({
-              receita_bruta: novaReceita >= 0 ? novaReceita : 0,
-              receita_liquida: novaReceitaLiquida >= 0 ? novaReceitaLiquida : 0
+              receita_bruta: novaReceita > 0 ? novaReceita : 0,
+              receita_liquida: novaReceitaLiquida > 0 ? novaReceitaLiquida : 0
             })
             .eq('id', dreData.id);
           
