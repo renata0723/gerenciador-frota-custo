@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { logOperation } from '@/utils/logOperations';
 import { validarPlaca, formatarPlaca } from '@/utils/veiculoUtils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface Proprietario {
   nome: string;
@@ -45,6 +47,7 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
   const [carregandoProprietarios, setCarregandoProprietarios] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [proprietarioSelecionado, setProprietarioSelecionado] = useState<Proprietario | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     if (tipoFrota === 'terceiro') {
@@ -62,6 +65,7 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
       if (error) {
         console.error('Erro ao carregar proprietários:', error);
         toast.error('Erro ao carregar proprietários');
+        setErro('Não foi possível carregar a lista de proprietários.');
       } else if (data) {
         setProprietarios(data);
       }
@@ -101,6 +105,7 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCarregando(true);
+    setErro(null);
 
     try {
       if (isCarreta) {
@@ -108,7 +113,7 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         const placaFormatada = formatarPlaca(placaCarreta);
         
         if (!placaFormatada || !validarPlaca(placaFormatada)) {
-          toast.error('Por favor, insira uma placa de carreta válida (formato: ABC-1234 ou ABC1D23)');
+          setErro('Por favor, insira uma placa de carreta válida (formato: ABC-1234 ou ABC1D23)');
           setCarregando(false);
           return;
         }
@@ -121,13 +126,13 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
 
         if (errorVerificacao) {
           console.error('Erro ao verificar placa:', errorVerificacao);
-          toast.error('Erro ao verificar placa no sistema');
+          setErro('Erro ao verificar placa no sistema');
           setCarregando(false);
           return;
         }
 
         if (placaExistente && placaExistente.length > 0) {
-          toast.error('Esta placa de carreta já está cadastrada no sistema');
+          setErro('Esta placa de carreta já está cadastrada no sistema');
           setCarregando(false);
           return;
         }
@@ -143,13 +148,13 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
 
         if (error) {
           console.error('Erro ao cadastrar placa:', error);
-          toast.error('Erro ao cadastrar placa de carreta');
-          logOperation('Veículos', 'Erro ao cadastrar carreta', error.message);
+          setErro('Erro ao cadastrar placa de carreta. Verifique as permissões.');
+          logOperation('Veículos', 'Erro ao cadastrar carreta', 'false');
           setCarregando(false);
           return;
         }
 
-        logOperation('Veículos', 'Cadastro de carreta', `Placa: ${placaFormatada}`);
+        logOperation('Veículos', 'Cadastro de carreta', 'true');
         toast.success('Placa de carreta cadastrada com sucesso!');
         
         const resultData = { 
@@ -175,7 +180,7 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         const placaFormatada = formatarPlaca(placaCavalo);
         
         if (!placaFormatada || !validarPlaca(placaFormatada)) {
-          toast.error('Por favor, insira uma placa de cavalo válida (formato: ABC-1234 ou ABC1D23)');
+          setErro('Por favor, insira uma placa de cavalo válida (formato: ABC-1234 ou ABC1D23)');
           setCarregando(false);
           return;
         }
@@ -188,13 +193,13 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
 
         if (errorVerificacao) {
           console.error('Erro ao verificar placa:', errorVerificacao);
-          toast.error('Erro ao verificar placa no sistema');
+          setErro('Erro ao verificar placa no sistema');
           setCarregando(false);
           return;
         }
 
         if (placaExistente && placaExistente.length > 0) {
-          toast.error('Esta placa de cavalo já está cadastrada no sistema');
+          setErro('Esta placa de cavalo já está cadastrada no sistema');
           setCarregando(false);
           return;
         }
@@ -203,25 +208,26 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         
         // Se informou placa da carreta, validar também
         if (placaCarretaFormatada && !validarPlaca(placaCarretaFormatada)) {
-          toast.error('Por favor, insira uma placa de carreta válida (formato: ABC-1234 ou ABC1D23)');
+          setErro('Por favor, insira uma placa de carreta válida (formato: ABC-1234 ou ABC1D23)');
           setCarregando(false);
           return;
         }
 
         // Inserir o veículo
-        const { error } = await supabase
+        const { data: veiculo, error } = await supabase
           .from('Veiculos')
           .insert({
             placa_cavalo: placaFormatada,
             placa_carreta: placaCarretaFormatada || null,
             tipo_frota: tipoFrota,
             status_veiculo: 'Ativo'
-          });
+          })
+          .select();
 
         if (error) {
           console.error('Erro ao cadastrar veículo:', error);
-          toast.error('Erro ao cadastrar veículo. Por favor, verifique as permissões ou tente novamente.');
-          logOperation('Veículos', 'Erro ao cadastrar cavalo', error.message);
+          setErro('Erro ao cadastrar veículo. Por favor, verifique as permissões ou tente novamente.');
+          logOperation('Veículos', 'Erro ao cadastrar cavalo', 'false');
           setCarregando(false);
           return;
         }
@@ -242,7 +248,7 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
           }
         }
 
-        logOperation('Veículos', 'Cadastro de cavalo', `Placa: ${placaFormatada}`);
+        logOperation('Veículos', 'Cadastro de cavalo', 'true');
         toast.success('Veículo cadastrado com sucesso!');
         
         const resultData = { 
@@ -267,6 +273,7 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
       }
     } catch (error) {
       console.error('Erro:', error);
+      setErro('Ocorreu um erro ao processar a solicitação');
       toast.error('Ocorreu um erro ao processar a solicitação');
     } finally {
       setCarregando(false);
@@ -275,6 +282,14 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 py-4">
+      {erro && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro</AlertTitle>
+          <AlertDescription>{erro}</AlertDescription>
+        </Alert>
+      )}
+      
       {isCarreta ? (
         <div className="space-y-2">
           <Label htmlFor="placaCarreta">Placa da Carreta *</Label>

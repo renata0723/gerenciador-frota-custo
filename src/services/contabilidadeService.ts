@@ -212,3 +212,50 @@ export const criarLivroCaixaItem = async (item: LivroCaixaItem): Promise<LivroCa
     return null;
   }
 };
+
+// Serviço para integração com outros módulos
+export const gerarLancamentoContabilDespesa = async (despesa: any): Promise<boolean> => {
+  try {
+    // Criar lançamento contábil para a despesa
+    const lancamento: LancamentoContabil = {
+      data_lancamento: new Date().toISOString().split('T')[0],
+      conta_debito: '4.1.1', // Exemplo: Despesas operacionais
+      conta_credito: '1.1.1', // Exemplo: Caixa
+      valor: despesa.valor_despesa,
+      historico: `Despesa: ${despesa.descricao_detalhada}`,
+      documento_referencia: despesa.id.toString(),
+      tipo_documento: 'Despesa',
+      data_competencia: despesa.data_despesa,
+      status: 'ativo'
+    };
+    
+    await criarLancamentoContabil(lancamento);
+    return true;
+  } catch (error) {
+    console.error('Erro ao gerar lançamento contábil para despesa:', error);
+    return false;
+  }
+};
+
+export const gerarLancamentoContabilReceita = async (contrato: any): Promise<boolean> => {
+  try {
+    // Criar lançamento contábil para a receita
+    const lancamento: LancamentoContabil = {
+      data_lancamento: new Date().toISOString().split('T')[0],
+      conta_debito: '1.1.2', // Exemplo: Contas a receber
+      conta_credito: '3.1.1', // Exemplo: Receita de serviços
+      valor: contrato.valor_frete,
+      historico: `Receita de frete - Contrato: ${contrato.id}`,
+      documento_referencia: contrato.id.toString(),
+      tipo_documento: 'Contrato',
+      data_competencia: contrato.data_saida,
+      status: 'ativo'
+    };
+    
+    await criarLancamentoContabil(lancamento);
+    return true;
+  } catch (error) {
+    console.error('Erro ao gerar lançamento contábil para receita:', error);
+    return false;
+  }
+};
