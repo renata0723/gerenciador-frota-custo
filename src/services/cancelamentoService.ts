@@ -137,8 +137,8 @@ export const atualizarDREAposCancelamento = async (tipo: string, numeroDocumento
         // Se encontrou DRE, atualizar receita
         if (dreData) {
           const valorFrete = parseFloat(contratoData.valor_frete || '0');
-          const receitaBruta = parseFloat(dreData.receita_bruta || '0');
-          const receitaLiquida = parseFloat(dreData.receita_liquida || '0');
+          const receitaBruta = parseFloat(dreData.receita_bruta.toString() || '0');
+          const receitaLiquida = parseFloat(dreData.receita_liquida.toString() || '0');
           
           const novaReceita = receitaBruta - valorFrete;
           const novaReceitaLiquida = receitaLiquida - valorFrete;

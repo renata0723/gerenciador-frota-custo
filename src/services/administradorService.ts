@@ -6,6 +6,8 @@ import { logOperation } from '@/utils/logOperations';
 // Verificar se um usuário é administrador
 export const verificarAdministrador = async (usuarioId: number): Promise<Administrador | null> => {
   try {
+    console.log('Verificando se usuário é administrador, ID:', usuarioId);
+    
     const { data, error } = await supabase
       .from('Administradores')
       .select('*')
@@ -47,6 +49,8 @@ export const autenticarAdministradorGeral = async (credenciais: CredenciaisAdmin
       return false;
     }
     
+    console.log('Usuário encontrado, verificando se é administrador geral');
+    
     // Verificar se é administrador geral
     const { data: adminData, error: adminError } = await supabase
       .from('Administradores')
@@ -64,6 +68,8 @@ export const autenticarAdministradorGeral = async (credenciais: CredenciaisAdmin
       console.log('Usuário não é administrador geral:', credenciais.email);
       return false;
     }
+    
+    console.log('Autenticação bem-sucedida para administrador geral');
     
     // Atualizar último acesso
     const { error: updateError } = await supabase

@@ -51,6 +51,71 @@ export type Database = {
         }
         Relationships: []
       }
+      Administradores: {
+        Row: {
+          created_at: string | null
+          id: number
+          nivel_acesso: string
+          ultimo_acesso: string | null
+          usuario_id: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          nivel_acesso: string
+          ultimo_acesso?: string | null
+          usuario_id?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          nivel_acesso?: string
+          ultimo_acesso?: string | null
+          usuario_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Administradores_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "Usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Cancelamentos: {
+        Row: {
+          created_at: string | null
+          data_cancelamento: string | null
+          id: number
+          motivo: string
+          numero_documento: string
+          observacoes: string | null
+          responsavel: string
+          tipo_documento: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_cancelamento?: string | null
+          id?: number
+          motivo: string
+          numero_documento: string
+          observacoes?: string | null
+          responsavel: string
+          tipo_documento: string
+        }
+        Update: {
+          created_at?: string | null
+          data_cancelamento?: string | null
+          id?: number
+          motivo?: string
+          numero_documento?: string
+          observacoes?: string | null
+          responsavel?: string
+          tipo_documento?: string
+        }
+        Relationships: []
+      }
       Canhoto: {
         Row: {
           cliente: string | null
@@ -110,6 +175,7 @@ export type Database = {
           data_saida: string | null
           id: number | null
           motorista_id: number | null
+          notas_fiscais: string[] | null
           placa_carreta: string | null
           placa_cavalo: string | null
           proprietario: string | null
@@ -126,6 +192,7 @@ export type Database = {
           data_saida?: string | null
           id?: number | null
           motorista_id?: number | null
+          notas_fiscais?: string[] | null
           placa_carreta?: string | null
           placa_cavalo?: string | null
           proprietario?: string | null
@@ -142,6 +209,7 @@ export type Database = {
           data_saida?: string | null
           id?: number | null
           motorista_id?: number | null
+          notas_fiscais?: string[] | null
           placa_carreta?: string | null
           placa_cavalo?: string | null
           proprietario?: string | null
@@ -174,6 +242,48 @@ export type Database = {
           id?: number | null
           tipo_despesa?: string | null
           valor_despesa?: number | null
+        }
+        Relationships: []
+      }
+      DRE: {
+        Row: {
+          created_at: string | null
+          custos_operacionais: number | null
+          despesas_administrativas: number | null
+          id: number
+          periodo_fim: string
+          periodo_inicio: string
+          receita_bruta: number | null
+          receita_liquida: number | null
+          resultado_periodo: number | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custos_operacionais?: number | null
+          despesas_administrativas?: number | null
+          id?: number
+          periodo_fim: string
+          periodo_inicio: string
+          receita_bruta?: number | null
+          receita_liquida?: number | null
+          resultado_periodo?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custos_operacionais?: number | null
+          despesas_administrativas?: number | null
+          id?: number
+          periodo_fim?: string
+          periodo_inicio?: string
+          receita_bruta?: number | null
+          receita_liquida?: number | null
+          resultado_periodo?: number | null
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -339,6 +449,30 @@ export type Database = {
         }
         Relationships: []
       }
+      Permissoes: {
+        Row: {
+          acao: string
+          created_at: string | null
+          descricao: string | null
+          id: number
+          modulo: string
+        }
+        Insert: {
+          acao: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: number
+          modulo: string
+        }
+        Update: {
+          acao?: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: number
+          modulo?: string
+        }
+        Relationships: []
+      }
       Proprietarios: {
         Row: {
           created_at: string | null
@@ -432,6 +566,85 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome?: string
+        }
+        Relationships: []
+      }
+      UsuarioPermissoes: {
+        Row: {
+          concedido_por: number | null
+          created_at: string | null
+          id: number
+          permissao_id: number | null
+          usuario_id: number | null
+        }
+        Insert: {
+          concedido_por?: number | null
+          created_at?: string | null
+          id?: number
+          permissao_id?: number | null
+          usuario_id?: number | null
+        }
+        Update: {
+          concedido_por?: number | null
+          created_at?: string | null
+          id?: number
+          permissao_id?: number | null
+          usuario_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "UsuarioPermissoes_concedido_por_fkey"
+            columns: ["concedido_por"]
+            isOneToOne: false
+            referencedRelation: "Usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "UsuarioPermissoes_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "Permissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "UsuarioPermissoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "Usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Usuarios: {
+        Row: {
+          cargo: string | null
+          created_at: string | null
+          email: string
+          id: number
+          nome: string
+          senha: string
+          status: string
+          ultimo_acesso: string | null
+        }
+        Insert: {
+          cargo?: string | null
+          created_at?: string | null
+          email: string
+          id?: number
+          nome: string
+          senha: string
+          status?: string
+          ultimo_acesso?: string | null
+        }
+        Update: {
+          cargo?: string | null
+          created_at?: string | null
+          email?: string
+          id?: number
+          nome?: string
+          senha?: string
+          status?: string
+          ultimo_acesso?: string | null
         }
         Relationships: []
       }
