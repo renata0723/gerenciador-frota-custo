@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/ui/PageHeader';
@@ -7,11 +7,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ContratoFormTabs from '@/components/contratos/ContratoFormTabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
-import { ThumbsDown, FileDown, Plus } from 'lucide-react';
+import { ThumbsDown, FileDown, Plus, Search } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const Contratos = () => {
   const [rejeicaoDialogOpen, setRejeicaoDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("em-andamento");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Verifica se há um parâmetro de ID na URL (vindo da página de busca)
+    const params = new URLSearchParams(location.search);
+    const contratoId = params.get('id');
+    
+    if (contratoId) {
+      // Se houver um ID, simula a abertura de um contrato específico
+      toast.info(`Visualizando contrato #${contratoId}`);
+      // Poderia carregar os dados do contrato aqui
+    }
+  }, [location]);
 
   const handleSaveRejection = (data: any) => {
     console.log('Contrato rejeitado:', data);
@@ -35,6 +51,14 @@ const Contratos = () => {
           <Button variant="outline" className="flex items-center gap-2">
             <ThumbsDown size={18} />
             Histórico de Rejeições
+          </Button>
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2"
+            onClick={() => navigate('/buscar-contrato')}
+          >
+            <Search size={18} />
+            Buscar por Número
           </Button>
         </div>
         

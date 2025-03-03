@@ -8,6 +8,7 @@ import FormularioCTeDados from '@/components/contratos/FormularioCTeDados';
 import { FormularioFreteContratado } from '@/components/contratos/FormularioFreteContratado';
 import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
 import { toast } from 'sonner';
+import { ThumbsDown } from 'lucide-react';
 
 const ContratoFormTabs = () => {
   const [activeTab, setActiveTab] = useState("dados");
@@ -55,10 +56,14 @@ const ContratoFormTabs = () => {
   return (
     <Card className="w-full">
       <Tabs defaultValue="dados" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="dados">Dados do Contrato</TabsTrigger>
           <TabsTrigger value="frete">Frete Contratado</TabsTrigger>
           <TabsTrigger value="cte">CTe e Documentos</TabsTrigger>
+          <TabsTrigger value="rejeicao">
+            <ThumbsDown className="h-4 w-4 mr-2" />
+            Rejeição
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="dados" className="p-4 space-y-4">

@@ -10,6 +10,7 @@ import ConfiguracoesEmpresa from "./pages/ConfiguracoesEmpresa";
 import Motoristas from "./pages/Motoristas";
 import TVDashboard from "./pages/TVDashboard";
 import Contratos from "./pages/Contratos";
+import BuscarContrato from "./pages/BuscarContrato";
 import Canhotos from "./pages/Canhotos";
 import EntradaNotas from "./pages/EntradaNotas";
 import NovaNotaForm from "./pages/NovaNotaForm";
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/configuracoes" element={<ConfiguracoesEmpresa />} />
           <Route path="/tv-dashboard" element={<TVDashboard />} />
           <Route path="/contratos" element={<Contratos />} />
+          <Route path="/buscar-contrato" element={<BuscarContrato />} />
           <Route path="/canhotos" element={<Canhotos />} />
           <Route path="/veiculos" element={<Veiculos />} />
           <Route path="/veiculos/novo" element={<NovoVeiculoForm />} />

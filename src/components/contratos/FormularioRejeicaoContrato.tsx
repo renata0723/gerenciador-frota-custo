@@ -16,12 +16,18 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [responsavel, setResponsavel] = useState('');
+  const [numeroRBM, setNumeroRBM] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!motivoRejeicao) {
       toast.error("Por favor, selecione um motivo de rejeição");
+      return;
+    }
+    
+    if (!numeroRBM) {
+      toast.error("Por favor, informe o número RBM");
       return;
     }
     
@@ -32,6 +38,7 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
       motivo: motivoRejeicao,
       observacoes,
       responsavel,
+      numeroRBM,
       data: new Date()
     };
     
@@ -43,6 +50,7 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
     setMotivoRejeicao('');
     setObservacoes('');
     setResponsavel('');
+    setNumeroRBM('');
   };
 
   return (
@@ -53,6 +61,17 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="numeroRBM">Número RBM</Label>
+          <Input 
+            id="numeroRBM" 
+            value={numeroRBM}
+            onChange={(e) => setNumeroRBM(e.target.value)}
+            placeholder="Informe o número RBM"
+            required
+          />
+        </div>
+        
         <div className="space-y-2">
           <Label htmlFor="motivo">Motivo da Rejeição</Label>
           <Select value={motivoRejeicao} onValueChange={setMotivoRejeicao}>
