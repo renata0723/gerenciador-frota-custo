@@ -2,7 +2,7 @@
 export interface TipoCombustivel {
   id: string;
   nome: string;
-  descricao: string;
+  descricao?: string;
 }
 
 export interface AbastecimentoFormData {
@@ -15,4 +15,9 @@ export interface AbastecimentoFormData {
   posto: string;
   responsavel: string;
   quilometragem: number;
+}
+
+export interface AbastecimentoItem {
+  tipo: string;
+  quantidade: number;
 }

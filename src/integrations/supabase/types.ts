@@ -228,6 +228,60 @@ export type Database = {
         }
         Relationships: []
       }
+      Motoristas: {
+        Row: {
+          categoria_cnh: string | null
+          cnh: string | null
+          cpf: string | null
+          data_contratacao: string | null
+          data_nascimento: string | null
+          endereco: string | null
+          id: number
+          nome: string
+          observacoes: string | null
+          proprietario_vinculado: string | null
+          status: string | null
+          telefone: string | null
+          tipo: string | null
+          tipo_cadastro: string | null
+          vencimento_cnh: string | null
+        }
+        Insert: {
+          categoria_cnh?: string | null
+          cnh?: string | null
+          cpf?: string | null
+          data_contratacao?: string | null
+          data_nascimento?: string | null
+          endereco?: string | null
+          id?: number
+          nome: string
+          observacoes?: string | null
+          proprietario_vinculado?: string | null
+          status?: string | null
+          telefone?: string | null
+          tipo?: string | null
+          tipo_cadastro?: string | null
+          vencimento_cnh?: string | null
+        }
+        Update: {
+          categoria_cnh?: string | null
+          cnh?: string | null
+          cpf?: string | null
+          data_contratacao?: string | null
+          data_nascimento?: string | null
+          endereco?: string | null
+          id?: number
+          nome?: string
+          observacoes?: string | null
+          proprietario_vinculado?: string | null
+          status?: string | null
+          telefone?: string | null
+          tipo?: string | null
+          tipo_cadastro?: string | null
+          vencimento_cnh?: string | null
+        }
+        Relationships: []
+      }
       "Notas Fiscais": {
         Row: {
           carga_batida_paleteizada: string | null
