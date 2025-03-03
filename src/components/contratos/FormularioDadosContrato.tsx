@@ -57,9 +57,11 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
 
   // Diálogos para cadastro
   const [dialogPlaca, setDialogPlaca] = useState(false);
+  const [dialogCarreta, setDialogCarreta] = useState(false);
   const [dialogProprietario, setDialogProprietario] = useState(false);
   const [proprietarios, setProprietarios] = useState<{nome: string, dados_bancarios: string}[]>([]);
   const [placasDisponiveis, setPlacasDisponiveis] = useState<{placa_cavalo: string, placa_carreta: string | null, tipo_frota: string}[]>([]);
+  const [placasCarreta, setPlacasCarreta] = useState<string[]>([]);
   const [carregandoPlacas, setCarregandoPlacas] = useState(false);
   const [carregandoProprietarios, setCarregandoProprietarios] = useState(false);
 
@@ -73,6 +75,7 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
   // Carregar placas e proprietários ao iniciar
   useEffect(() => {
     carregarPlacas();
+    carregarPlacasCarreta();
     carregarProprietarios();
   }, []);
 
@@ -113,6 +116,29 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
       console.error('Erro ao processar placas:', error);
     } finally {
       setCarregandoPlacas(false);
+    }
+  };
+
+  const carregarPlacasCarreta = async () => {
+    try {
+      // Busca todas as placas de carretas distintas e não nulas
+      const { data, error } = await supabase
+        .from('Veiculos')
+        .select('placa_carreta')
+        .not('placa_carreta', 'is', null)
+        .eq('status_veiculo', 'Ativo');
+
+      if (error) {
+        console.error('Erro ao carregar placas de carreta:', error);
+        toast.error('Erro ao carregar placas de carreta disponíveis');
+        return;
+      }
+
+      // Extrair as placas únicas
+      const placasUnicas = [...new Set(data.map(item => item.placa_carreta).filter(Boolean))];
+      setPlacasCarreta(placasUnicas);
+    } catch (error) {
+      console.error('Erro ao processar placas de carreta:', error);
     }
   };
 
@@ -230,7 +256,7 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
     // Se selecionou uma placa, verificar e preencher a placa da carreta automaticamente
     if (field === 'placaCavalo') {
       const veiculo = placasDisponiveis.find(p => p.placa_cavalo === value);
-      if (veiculo) {
+      if (veiculo && veiculo.placa_carreta) {
         setFormData(prev => ({
           ...prev,
           placaCarreta: veiculo.placa_carreta || '',
@@ -274,6 +300,16 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
       tipo: data.tipoFrota
     }));
     await carregarPlacas();
+    await carregarPlacasCarreta();
+  };
+
+  const handleSaveCarreta = async (data: { placaCavalo?: string, placaCarreta: string, tipoFrota: 'frota' | 'terceiro' }) => {
+    setDialogCarreta(false);
+    setFormData(prev => ({
+      ...prev,
+      placaCarreta: data.placaCarreta
+    }));
+    await carregarPlacasCarreta();
   };
 
   const handleSaveProprietario = async (data: ProprietarioData) => {
@@ -507,14 +543,39 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
           </div>
           
           <div>
-            <Label htmlFor="placaCarreta">Placa da Carreta</Label>
-            <Input
-              id="placaCarreta"
-              name="placaCarreta"
-              value={formData.placaCarreta}
-              onChange={handleChange}
-              placeholder="XYZ-9876"
-            />
+            <Label htmlFor="placaCarreta" className="flex justify-between">
+              <span>Placa da Carreta</span>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs"
+                onClick={() => setDialogCarreta(true)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Cadastrar
+              </Button>
+            </Label>
+            <div className="flex space-x-2">
+              <Select 
+                value={formData.placaCarreta} 
+                onValueChange={(value) => handleSelectChange('placaCarreta', value)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Selecione a placa da carreta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {placasCarreta.map(placa => (
+                    <SelectItem key={placa} value={placa}>
+                      {placa}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" size="icon" onClick={carregarPlacasCarreta}>
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           
           <div>
@@ -573,18 +634,35 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
         </div>
       </form>
 
-      {/* Dialog para cadastrar nova placa */}
+      {/* Dialog para cadastrar nova placa de cavalo */}
       <Dialog open={dialogPlaca} onOpenChange={setDialogPlaca}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Truck className="mr-2 h-5 w-5" />
-              Cadastrar Novo Veículo
+              Cadastrar Novo Cavalo
             </DialogTitle>
           </DialogHeader>
           <CadastroPlacaForm
             onSave={handleSavePlaca}
             onCancel={() => setDialogPlaca(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para cadastrar nova placa de carreta */}
+      <Dialog open={dialogCarreta} onOpenChange={setDialogCarreta}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Truck className="mr-2 h-5 w-5" />
+              Cadastrar Nova Carreta
+            </DialogTitle>
+          </DialogHeader>
+          <CadastroPlacaForm
+            onSave={handleSaveCarreta}
+            onCancel={() => setDialogCarreta(false)}
+            isCarreta={true}
           />
         </DialogContent>
       </Dialog>

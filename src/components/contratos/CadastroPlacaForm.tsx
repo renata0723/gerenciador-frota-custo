@@ -1,127 +1,194 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CadastroPlacaFormProps {
-  onSave: (data: { placaCavalo: string, placaCarreta?: string, tipoFrota: 'frota' | 'terceiro' }) => void;
+  onSave: (data: { placaCavalo?: string; placaCarreta?: string; tipoFrota: 'frota' | 'terceiro' }) => void;
   onCancel: () => void;
+  isCarreta?: boolean;
 }
 
-const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({ onSave, onCancel }) => {
+const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({ 
+  onSave, 
+  onCancel,
+  isCarreta = false 
+}) => {
   const [placaCavalo, setPlacaCavalo] = useState('');
   const [placaCarreta, setPlacaCarreta] = useState('');
   const [tipoFrota, setTipoFrota] = useState<'frota' | 'terceiro'>('frota');
-  const [loading, setLoading] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+
+  const validarPlaca = (placa: string) => {
+    // Validação básica de placa (formato antigo: ABC-1234 ou novo: ABC1D23)
+    const regexAntigoMercosul = /^[A-Z]{3}-\d{4}$/;
+    const regexNovoMercosul = /^[A-Z]{3}\d[A-Z]\d{2}$/;
+    return regexAntigoMercosul.test(placa) || regexNovoMercosul.test(placa);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!placaCavalo) {
-      toast.error('Placa do cavalo é obrigatória');
-      return;
-    }
-    
-    setLoading(true);
-    
+    setCarregando(true);
+
     try {
-      // Verificar se a placa já existe
-      const { data: existingVehicle, error: checkError } = await supabase
-        .from('Veiculos')
-        .select('*')
-        .eq('placa_cavalo', placaCavalo)
-        .single();
-        
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 é o código quando nenhum registro é encontrado
-        toast.error('Erro ao verificar placa existente');
-        console.error(checkError);
-        return;
+      if (isCarreta) {
+        // Validar a placa da carreta
+        if (!placaCarreta || !validarPlaca(placaCarreta)) {
+          toast.error('Por favor, insira uma placa de carreta válida (formato: ABC-1234 ou ABC1D23)');
+          return;
+        }
+
+        // Verificar se a placa já existe
+        const { data: placaExistente, error: errorVerificacao } = await supabase
+          .from('Veiculos')
+          .select('*')
+          .eq('placa_carreta', placaCarreta);
+
+        if (errorVerificacao) {
+          console.error('Erro ao verificar placa:', errorVerificacao);
+          toast.error('Erro ao verificar placa no sistema');
+          return;
+        }
+
+        if (placaExistente && placaExistente.length > 0) {
+          toast.error('Esta placa de carreta já está cadastrada no sistema');
+          return;
+        }
+
+        // Inserir a placa da carreta
+        const { error } = await supabase
+          .from('Veiculos')
+          .insert({
+            placa_carreta: placaCarreta,
+            tipo_frota: tipoFrota,
+            status_veiculo: 'Ativo'
+          });
+
+        if (error) {
+          console.error('Erro ao cadastrar placa:', error);
+          toast.error('Erro ao cadastrar placa de carreta');
+          return;
+        }
+
+        toast.success('Placa de carreta cadastrada com sucesso!');
+        onSave({ placaCarreta, tipoFrota });
+      } else {
+        // Validar a placa do cavalo
+        if (!placaCavalo || !validarPlaca(placaCavalo)) {
+          toast.error('Por favor, insira uma placa de cavalo válida (formato: ABC-1234 ou ABC1D23)');
+          return;
+        }
+
+        // Verificar se a placa já existe
+        const { data: placaExistente, error: errorVerificacao } = await supabase
+          .from('Veiculos')
+          .select('*')
+          .eq('placa_cavalo', placaCavalo);
+
+        if (errorVerificacao) {
+          console.error('Erro ao verificar placa:', errorVerificacao);
+          toast.error('Erro ao verificar placa no sistema');
+          return;
+        }
+
+        if (placaExistente && placaExistente.length > 0) {
+          toast.error('Esta placa de cavalo já está cadastrada no sistema');
+          return;
+        }
+
+        // Inserir o veículo
+        const { error } = await supabase
+          .from('Veiculos')
+          .insert({
+            placa_cavalo: placaCavalo,
+            placa_carreta: placaCarreta || null,
+            tipo_frota: tipoFrota,
+            status_veiculo: 'Ativo'
+          });
+
+        if (error) {
+          console.error('Erro ao cadastrar veículo:', error);
+          toast.error('Erro ao cadastrar veículo');
+          return;
+        }
+
+        toast.success('Veículo cadastrado com sucesso!');
+        onSave({ placaCavalo, placaCarreta, tipoFrota });
       }
-      
-      if (existingVehicle) {
-        toast.error('Esta placa já está cadastrada no sistema');
-        return;
-      }
-      
-      // Inserir novo veículo
-      const { error } = await supabase
-        .from('Veiculos')
-        .insert({
-          placa_cavalo: placaCavalo,
-          placa_carreta: placaCarreta || null,
-          tipo_frota: tipoFrota,
-          status_veiculo: 'Ativo'
-        });
-        
-      if (error) {
-        toast.error('Erro ao cadastrar veículo');
-        console.error(error);
-        return;
-      }
-      
-      toast.success('Veículo cadastrado com sucesso!');
-      onSave({
-        placaCavalo,
-        placaCarreta,
-        tipoFrota
-      });
     } catch (error) {
-      console.error('Erro ao processar:', error);
-      toast.error('Ocorreu um erro ao processar o cadastro');
+      console.error('Erro:', error);
+      toast.error('Ocorreu um erro ao processar a solicitação');
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="placaCavalo">Placa do Cavalo *</Label>
-        <Input
-          id="placaCavalo"
-          value={placaCavalo}
-          onChange={(e) => setPlacaCavalo(e.target.value.toUpperCase())}
-          placeholder="ABC-1234"
-          required
-        />
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-4 py-4">
+      {isCarreta ? (
+        <div className="space-y-2">
+          <Label htmlFor="placaCarreta">Placa da Carreta *</Label>
+          <Input
+            id="placaCarreta"
+            value={placaCarreta}
+            onChange={(e) => setPlacaCarreta(e.target.value.toUpperCase())}
+            placeholder="Formato: ABC-1234 ou ABC1D23"
+            required
+          />
+        </div>
+      ) : (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="placaCavalo">Placa do Cavalo *</Label>
+            <Input
+              id="placaCavalo"
+              value={placaCavalo}
+              onChange={(e) => setPlacaCavalo(e.target.value.toUpperCase())}
+              placeholder="Formato: ABC-1234 ou ABC1D23"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="placaCarreta">Placa da Carreta (opcional)</Label>
+            <Input
+              id="placaCarreta"
+              value={placaCarreta}
+              onChange={(e) => setPlacaCarreta(e.target.value.toUpperCase())}
+              placeholder="Formato: ABC-1234 ou ABC1D23"
+            />
+          </div>
+        </>
+      )}
       
-      <div>
-        <Label htmlFor="placaCarreta">Placa da Carreta</Label>
-        <Input
-          id="placaCarreta"
-          value={placaCarreta}
-          onChange={(e) => setPlacaCarreta(e.target.value.toUpperCase())}
-          placeholder="XYZ-9876"
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="tipoFrota">Tipo de Frota *</Label>
-        <Select
-          value={tipoFrota}
+      <div className="space-y-2">
+        <Label>Tipo de Frota *</Label>
+        <RadioGroup 
+          value={tipoFrota} 
           onValueChange={(value) => setTipoFrota(value as 'frota' | 'terceiro')}
+          className="flex space-x-4"
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="frota">Frota Própria</SelectItem>
-            <SelectItem value="terceiro">Terceirizado</SelectItem>
-          </SelectContent>
-        </Select>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="frota" id="frota-propria" />
+            <Label htmlFor="frota-propria" className="cursor-pointer">Própria</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="terceiro" id="frota-terceirizada" />
+            <Label htmlFor="frota-terceirizada" className="cursor-pointer">Terceirizada</Label>
+          </div>
+        </RadioGroup>
       </div>
       
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+      <div className="flex justify-end space-x-2 pt-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Salvando...' : 'Salvar'}
+        <Button type="submit" disabled={carregando}>
+          {carregando ? 'Processando...' : 'Salvar'}
         </Button>
       </div>
     </form>
