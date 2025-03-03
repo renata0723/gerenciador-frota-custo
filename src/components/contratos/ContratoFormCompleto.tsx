@@ -1,16 +1,13 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import FormularioDadosContrato, { DadosContratoFormData } from '@/components/contratos/FormularioDadosContrato';
 import FormularioDocumentosRegistros from '@/components/contratos/FormularioDocumentosRegistros';
 import { FormularioFreteContratado } from '@/components/contratos/FormularioFreteContratado';
 import FormularioObservacoes from '@/components/contratos/FormularioObservacoes';
-import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { ThumbsDown } from 'lucide-react';
 
 interface ContratoFormCompletoProps {
   contratoId?: string;
@@ -79,12 +76,6 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
     handleSaveAllData();
   };
   
-  const handleSaveRejectionData = (data: any) => {
-    console.log("Dados de rejeição salvos:", data);
-    toast.success("Contrato rejeitado com sucesso!");
-    navigate('/contratos');
-  };
-
   const handleSaveAllData = () => {
     // Aqui você enviaria todos os dados para o servidor
     const contratoCompleto = {
@@ -105,15 +96,11 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
   return (
     <Card className="w-full">
       <Tabs defaultValue="dados" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="dados">Dados do Contrato</TabsTrigger>
           <TabsTrigger value="documentos">Documentos e Registros</TabsTrigger>
           <TabsTrigger value="frete">Frete Contratado</TabsTrigger>
           <TabsTrigger value="observacoes">Observações</TabsTrigger>
-          <TabsTrigger value="rejeicao">
-            <ThumbsDown className="h-4 w-4 mr-2" />
-            Rejeição
-          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="dados" className="p-4 space-y-4">
@@ -148,10 +135,6 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
             onBack={() => setActiveTab("frete")}
             initialData={dadosObservacoes || undefined}
           />
-        </TabsContent>
-        
-        <TabsContent value="rejeicao" className="p-4 space-y-4">
-          <FormularioRejeicaoContrato onSave={handleSaveRejectionData} />
         </TabsContent>
       </Tabs>
     </Card>

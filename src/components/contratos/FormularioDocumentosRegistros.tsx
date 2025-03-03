@@ -1,16 +1,18 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon } from 'lucide-react';
 
 export interface DocumentoRegistro {
   id: string;
   numero: string;
   tipo: 'manifesto' | 'cte' | 'nota';
+  valorFrete?: number;
+  valorCarga?: number;
 }
 
 export interface DocumentosRegistrosData {
@@ -46,6 +48,27 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
   const [novoManifesto, setNovoManifesto] = useState('');
   const [novoCTe, setNovoCTe] = useState('');
   const [novaNota, setNovaNota] = useState('');
+  
+  // Atualizar os valores totais quando os CTes forem modificados
+  useEffect(() => {
+    if (formData.ctes.length > 0) {
+      // Somar valores do frete de todos os CTes
+      const totalFrete = formData.ctes.reduce((sum, cte) => {
+        return sum + (cte.valorFrete || 0);
+      }, 0);
+      
+      // Somar valores da carga de todos os CTes
+      const totalCarga = formData.ctes.reduce((sum, cte) => {
+        return sum + (cte.valorCarga || 0);
+      }, 0);
+      
+      setFormData(prev => ({
+        ...prev,
+        valorFrete: totalFrete,
+        valorCarga: totalCarga
+      }));
+    }
+  }, [formData.ctes]);
 
   const handleNumberChange = (field: 'valorFrete' | 'valorCarga', value: string) => {
     const numValue = parseFloat(value);
@@ -66,6 +89,20 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
       numero: valor.trim(),
       tipo
     };
+    
+    // Para CTes, solicitar valores de frete e carga
+    if (tipo === 'cte') {
+      const valorFrete = prompt('Digite o valor do frete para este CTe (R$):');
+      const valorCarga = prompt('Digite o valor da carga para este CTe (R$):');
+      
+      if (valorFrete) {
+        novoItem.valorFrete = parseFloat(valorFrete);
+      }
+      
+      if (valorCarga) {
+        novoItem.valorCarga = parseFloat(valorCarga);
+      }
+    }
 
     setFormData(prev => {
       let novaLista;
@@ -212,16 +249,27 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
               <ul className="space-y-2">
                 {formData.ctes.map(item => (
                   <li key={item.id} className="flex justify-between items-center p-2 bg-white rounded border">
-                    <span>{item.numero}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removerItem('cte', item.id)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Trash2 size={16} className="text-red-500" />
-                    </Button>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{item.numero}</span>
+                      {(item.valorFrete || item.valorCarga) && (
+                        <span className="text-xs text-gray-600">
+                          {item.valorFrete ? `Frete: R$ ${item.valorFrete.toFixed(2)}` : ''} 
+                          {item.valorFrete && item.valorCarga ? ' | ' : ''}
+                          {item.valorCarga ? `Carga: R$ ${item.valorCarga.toFixed(2)}` : ''}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removerItem('cte', item.id)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Trash2 size={16} className="text-red-500" />
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -278,10 +326,10 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
           )}
         </Card>
         
-        {/* Seção de Valores */}
+        {/* Seção de Valores (agora são calculados automaticamente a partir dos CTes) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="valorFrete">Valor do Frete (R$) *</Label>
+            <Label htmlFor="valorFrete">Valor do Frete (Receita da Empresa) (R$) *</Label>
             <Input
               id="valorFrete"
               type="number"
@@ -290,7 +338,15 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
               value={formData.valorFrete || ''}
               onChange={(e) => handleNumberChange('valorFrete', e.target.value)}
               required
+              className={formData.ctes.length > 0 ? "bg-gray-100" : ""}
+              readOnly={formData.ctes.length > 0}
             />
+            {formData.ctes.length > 0 && (
+              <p className="text-sm text-gray-500 mt-1">
+                <LinkIcon size={12} className="inline mr-1" />
+                Valor calculado automaticamente a partir dos CTes
+              </p>
+            )}
           </div>
           
           <div>
@@ -303,7 +359,15 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
               value={formData.valorCarga || ''}
               onChange={(e) => handleNumberChange('valorCarga', e.target.value)}
               required
+              className={formData.ctes.length > 0 ? "bg-gray-100" : ""}
+              readOnly={formData.ctes.length > 0}
             />
+            {formData.ctes.length > 0 && (
+              <p className="text-sm text-gray-500 mt-1">
+                <LinkIcon size={12} className="inline mr-1" />
+                Valor calculado automaticamente a partir dos CTes
+              </p>
+            )}
           </div>
         </div>
         
