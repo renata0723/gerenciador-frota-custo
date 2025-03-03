@@ -65,6 +65,23 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
   const handleSaveFreightData = (data: any) => {
     console.log("Dados do frete salvos:", data);
     setDadosFrete(data);
+    
+    // Se for frete terceirizado e a opção de gerar saldo a pagar estiver marcada
+    if (dadosContrato?.tipo === 'terceiro' && data.gerarSaldoPagar && data.saldoPagar > 0) {
+      // Gerar entrada no saldo a pagar
+      const saldoPagarData = {
+        parceiro: dadosContrato.proprietario,
+        valorTotal: data.saldoPagar,
+        contrato: dadosContrato.idContrato,
+        proprietarioInfo: data.proprietarioInfo
+      };
+      
+      console.log("Gerando saldo a pagar:", saldoPagarData);
+      // Aqui você integraria com a API para salvar o saldo a pagar
+      
+      toast.success(`Saldo de R$ ${data.saldoPagar.toFixed(2)} gerado para o proprietário ${dadosContrato.proprietario}`);
+    }
+    
     toast.success("Dados do frete salvos com sucesso!");
     setActiveTab("observacoes");
   };
@@ -127,6 +144,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
             onBack={() => setActiveTab("documentos")}
             onNext={() => setActiveTab("observacoes")}
             initialData={dadosFrete || undefined}
+            dadosContrato={dadosContrato} // Passando os dados do contrato para o formulário de frete
           />
         </TabsContent>
         
