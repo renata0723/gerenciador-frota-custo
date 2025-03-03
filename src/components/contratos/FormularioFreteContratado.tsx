@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
+import { ProprietarioData } from './CadastroProprietarioForm';
 
 export interface FreteContratadoData {
   valorFreteContratado: number;
@@ -14,16 +15,7 @@ export interface FreteContratadoData {
   saldoPagar: number;
   observacoes: string;
   gerarSaldoPagar: boolean;
-  proprietarioInfo: {
-    nome: string;
-    documento: string;
-    dadosBancarios: {
-      banco: string;
-      agencia: string;
-      conta: string;
-      tipoConta: string;
-    }
-  } | null;
+  proprietarioInfo: ProprietarioData | null;
 }
 
 interface FormularioFreteContratadoProps {
@@ -56,26 +48,32 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
   // Carregar informações do proprietário quando o componente montar ou quando dadosContrato mudar
   useEffect(() => {
     if (dadosContrato && dadosContrato.tipo === 'terceiro' && dadosContrato.proprietario) {
-      // Aqui você poderia fazer uma chamada à API para buscar os dados completos do proprietário
-      // baseado no nome/id que vem de dadosContrato.proprietario
-      
-      // Simulação de busca de dados do proprietário
-      const proprietarioInfo = {
-        nome: dadosContrato.proprietario,
-        documento: 'Documento do proprietário', // Simulado
-        dadosBancarios: {
-          banco: 'Banco do proprietário',
-          agencia: '1234',
-          conta: '56789-0',
-          tipoConta: 'corrente'
-        }
-      };
-      
-      setFormData(prev => ({
-        ...prev,
-        proprietarioInfo: proprietarioInfo,
-        gerarSaldoPagar: true
-      }));
+      // Se o proprietário já tiver informações detalhadas no dadosContrato, use-as
+      if (dadosContrato.proprietarioInfo) {
+        setFormData(prev => ({
+          ...prev,
+          proprietarioInfo: dadosContrato.proprietarioInfo,
+          gerarSaldoPagar: true
+        }));
+      } else {
+        // Simulação de busca de dados do proprietário se não estiver disponível
+        const proprietarioInfo = {
+          nome: dadosContrato.proprietario,
+          documento: 'Documento do proprietário', // Simulado
+          dadosBancarios: {
+            banco: 'Banco do proprietário',
+            agencia: '1234',
+            conta: '56789-0',
+            tipoConta: 'corrente'
+          }
+        };
+        
+        setFormData(prev => ({
+          ...prev,
+          proprietarioInfo: proprietarioInfo,
+          gerarSaldoPagar: true
+        }));
+      }
     }
   }, [dadosContrato]);
 
@@ -236,7 +234,7 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
                 <p className="text-sm"><strong>Banco:</strong> {formData.proprietarioInfo.dadosBancarios.banco}</p>
                 <p className="text-sm"><strong>Agência:</strong> {formData.proprietarioInfo.dadosBancarios.agencia}</p>
                 <p className="text-sm"><strong>Conta:</strong> {formData.proprietarioInfo.dadosBancarios.conta}</p>
-                <p className="text-sm"><strong>Tipo de Conta:</strong> {formData.proprietarioInfo.dadosBancarios.tipoConta}</p>
+                <p className="text-sm"><strong>Tipo de Conta:</strong> {formData.proprietarioInfo.dadosBancarios.tipoConta === 'corrente' ? 'Conta Corrente' : 'Conta Poupança'}</p>
               </div>
             )}
           </Card>

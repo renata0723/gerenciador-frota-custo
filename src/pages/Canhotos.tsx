@@ -40,10 +40,22 @@ const Canhotos = () => {
         return;
       }
 
-      const canhotosFormatados = canhotosData.map(canhoto => ({
-        ...canhoto,
-        id: String(canhoto.id), // Converter ID para string para compatibilidade com o tipo
-        status: (canhoto.status || 'Pendente') as "Pendente" | "Recebido" // Garantir o tipo correto
+      // Converter para o formato correto do tipo Canhoto
+      const canhotosFormatados: Canhoto[] = (canhotosData || []).map(canhoto => ({
+        id: String(canhoto.id || ''),
+        cliente: canhoto.cliente || '',
+        contrato_id: canhoto.contrato_id || '',
+        data_entrega_cliente: canhoto.data_entrega_cliente || '',
+        data_programada_pagamento: canhoto.data_programada_pagamento || '',
+        data_recebimento_canhoto: canhoto.data_recebimento_canhoto || '',
+        motorista: canhoto.motorista || '',
+        numero_cte: canhoto.numero_cte || '',
+        numero_manifesto: canhoto.numero_manifesto || '',
+        numero_nota_fiscal: canhoto.numero_nota_fiscal || '',
+        proprietario_veiculo: canhoto.proprietario_veiculo || '',
+        responsavel_recebimento: canhoto.responsavel_recebimento || '',
+        saldo_a_pagar: canhoto.saldo_a_pagar || 0,
+        status: (canhoto.status as "Pendente" | "Recebido") || "Pendente"
       }));
 
       // Separar canhotos pendentes e recebidos
@@ -79,10 +91,22 @@ const Canhotos = () => {
         return;
       }
 
-      const canhotosFormatados = data.map(canhoto => ({
-        ...canhoto,
-        id: String(canhoto.id), // Converter ID para string
-        status: (canhoto.status || 'Pendente') as "Pendente" | "Recebido" // Garantir o tipo correto
+      // Converter para o formato correto do tipo Canhoto
+      const canhotosFormatados: Canhoto[] = (data || []).map(canhoto => ({
+        id: String(canhoto.id || ''),
+        cliente: canhoto.cliente || '',
+        contrato_id: canhoto.contrato_id || '',
+        data_entrega_cliente: canhoto.data_entrega_cliente || '',
+        data_programada_pagamento: canhoto.data_programada_pagamento || '',
+        data_recebimento_canhoto: canhoto.data_recebimento_canhoto || '',
+        motorista: canhoto.motorista || '',
+        numero_cte: canhoto.numero_cte || '',
+        numero_manifesto: canhoto.numero_manifesto || '',
+        numero_nota_fiscal: canhoto.numero_nota_fiscal || '',
+        proprietario_veiculo: canhoto.proprietario_veiculo || '',
+        responsavel_recebimento: canhoto.responsavel_recebimento || '',
+        saldo_a_pagar: canhoto.saldo_a_pagar || 0,
+        status: (canhoto.status as "Pendente" | "Recebido") || "Pendente"
       }));
 
       // Separar canhotos pendentes e recebidos
@@ -118,16 +142,27 @@ const Canhotos = () => {
         return;
       }
 
-      // Assegurar que o status seja do tipo correto
-      const dadosAtualizados: Partial<Canhoto> = {
+      // Converter id de string para número para o Supabase
+      const idNumerico = parseInt(canhotoSelecionado.id);
+      if (isNaN(idNumerico)) {
+        toast.error('ID do canhoto inválido');
+        return;
+      }
+
+      // Preparar os dados para atualização
+      const dadosAtualizados = {
         ...dados,
+        id: idNumerico, // Usar o ID numérico para o Supabase
         status: "Recebido" as const
       };
 
+      // Remover o id da atualização, já que ele é usado na condição
+      const { id, ...dadosSemId } = dadosAtualizados;
+
       const { error } = await supabase
         .from('Canhoto')
-        .update(dadosAtualizados)
-        .eq('id', canhotoSelecionado.id);
+        .update(dadosSemId)
+        .eq('id', idNumerico);
 
       if (error) {
         console.error('Erro ao atualizar canhoto:', error);
@@ -140,8 +175,8 @@ const Canhotos = () => {
       carregarCanhotos(); // Recarregar os dados
 
       // Verificar se precisamos gerar saldo a pagar
-      if (dadosAtualizados.proprietario_veiculo && dadosAtualizados.saldo_a_pagar) {
-        toast.success(`Saldo a pagar de R$ ${dadosAtualizados.saldo_a_pagar.toFixed(2)} programado para ${format(parseISO(dadosAtualizados.data_programada_pagamento!), "dd/MM/yyyy")}`);
+      if (dadosAtualizados.proprietario_veiculo && dadosAtualizados.saldo_a_pagar && dadosAtualizados.data_programada_pagamento) {
+        toast.success(`Saldo a pagar de R$ ${dadosAtualizados.saldo_a_pagar.toFixed(2)} programado para ${format(parseISO(dadosAtualizados.data_programada_pagamento), "dd/MM/yyyy")}`);
       }
     } catch (error) {
       console.error('Erro ao processar:', error);

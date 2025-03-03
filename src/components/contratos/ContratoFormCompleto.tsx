@@ -8,6 +8,7 @@ import { FormularioFreteContratado } from '@/components/contratos/FormularioFret
 import FormularioObservacoes from '@/components/contratos/FormularioObservacoes';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ContratoFormCompletoProps {
   contratoId?: string;
@@ -62,7 +63,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
     setActiveTab("frete");
   };
   
-  const handleSaveFreightData = (data: any) => {
+  const handleSaveFreightData = async (data: any) => {
     console.log("Dados do frete salvos:", data);
     setDadosFrete(data);
     
@@ -73,29 +74,59 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
         parceiro: dadosContrato.proprietario,
         valorTotal: data.saldoPagar,
         contrato: dadosContrato.idContrato,
-        proprietarioInfo: data.proprietarioInfo
+        proprietarioInfo: data.proprietarioInfo || dadosContrato.proprietarioInfo
       };
       
       console.log("Gerando saldo a pagar:", saldoPagarData);
-      // Aqui você integraria com a API para salvar o saldo a pagar
       
-      toast.success(`Saldo de R$ ${data.saldoPagar.toFixed(2)} gerado para o proprietário ${dadosContrato.proprietario}`);
+      try {
+        // Formatar dados bancários para armazenamento
+        const dadosBancariosJSON = saldoPagarData.proprietarioInfo ? 
+          JSON.stringify(saldoPagarData.proprietarioInfo.dadosBancarios) : null;
+          
+        // Inserir no saldo a pagar
+        const { error } = await supabase
+          .from('Saldo a pagar')
+          .insert({
+            parceiro: saldoPagarData.parceiro,
+            valor_total: saldoPagarData.valorTotal,
+            contratos_associados: saldoPagarData.contrato,
+            dados_bancarios: dadosBancariosJSON
+          });
+          
+        if (error) {
+          console.error('Erro ao gerar saldo a pagar:', error);
+          toast.error('Erro ao gerar saldo a pagar para o proprietário');
+        } else {
+          toast.success(`Saldo de R$ ${data.saldoPagar.toFixed(2)} gerado para o proprietário ${dadosContrato.proprietario}`);
+        }
+      } catch (error) {
+        console.error('Erro ao processar saldo a pagar:', error);
+        toast.error('Ocorreu um erro ao gerar o saldo a pagar');
+      }
     }
     
     toast.success("Dados do frete salvos com sucesso!");
     setActiveTab("observacoes");
   };
   
-  const handleSaveObservacoesData = (data: any) => {
+  const handleSaveObservacoesData = async (data: any) => {
     console.log("Observações salvas:", data);
     setDadosObservacoes(data);
-    toast.success("Observações registradas com sucesso!");
+    
     // Aqui você poderia chamar uma função para salvar todos os dados coletados
-    handleSaveAllData();
+    await handleSaveAllData();
+    
+    toast.success("Observações registradas com sucesso!");
   };
   
-  const handleSaveAllData = () => {
+  const handleSaveAllData = async () => {
     // Aqui você enviaria todos os dados para o servidor
+    if (!dadosContrato) {
+      toast.error("Dados do contrato incompletos");
+      return;
+    }
+    
     const contratoCompleto = {
       dadosContrato,
       dadosDocumentos,
@@ -103,12 +134,67 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
       dadosObservacoes
     };
     console.log("Contrato completo para salvar:", contratoCompleto);
-    toast.success("Contrato registrado com sucesso!");
     
-    // Redirecionar para a lista de contratos
-    setTimeout(() => {
-      navigate('/contratos');
-    }, 1500);
+    try {
+      // Gravar na tabela de Contratos
+      const { error: contratoError } = await supabase
+        .from('Contratos')
+        .insert({
+          id: parseInt(dadosContrato.idContrato) || null,
+          cidade_destino: dadosContrato.cidadeDestino,
+          cidade_origem: dadosContrato.cidadeOrigem,
+          cliente_destino: dadosContrato.clienteDestino,
+          data_saida: dadosContrato.dataSaida,
+          placa_carreta: dadosContrato.placaCarreta,
+          placa_cavalo: dadosContrato.placaCavalo,
+          proprietario: dadosContrato.proprietario,
+          status_contrato: 'Em Andamento',
+          tipo_frota: dadosContrato.tipo,
+          valor_frete: dadosFrete?.valorFreteContratado || null,
+          valor_carga: dadosDocumentos?.valorTotalCarga || null
+        });
+        
+      if (contratoError) {
+        console.error('Erro ao salvar contrato:', contratoError);
+        toast.error('Erro ao salvar contrato');
+        return;
+      }
+      
+      // Criar entrada na tabela de Canhoto para futuro recebimento
+      if (dadosDocumentos?.numeroManifesto || dadosDocumentos?.numeroCTe || dadosDocumentos?.notasFiscais?.length) {
+        // Pegar a primeira nota fiscal
+        const primeiraNotaFiscal = dadosDocumentos?.notasFiscais?.[0]?.numero || null;
+        
+        const { error: canhotoError } = await supabase
+          .from('Canhoto')
+          .insert({
+            cliente: dadosContrato.clienteDestino,
+            contrato_id: dadosContrato.idContrato,
+            motorista: dadosContrato.motorista,
+            numero_cte: dadosDocumentos?.numeroCTe || null,
+            numero_manifesto: dadosDocumentos?.numeroManifesto || null,
+            numero_nota_fiscal: primeiraNotaFiscal,
+            proprietario_veiculo: dadosContrato.tipo === 'terceiro' ? dadosContrato.proprietario : null,
+            status: 'Pendente',
+            saldo_a_pagar: dadosContrato.tipo === 'terceiro' ? (dadosFrete?.saldoPagar || 0) : null
+          });
+          
+        if (canhotoError) {
+          console.error('Erro ao criar entrada de canhoto:', canhotoError);
+          toast.error('Erro ao criar registro de canhoto');
+        }
+      }
+      
+      toast.success("Contrato registrado com sucesso!");
+      
+      // Redirecionar para a lista de contratos
+      setTimeout(() => {
+        navigate('/contratos');
+      }, 1500);
+    } catch (error) {
+      console.error('Erro ao salvar contrato:', error);
+      toast.error('Ocorreu um erro ao salvar o contrato');
+    }
   };
 
   return (
