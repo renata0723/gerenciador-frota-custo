@@ -8,6 +8,7 @@ export interface TipoCombustivel {
 export interface TipoCombustivelFormData {
   nome: string;
   descricao?: string;
+  id?: string; // Adicionando id como opcional para compatibilidade com TipoCombustivel
 }
 
 export interface AbastecimentoFormData {

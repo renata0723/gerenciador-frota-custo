@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
@@ -22,6 +21,9 @@ const Canhotos = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pendentes");
+  const [allCanhotos, setAllCanhotos] = useState<Canhoto[]>([]);
+  const [filteredCanhotos, setFilteredCanhotos] = useState<Canhoto[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string>("todos");
 
   useEffect(() => {
     carregarCanhotos();
@@ -40,7 +42,6 @@ const Canhotos = () => {
         return;
       }
 
-      // Converter para o formato correto do tipo Canhoto
       const canhotosFormatados: Canhoto[] = (canhotosData || []).map(canhoto => ({
         id: String(canhoto.id || ''),
         cliente: canhoto.cliente || '',
@@ -58,12 +59,13 @@ const Canhotos = () => {
         status: (canhoto.status as "Pendente" | "Recebido") || "Pendente"
       }));
 
-      // Separar canhotos pendentes e recebidos
       const pendentes = canhotosFormatados.filter(c => c.status === 'Pendente');
       const recebidos = canhotosFormatados.filter(c => c.status === 'Recebido');
 
       setCanhotos(pendentes);
       setCanhotosRecebidos(recebidos);
+      setAllCanhotos(canhotosFormatados);
+      setFilteredCanhotos(canhotosFormatados);
     } catch (error) {
       console.error('Erro ao processar dados:', error);
       toast.error('Erro ao processar dados dos canhotos');
@@ -91,7 +93,6 @@ const Canhotos = () => {
         return;
       }
 
-      // Converter para o formato correto do tipo Canhoto
       const canhotosFormatados: Canhoto[] = (data || []).map(canhoto => ({
         id: String(canhoto.id || ''),
         cliente: canhoto.cliente || '',
@@ -109,7 +110,6 @@ const Canhotos = () => {
         status: (canhoto.status as "Pendente" | "Recebido") || "Pendente"
       }));
 
-      // Separar canhotos pendentes e recebidos
       const pendentes = canhotosFormatados.filter(c => c.status === 'Pendente');
       const recebidos = canhotosFormatados.filter(c => c.status === 'Recebido');
 
@@ -118,7 +118,6 @@ const Canhotos = () => {
       
       toast.success(`${canhotosFormatados.length} canhoto(s) encontrado(s)`);
 
-      // Se encontrou apenas um canhoto pendente, seleciona automaticamente
       if (pendentes.length === 1) {
         handleRegistrarCanhoto(pendentes[0]);
       }
@@ -142,21 +141,18 @@ const Canhotos = () => {
         return;
       }
 
-      // Converter id de string para número para o Supabase
       const idNumerico = parseInt(canhotoSelecionado.id);
       if (isNaN(idNumerico)) {
         toast.error('ID do canhoto inválido');
         return;
       }
 
-      // Preparar os dados para atualização
       const dadosAtualizados = {
         ...dados,
-        id: idNumerico, // Usar o ID numérico para o Supabase
+        id: idNumerico,
         status: "Recebido" as const
       };
 
-      // Remover o id da atualização, já que ele é usado na condição
       const { id, ...dadosSemId } = dadosAtualizados;
 
       const { error } = await supabase
@@ -172,9 +168,8 @@ const Canhotos = () => {
 
       toast.success('Canhoto registrado com sucesso!');
       setDialogOpen(false);
-      carregarCanhotos(); // Recarregar os dados
+      carregarCanhotos();
 
-      // Verificar se precisamos gerar saldo a pagar
       if (dadosAtualizados.proprietario_veiculo && dadosAtualizados.saldo_a_pagar && dadosAtualizados.data_programada_pagamento) {
         toast.success(`Saldo a pagar de R$ ${dadosAtualizados.saldo_a_pagar.toFixed(2)} programado para ${format(parseISO(dadosAtualizados.data_programada_pagamento), "dd/MM/yyyy")}`);
       }
@@ -191,6 +186,15 @@ const Canhotos = () => {
     } catch (error) {
       return dataString;
     }
+  };
+
+  const handleFilterChange = (value: string) => {
+    setFilterStatus(value);
+    const filtered = allCanhotos.filter(canhoto => {
+      if (value === 'todos') return true;
+      return canhoto.status === value;
+    });
+    setFilteredCanhotos(filtered);
   };
 
   return (
@@ -278,12 +282,12 @@ const Canhotos = () => {
                     <tr>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={5}>Carregando...</td>
                     </tr>
-                  ) : canhotos.length === 0 ? (
+                  ) : filteredCanhotos.length === 0 ? (
                     <tr>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={5}>Nenhum canhoto pendente encontrado</td>
                     </tr>
                   ) : (
-                    canhotos.map((canhoto) => (
+                    filteredCanhotos.map((canhoto) => (
                       <tr key={canhoto.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{canhoto.cliente}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -332,12 +336,12 @@ const Canhotos = () => {
                     <tr>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={6}>Carregando...</td>
                     </tr>
-                  ) : canhotosRecebidos.length === 0 ? (
+                  ) : filteredCanhotos.length === 0 ? (
                     <tr>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={6}>Nenhum canhoto recebido encontrado</td>
                     </tr>
                   ) : (
-                    canhotosRecebidos.map((canhoto) => (
+                    filteredCanhotos.map((canhoto) => (
                       <tr key={canhoto.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{canhoto.cliente}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

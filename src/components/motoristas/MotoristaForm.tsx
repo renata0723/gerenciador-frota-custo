@@ -33,6 +33,11 @@ interface MotoristaFormProps {
   initialData?: Partial<MotoristaData>;
 }
 
+// Interface para proprietários
+interface Proprietario {
+  nome: string;
+}
+
 const MotoristaForm: React.FC<MotoristaFormProps> = ({
   onSave,
   onCancel,
@@ -57,7 +62,7 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
 
   const [tipoFormulario, setTipoFormulario] = useState<'simples' | 'completo'>('simples');
   const [loading, setLoading] = useState(false);
-  const [proprietarios, setProprietarios] = useState<{nome: string}[]>([]);
+  const [proprietarios, setProprietarios] = useState<Proprietario[]>([]);
   const [carregandoProprietarios, setCarregandoProprietarios] = useState(false);
 
   // Carregar proprietários quando o tipo for 'parceiro'
@@ -84,7 +89,7 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
         ]);
       } else if (data) {
         // Garantir que os dados estão no formato esperado
-        const proprietariosFormatados = data.map((item: any) => {
+        const proprietariosFormatados = (data as any[]).map((item: any) => {
           // Verificar se o item tem a propriedade 'nome'
           if (typeof item === 'object' && item.nome) {
             return { nome: item.nome };

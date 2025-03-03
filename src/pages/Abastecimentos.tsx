@@ -1,209 +1,104 @@
-
 import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
-import PageHeader from '@/components/ui/PageHeader';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import NovoAbastecimentoForm from '@/components/abastecimentos/NovoAbastecimentoForm';
-import TipoCombustivelForm from '@/components/abastecimentos/TipoCombustivelForm';
-import { TipoCombustivel, AbastecimentoFormData } from '@/types/abastecimento';
-import { cadastrarAbastecimento, buscarAbastecimentos, buscarTiposCombustivel, cadastrarTipoCombustivel } from '@/services/abastecimentoService';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { TipoCombustivel, TipoCombustivelFormData } from '@/types/abastecimento';
 
-type AbastecimentoRecord = {
-  id: number;
-  data_abastecimento: string;
-  placa_veiculo: string;
-  motorista_solicitante: string;
-  tipo_combustivel: string;
-  valor_abastecimento: number;
-  valor_total: number;
-  quilometragem: number;
-  posto: string;
-  responsavel_autorizacao: string;
-  itens_abastecidos: string;
-};
-
-const Abastecimentos = () => {
+const Abastecimentos: React.FC = () => {
   const [tiposCombustivel, setTiposCombustivel] = useState<TipoCombustivel[]>([]);
-  const [registros, setRegistros] = useState<AbastecimentoRecord[]>([]);
-  const [carregando, setCarregando] = useState(false);
-  
+  const [isNewTypeDialogOpen, setIsNewTypeDialogOpen] = useState(false);
+  const [newTipoCombustivel, setNewTipoCombustivel] = useState<TipoCombustivelFormData>({ nome: '', descricao: '' });
+
   useEffect(() => {
-    carregarTiposCombustivel();
-    carregarAbastecimentos();
+    loadTiposCombustivel();
   }, []);
-  
-  const carregarTiposCombustivel = async () => {
-    const tipos = await buscarTiposCombustivel();
-    setTiposCombustivel(tipos);
-  };
-  
-  const carregarAbastecimentos = async () => {
-    setCarregando(true);
-    try {
-      const resultado = await buscarAbastecimentos();
-      if (resultado.success && resultado.data) {
-        setRegistros(resultado.data);
-      } else {
-        toast.error('Erro ao carregar abastecimentos');
-      }
-    } catch (error) {
-      console.error('Erro ao processar abastecimentos:', error);
-      toast.error('Erro ao processar dados de abastecimentos');
-    } finally {
-      setCarregando(false);
+
+  const loadTiposCombustivel = async () => {
+    const { data, error } = await supabase.from('TiposCombustivel').select('*');
+    if (error) {
+      console.error('Erro ao carregar tipos de combustível:', error);
+      toast.error('Erro ao carregar tipos de combustível');
+      return;
     }
+    setTiposCombustivel(data || []);
   };
-  
-  const handleSaveAbastecimento = async (data: AbastecimentoFormData) => {
+
+  const handleSaveFuelType = async (data: TipoCombustivelFormData) => {
+    setIsNewTypeDialogOpen(false);
+    
     try {
-      const resultado = await cadastrarAbastecimento(data);
-      if (resultado.success) {
-        toast.success('Abastecimento registrado com sucesso!');
-        carregarAbastecimentos();
-      } else {
-        toast.error('Erro ao registrar abastecimento');
-      }
-    } catch (error) {
-      console.error('Erro ao processar abastecimento:', error);
-      toast.error('Ocorreu um erro ao processar o abastecimento');
-    }
-  };
-  
-  const handleSaveTipoCombustivel = async (data: TipoCombustivel) => {
-    try {
-      const resultado = await cadastrarTipoCombustivel(data);
-      if (resultado.success) {
-        const novoTipo: TipoCombustivel = {
-          id: resultado.id,
-          nome: data.nome,
-          descricao: data.descricao || ''
-        };
-        setTiposCombustivel([...tiposCombustivel, novoTipo]);
-        toast.success('Tipo de combustível cadastrado com sucesso!');
-      } else {
-        toast.error('Erro ao cadastrar tipo de combustível');
-      }
-    } catch (error) {
-      console.error('Erro ao processar tipo de combustível:', error);
-      toast.error('Ocorreu um erro ao processar o tipo de combustível');
-    }
-  };
-  
-  const formatarData = (dataString: string | null) => {
-    if (!dataString) return 'Data não informada';
-    try {
-      const data = new Date(dataString);
-      return format(data, 'dd/MM/yyyy', { locale: ptBR });
-    } catch (error) {
-      return dataString;
-    }
-  };
-  
-  const formatarValor = (valor: number | null) => {
-    if (valor === null || valor === undefined) return 'R$ 0,00';
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
-  };
-  
-  return (
-    <PageLayout>
-      <PageHeader 
-        title="Abastecimentos" 
-        description="Gerenciamento de abastecimentos da frota"
-      />
+      // Criar um ID para o novo tipo
+      const tipoCombustivelData: TipoCombustivel = {
+        id: `tipo-${Date.now()}`, // Gerando um ID único
+        nome: data.nome,
+        descricao: data.descricao
+      };
       
-      <Tabs defaultValue="registros" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
-          <TabsTrigger value="registros">Registros</TabsTrigger>
-          <TabsTrigger value="novo">Novo Abastecimento</TabsTrigger>
-          <TabsTrigger value="tipos">Tipos de Combustível</TabsTrigger>
-        </TabsList>
+      const { error } = await supabase
+        .from('TiposCombustivel')
+        .insert(tipoCombustivelData);
         
-        <TabsContent value="registros" className="space-y-4">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-semibold">Abastecimentos Registrados</h2>
-              <Button size="sm" onClick={carregarAbastecimentos} disabled={carregando}>
-                {carregando ? 'Carregando...' : 'Atualizar'}
-              </Button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Veículo</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Combustível</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posto</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsável</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {registros.length === 0 ? (
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={8}>
-                        {carregando ? 'Carregando abastecimentos...' : 'Nenhum registro encontrado'}
-                      </td>
-                    </tr>
-                  ) : (
-                    registros.map((registro) => (
-                      <tr key={registro.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatarData(registro.data_abastecimento)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {registro.placa_veiculo}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {registro.motorista_solicitante}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <Badge variant="success">
-                            {registro.tipo_combustivel}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {registro.quilometragem?.toLocaleString() || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {registro.posto}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
-                          {formatarValor(registro.valor_total)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {registro.responsavel_autorizacao}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+      if (error) {
+        console.error('Erro ao salvar tipo de combustível:', error);
+        toast.error('Erro ao salvar tipo de combustível');
+        return;
+      }
+      
+      // Adicionar à lista local
+      setTiposCombustivel([...tiposCombustivel, tipoCombustivelData]);
+      toast.success(`Tipo de combustível ${data.nome} adicionado com sucesso!`);
+      
+      // Log de operação
+      logOperation('Abastecimentos', `Adicionado novo tipo de combustível: ${data.nome}`);
+    } catch (error) {
+      console.error('Erro ao processar:', error);
+      toast.error('Ocorreu um erro ao salvar o tipo de combustível');
+    }
+  };
+
+  return (
+    <div>
+      <Card>
+        <h2 className="text-lg font-bold">Tipos de Combustível</h2>
+        <Button onClick={() => setIsNewTypeDialogOpen(true)}>Adicionar Tipo de Combustível</Button>
+        <ul>
+          {tiposCombustivel.map(tipo => (
+            <li key={tipo.id}>{tipo.nome} - {tipo.descricao}</li>
+          ))}
+        </ul>
+      </Card>
+
+      <Dialog open={isNewTypeDialogOpen} onOpenChange={setIsNewTypeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Novo Tipo de Combustível</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Label htmlFor="nome">Nome</Label>
+            <Input
+              id="nome"
+              value={newTipoCombustivel.nome}
+              onChange={(e) => setNewTipoCombustivel({ ...newTipoCombustivel, nome: e.target.value })}
+            />
+            <Label htmlFor="descricao">Descrição</Label>
+            <Input
+              id="descricao"
+              value={newTipoCombustivel.descricao}
+              onChange={(e) => setNewTipoCombustivel({ ...newTipoCombustivel, descricao: e.target.value })}
+            />
           </div>
-        </TabsContent>
-        
-        <TabsContent value="novo">
-          <NovoAbastecimentoForm 
-            onSave={handleSaveAbastecimento} 
-            tiposCombustivel={tiposCombustivel} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="tipos">
-          <TipoCombustivelForm 
-            onSave={handleSaveTipoCombustivel} 
-          />
-        </TabsContent>
-      </Tabs>
-    </PageLayout>
+          <div className="flex justify-end mt-4">
+            <Button variant="outline" onClick={() => setIsNewTypeDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={() => handleSaveFuelType(newTipoCombustivel)}>Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

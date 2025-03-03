@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-
-interface DadosBancarios {
-  banco: string;
-  agencia: string;
-  conta: string;
-  tipoConta: 'corrente' | 'poupanca';
-}
+import { toast } from 'sonner';
 
 export interface ProprietarioData {
   nome: string;
   documento: string;
-  dadosBancarios: DadosBancarios;
+  dadosBancarios: {
+    banco: string;
+    agencia: string;
+    conta: string;
+    tipoConta: 'corrente' | 'poupanca';
+    pix?: string;
+  };
 }
 
 interface CadastroProprietarioFormProps {
@@ -24,116 +23,90 @@ interface CadastroProprietarioFormProps {
   onCancel: () => void;
 }
 
-const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onSave, onCancel }) => {
-  const [nome, setNome] = useState('');
-  const [documento, setDocumento] = useState('');
-  const [banco, setBanco] = useState('');
-  const [agencia, setAgencia] = useState('');
-  const [conta, setConta] = useState('');
-  const [tipoConta, setTipoConta] = useState<'corrente' | 'poupanca'>('corrente');
+const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({
+  onSave,
+  onCancel
+}) => {
+  const [formData, setFormData] = useState<ProprietarioData>({
+    nome: '',
+    documento: '',
+    dadosBancarios: {
+      banco: '',
+      agencia: '',
+      conta: '',
+      tipoConta: 'corrente',
+      pix: ''
+    }
+  });
+  
   const [loading, setLoading] = useState(false);
 
-  // Lista de bancos mais comuns no Brasil
-  const bancos = [
-    'Banco do Brasil',
-    'Caixa Econômica Federal',
-    'Bradesco',
-    'Itaú',
-    'Santander',
-    'Nubank',
-    'Inter',
-    'Sicoob',
-    'Sicredi',
-    'Outro'
-  ];
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    if (name.startsWith('banco.')) {
+      const field = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        dadosBancarios: {
+          ...prev.dadosBancarios,
+          [field]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.Event) => {
     e.preventDefault();
-    
-    if (!nome || !documento) {
-      toast.error('Nome e documento são obrigatórios');
-      return;
-    }
-    
-    if (!banco || !agencia || !conta) {
-      toast.error('Dados bancários completos são obrigatórios');
-      return;
-    }
-    
     setLoading(true);
     
     try {
       // Verificar se o proprietário já existe
-      const { data: existingOwner, error: checkError } = await supabase
-        .rpc('check_proprietario_exists', { proprietario_nome: nome });
-        
-      if (checkError) {
-        console.error(checkError);
-        
-        // Alternativa: fazer consulta direta apesar dos erros de tipagem
-        const { data: directQuery, error: directError } = await supabase
-          .from('Proprietarios')
-          .select('*')
-          .eq('nome', nome)
-          .single();
-          
-        if (directError && directError.code !== 'PGRST116') {
-          toast.error('Erro ao verificar cadastro existente');
-          setLoading(false);
-          return;
-        }
-        
-        if (directQuery) {
-          toast.error('Este proprietário já está cadastrado no sistema');
-          setLoading(false);
-          return;
-        }
-      } else if (existingOwner && existingOwner.exists === true) {
-        toast.error('Este proprietário já está cadastrado no sistema');
+      const { data, error } = await supabase.rpc('check_proprietario_exists', {
+        nome_proprietario: formData.nome
+      });
+      
+      // Corrigindo o tipo do retorno da função RPC
+      const result = data as { exists: boolean };
+      
+      if (error) {
+        console.error('Erro ao verificar proprietário:', error);
+        toast.error('Erro ao verificar se o proprietário já existe');
         setLoading(false);
         return;
       }
       
-      // Formatar dados bancários como JSON
-      const dadosBancariosJSON = JSON.stringify({
-        banco,
-        agencia,
-        conta,
-        tipoConta
-      });
+      if (result && result.exists) {
+        toast.error('Este proprietário já está cadastrado');
+        setLoading(false);
+        return;
+      }
       
       // Inserir novo proprietário
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('Proprietarios')
         .insert({
-          nome,
-          documento,
-          dados_bancarios: dadosBancariosJSON
+          nome: formData.nome,
+          documento: formData.documento,
+          dados_bancarios: JSON.stringify(formData.dadosBancarios)
         });
         
-      if (error) {
-        console.error(error);
+      if (insertError) {
+        console.error('Erro ao cadastrar proprietário:', insertError);
         toast.error('Erro ao cadastrar proprietário');
         setLoading(false);
         return;
       }
       
       toast.success('Proprietário cadastrado com sucesso!');
-      
-      const proprietarioData: ProprietarioData = {
-        nome,
-        documento,
-        dadosBancarios: {
-          banco,
-          agencia,
-          conta,
-          tipoConta
-        }
-      };
-      
-      onSave(proprietarioData);
+      onSave(formData);
     } catch (error) {
-      console.error('Erro ao processar:', error);
+      console.error('Erro ao processar cadastro:', error);
       toast.error('Ocorreu um erro ao processar o cadastro');
     } finally {
       setLoading(false);
@@ -143,95 +116,103 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label htmlFor="nome">Nome do Proprietário *</Label>
+        <Label htmlFor="nome">Nome</Label>
         <Input
           id="nome"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
+          name="nome"
+          value={formData.nome}
+          onChange={handleChange}
           required
         />
       </div>
       
       <div>
-        <Label htmlFor="documento">CPF/CNPJ *</Label>
+        <Label htmlFor="documento">Documento (CPF/CNPJ)</Label>
         <Input
           id="documento"
-          value={documento}
-          onChange={(e) => setDocumento(e.target.value)}
-          placeholder="000.000.000-00 ou 00.000.000/0000-00"
+          name="documento"
+          value={formData.documento}
+          onChange={handleChange}
           required
         />
       </div>
       
-      <div className="pt-2">
-        <h3 className="text-base font-medium mb-2">Dados Bancários</h3>
+      <div>
+        <Label htmlFor="banco">Banco</Label>
+        <Input
+          id="banco"
+          name="banco.banco"
+          value={formData.dadosBancarios.banco}
+          onChange={handleChange}
+          required
+        />
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="agencia">Agência</Label>
+          <Input
+            id="agencia"
+            name="banco.agencia"
+            value={formData.dadosBancarios.agencia}
+            onChange={handleChange}
+            required
+          />
+        </div>
         
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <Label htmlFor="banco">Banco *</Label>
-            <Select
-              value={banco}
-              onValueChange={setBanco}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o banco" />
-              </SelectTrigger>
-              <SelectContent>
-                {bancos.map((b) => (
-                  <SelectItem key={b} value={b}>{b}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="agencia">Agência *</Label>
-              <Input
-                id="agencia"
-                value={agencia}
-                onChange={(e) => setAgencia(e.target.value)}
-                required
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="conta">Conta *</Label>
-              <Input
-                id="conta"
-                value={conta}
-                onChange={(e) => setConta(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="tipoConta">Tipo de Conta *</Label>
-            <Select
-              value={tipoConta}
-              onValueChange={(value) => setTipoConta(value as 'corrente' | 'poupanca')}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo de conta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="corrente">Conta Corrente</SelectItem>
-                <SelectItem value="poupanca">Conta Poupança</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div>
+          <Label htmlFor="conta">Conta</Label>
+          <Input
+            id="conta"
+            name="banco.conta"
+            value={formData.dadosBancarios.conta}
+            onChange={handleChange}
+            required
+          />
         </div>
       </div>
       
-      <div className="flex justify-end space-x-2 pt-4">
+      <div>
+        <Label htmlFor="tipoConta">Tipo de Conta</Label>
+        <select
+          id="tipoConta"
+          name="banco.tipoConta"
+          value={formData.dadosBancarios.tipoConta}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            setFormData(prev => ({
+              ...prev,
+              dadosBancarios: {
+                ...prev.dadosBancarios,
+                tipoConta: e.target.value as 'corrente' | 'poupanca'
+              }
+            }));
+          }}
+          className="w-full px-3 py-2 border rounded-md"
+          required
+        >
+          <option value="corrente">Corrente</option>
+          <option value="poupanca">Poupança</option>
+        </select>
+      </div>
+      
+      <div>
+        <Label htmlFor="pix">Chave PIX (Opcional)</Label>
+        <Input
+          id="pix"
+          name="banco.pix"
+          value={formData.dadosBancarios.pix || ''}
+          onChange={handleChange}
+        />
+      </div>
+      
+      <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
           Cancelar
         </Button>
         <Button type="submit" disabled={loading}>
-          {loading ? 'Salvando...' : 'Salvar'}
+          {loading ? 'Salvando...' : 'Salvar Proprietário'}
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   );
 };
