@@ -27,7 +27,25 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
     // Validação básica de placa (formato antigo: ABC-1234 ou novo: ABC1D23)
     const regexAntigoMercosul = /^[A-Z]{3}-\d{4}$/;
     const regexNovoMercosul = /^[A-Z]{3}\d[A-Z]\d{2}$/;
-    return regexAntigoMercosul.test(placa) || regexNovoMercosul.test(placa);
+    
+    // Formato sem hífen também é válido para placas antigas
+    const regexAntigoSemHifen = /^[A-Z]{3}\d{4}$/;
+    
+    return regexAntigoMercosul.test(placa) || 
+           regexNovoMercosul.test(placa) || 
+           regexAntigoSemHifen.test(placa);
+  };
+
+  const formatarPlaca = (placa: string) => {
+    // Remover espaços e caracteres especiais
+    const placaLimpa = placa.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+    
+    // Formatar placa no padrão antigo (ABC1234 -> ABC-1234)
+    if (/^[A-Z]{3}\d{4}$/.test(placaLimpa)) {
+      return `${placaLimpa.substring(0, 3)}-${placaLimpa.substring(3)}`;
+    }
+    
+    return placaLimpa;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,9 +54,12 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
 
     try {
       if (isCarreta) {
-        // Validar a placa da carreta
-        if (!placaCarreta || !validarPlaca(placaCarreta)) {
+        // Formatar e validar a placa da carreta
+        const placaFormatada = formatarPlaca(placaCarreta);
+        
+        if (!placaFormatada || !validarPlaca(placaFormatada)) {
           toast.error('Por favor, insira uma placa de carreta válida (formato: ABC-1234 ou ABC1D23)');
+          setCarregando(false);
           return;
         }
 
@@ -46,16 +67,18 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         const { data: placaExistente, error: errorVerificacao } = await supabase
           .from('Veiculos')
           .select('*')
-          .eq('placa_carreta', placaCarreta);
+          .eq('placa_carreta', placaFormatada);
 
         if (errorVerificacao) {
           console.error('Erro ao verificar placa:', errorVerificacao);
           toast.error('Erro ao verificar placa no sistema');
+          setCarregando(false);
           return;
         }
 
         if (placaExistente && placaExistente.length > 0) {
           toast.error('Esta placa de carreta já está cadastrada no sistema');
+          setCarregando(false);
           return;
         }
 
@@ -63,7 +86,7 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         const { error } = await supabase
           .from('Veiculos')
           .insert({
-            placa_carreta: placaCarreta,
+            placa_carreta: placaFormatada,
             tipo_frota: tipoFrota,
             status_veiculo: 'Ativo'
           });
@@ -71,15 +94,19 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         if (error) {
           console.error('Erro ao cadastrar placa:', error);
           toast.error('Erro ao cadastrar placa de carreta');
+          setCarregando(false);
           return;
         }
 
         toast.success('Placa de carreta cadastrada com sucesso!');
-        onSave({ placaCarreta, tipoFrota });
+        onSave({ placaCarreta: placaFormatada, tipoFrota });
       } else {
-        // Validar a placa do cavalo
-        if (!placaCavalo || !validarPlaca(placaCavalo)) {
+        // Formatar e validar a placa do cavalo
+        const placaFormatada = formatarPlaca(placaCavalo);
+        
+        if (!placaFormatada || !validarPlaca(placaFormatada)) {
           toast.error('Por favor, insira uma placa de cavalo válida (formato: ABC-1234 ou ABC1D23)');
+          setCarregando(false);
           return;
         }
 
@@ -87,16 +114,27 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         const { data: placaExistente, error: errorVerificacao } = await supabase
           .from('Veiculos')
           .select('*')
-          .eq('placa_cavalo', placaCavalo);
+          .eq('placa_cavalo', placaFormatada);
 
         if (errorVerificacao) {
           console.error('Erro ao verificar placa:', errorVerificacao);
           toast.error('Erro ao verificar placa no sistema');
+          setCarregando(false);
           return;
         }
 
         if (placaExistente && placaExistente.length > 0) {
           toast.error('Esta placa de cavalo já está cadastrada no sistema');
+          setCarregando(false);
+          return;
+        }
+
+        const placaCarretaFormatada = placaCarreta ? formatarPlaca(placaCarreta) : null;
+        
+        // Se informou placa da carreta, validar também
+        if (placaCarretaFormatada && !validarPlaca(placaCarretaFormatada)) {
+          toast.error('Por favor, insira uma placa de carreta válida (formato: ABC-1234 ou ABC1D23)');
+          setCarregando(false);
           return;
         }
 
@@ -104,20 +142,25 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         const { error } = await supabase
           .from('Veiculos')
           .insert({
-            placa_cavalo: placaCavalo,
-            placa_carreta: placaCarreta || null,
+            placa_cavalo: placaFormatada,
+            placa_carreta: placaCarretaFormatada || null,
             tipo_frota: tipoFrota,
             status_veiculo: 'Ativo'
           });
 
         if (error) {
           console.error('Erro ao cadastrar veículo:', error);
-          toast.error('Erro ao cadastrar veículo');
+          toast.error('Erro ao cadastrar veículo. Por favor, verifique as permissões ou tente novamente.');
+          setCarregando(false);
           return;
         }
 
         toast.success('Veículo cadastrado com sucesso!');
-        onSave({ placaCavalo, placaCarreta, tipoFrota });
+        onSave({ 
+          placaCavalo: placaFormatada, 
+          placaCarreta: placaCarretaFormatada || undefined, 
+          tipoFrota 
+        });
       }
     } catch (error) {
       console.error('Erro:', error);

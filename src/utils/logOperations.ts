@@ -1,52 +1,15 @@
 
-import { toast } from 'sonner';
-
 /**
- * Utility function to log operations in the system
- * @param operation The type of operation being performed
- * @param details Additional details about the operation
- * @param showToast Whether to show a toast notification
+ * Função para registrar operações do sistema em log
+ * @param module Nome do módulo onde a operação foi realizada
+ * @param action Descrição da ação realizada
  */
-export const logOperation = (
-  operation: string, 
-  details: string, 
-  showToast: boolean = true
-) => {
+export const logOperation = (module: string, action: string) => {
   const timestamp = new Date().toISOString();
-  const logEntry = {
-    timestamp,
-    operation,
-    details,
-    user: 'admin', // In a real app, this would come from auth context
-  };
+  console.log(`[${timestamp}] ${module}: ${action}`);
   
-  // Log to console
-  console.log(`[${timestamp}] ${operation}: ${details}`);
-  
-  // Store in localStorage for persistence
-  const existingLogs = JSON.parse(localStorage.getItem('operationLogs') || '[]');
-  existingLogs.push(logEntry);
-  localStorage.setItem('operationLogs', JSON.stringify(existingLogs));
-  
-  // Show toast notification if enabled
-  if (showToast) {
-    toast.success(`Operação registrada: ${operation}`);
-  }
-  
-  return logEntry;
+  // Aqui posteriormente poderia ser implementado o envio para o backend
+  // supabase.from('Logs').insert({ module, action, timestamp });
 };
 
-/**
- * Get all logged operations
- */
-export const getOperationLogs = () => {
-  return JSON.parse(localStorage.getItem('operationLogs') || '[]');
-};
-
-/**
- * Clear all operation logs
- */
-export const clearOperationLogs = () => {
-  localStorage.removeItem('operationLogs');
-  return [];
-};
+export default logOperation;

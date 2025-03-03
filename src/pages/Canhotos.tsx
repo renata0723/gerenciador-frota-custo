@@ -1,263 +1,106 @@
+
 import React, { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
-import PageHeader from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { FileDown, Check } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { toast } from 'sonner';
-import PesquisaDocumentos from '@/components/canhotos/PesquisaDocumentos';
 import CanhotoForm from '@/components/canhotos/CanhotoForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Canhoto } from '@/types/canhoto';
+import { format } from 'date-fns';
+import PageHeader from '@/components/ui/PageHeader';
 
-const Canhotos = () => {
+interface Canhoto {
+  id: number;
+  contrato_id: string;
+  data_entrega_cliente: string;
+  data_recebimento_canhoto: string;
+  status: string;
+  cliente: string;
+  motorista: string;
+}
+
+const Canhotos: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('pendentes');
   const [canhotos, setCanhotos] = useState<Canhoto[]>([]);
-  const [canhotosRecebidos, setCanhotosRecebidos] = useState<Canhoto[]>([]);
-  const [canhotoSelecionado, setCanhotoSelecionado] = useState<Partial<Canhoto> | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("pendentes");
-  const [allCanhotos, setAllCanhotos] = useState<Canhoto[]>([]);
-  const [filteredCanhotos, setFilteredCanhotos] = useState<Canhoto[]>([]);
-  const [filterStatus, setFilterStatus] = useState<string>("todos");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedCanhoto, setSelectedCanhoto] = useState<Canhoto | null>(null);
 
-  useEffect(() => {
-    carregarCanhotos();
-  }, []);
-
-  const carregarCanhotos = async () => {
+  const loadCanhotos = async () => {
     setIsLoading(true);
+    
     try {
-      const { data: canhotosData, error } = await supabase
+      const status = activeTab === 'pendentes' ? 'Pendente' : 'Recebido';
+      
+      const { data, error } = await supabase
         .from('Canhoto')
-        .select('*');
-
+        .select('*')
+        .eq('status', status);
+        
       if (error) {
         console.error('Erro ao carregar canhotos:', error);
         toast.error('Erro ao carregar dados dos canhotos');
         return;
       }
-
-      const canhotosFormatados: Canhoto[] = (canhotosData || []).map(canhoto => ({
-        id: String(canhoto.id || ''),
-        cliente: canhoto.cliente || '',
-        contrato_id: canhoto.contrato_id || '',
-        data_entrega_cliente: canhoto.data_entrega_cliente || '',
-        data_programada_pagamento: canhoto.data_programada_pagamento || '',
-        data_recebimento_canhoto: canhoto.data_recebimento_canhoto || '',
-        motorista: canhoto.motorista || '',
-        numero_cte: canhoto.numero_cte || '',
-        numero_manifesto: canhoto.numero_manifesto || '',
-        numero_nota_fiscal: canhoto.numero_nota_fiscal || '',
-        proprietario_veiculo: canhoto.proprietario_veiculo || '',
-        responsavel_recebimento: canhoto.responsavel_recebimento || '',
-        saldo_a_pagar: canhoto.saldo_a_pagar || 0,
-        status: (canhoto.status as "Pendente" | "Recebido") || "Pendente"
-      }));
-
-      const pendentes = canhotosFormatados.filter(c => c.status === 'Pendente');
-      const recebidos = canhotosFormatados.filter(c => c.status === 'Recebido');
-
-      setCanhotos(pendentes);
-      setCanhotosRecebidos(recebidos);
-      setAllCanhotos(canhotosFormatados);
-      setFilteredCanhotos(canhotosFormatados);
-    } catch (error) {
-      console.error('Erro ao processar dados:', error);
-      toast.error('Erro ao processar dados dos canhotos');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSearch = async (tipo: string, valor: string) => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('Canhoto')
-        .select('*')
-        .eq(tipo, valor);
-
-      if (error) {
-        console.error('Erro na busca:', error);
-        toast.error('Erro ao buscar documento');
-        return;
-      }
-
-      if (data.length === 0) {
-        toast.info('Nenhum canhoto encontrado com este documento');
-        return;
-      }
-
-      const canhotosFormatados: Canhoto[] = (data || []).map(canhoto => ({
-        id: String(canhoto.id || ''),
-        cliente: canhoto.cliente || '',
-        contrato_id: canhoto.contrato_id || '',
-        data_entrega_cliente: canhoto.data_entrega_cliente || '',
-        data_programada_pagamento: canhoto.data_programada_pagamento || '',
-        data_recebimento_canhoto: canhoto.data_recebimento_canhoto || '',
-        motorista: canhoto.motorista || '',
-        numero_cte: canhoto.numero_cte || '',
-        numero_manifesto: canhoto.numero_manifesto || '',
-        numero_nota_fiscal: canhoto.numero_nota_fiscal || '',
-        proprietario_veiculo: canhoto.proprietario_veiculo || '',
-        responsavel_recebimento: canhoto.responsavel_recebimento || '',
-        saldo_a_pagar: canhoto.saldo_a_pagar || 0,
-        status: (canhoto.status as "Pendente" | "Recebido") || "Pendente"
-      }));
-
-      const pendentes = canhotosFormatados.filter(c => c.status === 'Pendente');
-      const recebidos = canhotosFormatados.filter(c => c.status === 'Recebido');
-
-      setCanhotos(pendentes);
-      setCanhotosRecebidos(recebidos);
       
-      toast.success(`${canhotosFormatados.length} canhoto(s) encontrado(s)`);
-
-      if (pendentes.length === 1) {
-        handleRegistrarCanhoto(pendentes[0]);
-      }
+      setCanhotos(data || []);
     } catch (error) {
-      console.error('Erro na busca:', error);
-      toast.error('Erro ao processar a busca');
+      console.error('Erro:', error);
+      toast.error('Ocorreu um erro ao processar a solicitação');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRegistrarCanhoto = (canhoto: Canhoto) => {
-    setCanhotoSelecionado(canhoto);
-    setDialogOpen(true);
+  useEffect(() => {
+    loadCanhotos();
+  }, [activeTab]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
   };
 
-  const handleSalvarCanhoto = async (dados: Partial<Canhoto>) => {
+  const handleEditCanhoto = (canhoto: Canhoto) => {
+    setSelectedCanhoto(canhoto);
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveCanhoto = async (data: any) => {
     try {
-      if (!canhotoSelecionado?.id) {
-        toast.error('ID do canhoto não encontrado');
-        return;
-      }
-
-      const idNumerico = parseInt(canhotoSelecionado.id);
-      if (isNaN(idNumerico)) {
-        toast.error('ID do canhoto inválido');
-        return;
-      }
-
-      const dadosAtualizados = {
-        ...dados,
-        id: idNumerico,
-        status: "Recebido" as const
-      };
-
-      const { id, ...dadosSemId } = dadosAtualizados;
-
+      if (!selectedCanhoto) return;
+      
       const { error } = await supabase
         .from('Canhoto')
-        .update(dadosSemId)
-        .eq('id', idNumerico);
-
+        .update({
+          data_recebimento_canhoto: data.dataRecebimento,
+          status: 'Recebido'
+        })
+        .eq('id', selectedCanhoto.id);
+        
       if (error) {
         console.error('Erro ao atualizar canhoto:', error);
-        toast.error('Erro ao salvar os dados do canhoto');
+        toast.error('Erro ao atualizar canhoto');
         return;
       }
-
-      toast.success('Canhoto registrado com sucesso!');
-      setDialogOpen(false);
-      carregarCanhotos();
-
-      if (dadosAtualizados.proprietario_veiculo && dadosAtualizados.saldo_a_pagar && dadosAtualizados.data_programada_pagamento) {
-        toast.success(`Saldo a pagar de R$ ${dadosAtualizados.saldo_a_pagar.toFixed(2)} programado para ${format(parseISO(dadosAtualizados.data_programada_pagamento), "dd/MM/yyyy")}`);
-      }
+      
+      toast.success('Canhoto atualizado com sucesso!');
+      setIsDialogOpen(false);
+      loadCanhotos();
     } catch (error) {
-      console.error('Erro ao processar:', error);
-      toast.error('Erro ao processar a atualização do canhoto');
+      console.error('Erro:', error);
+      toast.error('Ocorreu um erro ao processar a solicitação');
     }
-  };
-
-  const formatarData = (dataString?: string) => {
-    if (!dataString) return 'Não informada';
-    try {
-      return format(parseISO(dataString), 'dd/MM/yyyy', { locale: ptBR });
-    } catch (error) {
-      return dataString;
-    }
-  };
-
-  const handleFilterChange = (value: string) => {
-    setFilterStatus(value);
-    const filtered = allCanhotos.filter(canhoto => {
-      if (value === 'todos') return true;
-      return canhoto.status === value;
-    });
-    setFilteredCanhotos(filtered);
   };
 
   return (
     <PageLayout>
       <PageHeader 
         title="Canhotos" 
-        description="Gerenciamento de canhotos de entrega"
+        description="Gerencie o recebimento de canhotos dos contratos"
       />
-
-      <div className="mb-6 bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-medium mb-4">Buscar Canhoto</h3>
-        <PesquisaDocumentos onSearch={handleSearch} />
-      </div>
       
-      <div className="flex justify-between mb-6">
-        <Button variant="outline" className="flex items-center gap-2">
-          <FileDown size={18} />
-          Exportar Relatório
-        </Button>
-      </div>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Registrar Recebimento de Canhoto</DialogTitle>
-          </DialogHeader>
-          <div className="mb-4">
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <span className="text-sm text-gray-500">Cliente</span>
-                <p className="font-medium">{canhotoSelecionado?.cliente || '-'}</p>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500">Motorista</span>
-                <p className="font-medium">{canhotoSelecionado?.motorista || '-'}</p>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500">Nota Fiscal</span>
-                <p className="font-medium">{canhotoSelecionado?.numero_nota_fiscal || '-'}</p>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500">CTe</span>
-                <p className="font-medium">{canhotoSelecionado?.numero_cte || '-'}</p>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500">Manifesto</span>
-                <p className="font-medium">{canhotoSelecionado?.numero_manifesto || '-'}</p>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500">Número do Contrato</span>
-                <p className="font-medium">{canhotoSelecionado?.contrato_id || '-'}</p>
-              </div>
-            </div>
-          </div>
-          <CanhotoForm 
-            dados={canhotoSelecionado || undefined} 
-            onSubmit={handleSalvarCanhoto} 
-            onCancel={() => setDialogOpen(false)} 
-          />
-        </DialogContent>
-      </Dialog>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-8">
           <TabsTrigger value="pendentes">Pendentes</TabsTrigger>
           <TabsTrigger value="recebidos">Recebidos</TabsTrigger>
@@ -266,113 +109,100 @@ const Canhotos = () => {
         <TabsContent value="pendentes" className="space-y-4">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Canhotos Pendentes</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documentos</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {isLoading ? (
+            
+            {isLoading ? (
+              <p>Carregando...</p>
+            ) : canhotos.length === 0 ? (
+              <p>Nenhum canhoto pendente encontrado.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={5}>Carregando...</td>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contrato</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Entrega</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                     </tr>
-                  ) : filteredCanhotos.length === 0 ? (
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={5}>Nenhum canhoto pendente encontrado</td>
-                    </tr>
-                  ) : (
-                    filteredCanhotos.map((canhoto) => (
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {canhotos.map((canhoto) => (
                       <tr key={canhoto.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{canhoto.cliente}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div>NF: {canhoto.numero_nota_fiscal || 'N/A'}</div>
-                          <div>CTe: {canhoto.numero_cte || 'N/A'}</div>
-                          <div>Contrato: {canhoto.contrato_id || 'N/A'}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{canhoto.motorista}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
-                            Pendente
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Button size="sm" onClick={() => handleRegistrarCanhoto(canhoto)}>
-                            <Check className="h-4 w-4 mr-1" />
-                            Registrar
+                        <td className="px-6 py-4 whitespace-nowrap">{canhoto.contrato_id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{canhoto.cliente}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{canhoto.motorista}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{canhoto.data_entrega_cliente}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditCanhoto(canhoto)}
+                          >
+                            Registrar Recebimento
                           </Button>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </TabsContent>
         
-        <TabsContent value="recebidos">
+        <TabsContent value="recebidos" className="space-y-4">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Canhotos Recebidos</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documentos</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Recebimento</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsável</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pagamento</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {isLoading ? (
+            
+            {isLoading ? (
+              <p>Carregando...</p>
+            ) : canhotos.length === 0 ? (
+              <p>Nenhum canhoto recebido encontrado.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={6}>Carregando...</td>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contrato</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Entrega</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Recebimento</th>
                     </tr>
-                  ) : filteredCanhotos.length === 0 ? (
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={6}>Nenhum canhoto recebido encontrado</td>
-                    </tr>
-                  ) : (
-                    filteredCanhotos.map((canhoto) => (
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {canhotos.map((canhoto) => (
                       <tr key={canhoto.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{canhoto.cliente}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div>NF: {canhoto.numero_nota_fiscal || 'N/A'}</div>
-                          <div>CTe: {canhoto.numero_cte || 'N/A'}</div>
-                          <div>Contrato: {canhoto.contrato_id || 'N/A'}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatarData(canhoto.data_recebimento_canhoto)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {canhoto.responsavel_recebimento}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div>Programado: {formatarData(canhoto.data_programada_pagamento)}</div>
-                          <div>Valor: R$ {canhoto.saldo_a_pagar?.toFixed(2) || '0.00'}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <Badge className="bg-green-100 text-green-800 border-green-200">
-                            Recebido
-                          </Badge>
-                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">{canhoto.contrato_id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{canhoto.cliente}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{canhoto.motorista}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{canhoto.data_entrega_cliente}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{canhoto.data_recebimento_canhoto}</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>
+      
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Registrar Recebimento de Canhoto</DialogTitle>
+          </DialogHeader>
+          {selectedCanhoto && (
+            <CanhotoForm 
+              contratoId={selectedCanhoto.contrato_id}
+              dataEntrega={selectedCanhoto.data_entrega_cliente}
+              onSave={handleSaveCanhoto}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };

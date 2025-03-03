@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { TipoCombustivel, TipoCombustivelFormData } from '@/types/abastecimento';
@@ -19,13 +19,22 @@ const Abastecimentos: React.FC = () => {
   }, []);
 
   const loadTiposCombustivel = async () => {
-    const { data, error } = await supabase.from('TiposCombustivel').select('*');
-    if (error) {
-      console.error('Erro ao carregar tipos de combustível:', error);
+    try {
+      const { data, error } = await supabase
+        .from('TiposCombustivel')
+        .select('*');
+        
+      if (error) {
+        console.error('Erro ao carregar tipos de combustível:', error);
+        toast.error('Erro ao carregar tipos de combustível');
+        return;
+      }
+      
+      setTiposCombustivel(data || []);
+    } catch (err) {
+      console.error('Erro ao processar dados:', err);
       toast.error('Erro ao carregar tipos de combustível');
-      return;
     }
-    setTiposCombustivel(data || []);
   };
 
   const handleSaveFuelType = async (data: TipoCombustivelFormData) => {
@@ -53,8 +62,9 @@ const Abastecimentos: React.FC = () => {
       setTiposCombustivel([...tiposCombustivel, tipoCombustivelData]);
       toast.success(`Tipo de combustível ${data.nome} adicionado com sucesso!`);
       
-      // Log de operação
-      logOperation('Abastecimentos', `Adicionado novo tipo de combustível: ${data.nome}`);
+      // Log de operação - comentado pois não existe no escopo atual
+      // logOperation('Abastecimentos', `Adicionado novo tipo de combustível: ${data.nome}`);
+      console.log('Operação registrada: Adicionado novo tipo de combustível:', data.nome);
     } catch (error) {
       console.error('Erro ao processar:', error);
       toast.error('Ocorreu um erro ao salvar o tipo de combustível');
