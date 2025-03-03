@@ -1,20 +1,62 @@
 
-import { supabase } from '@/integrations/supabase/client';
-
 /**
- * Função para registrar operações do sistema em log
- * @param module Nome do módulo onde a operação foi realizada
- * @param action Descrição da ação realizada
- * @param details Detalhes adicionais (opcional)
+ * Utilitário para registrar operações do sistema em log
  */
-export const logOperation = (module: string, action: string, details?: string) => {
+
+// Função para registrar operações
+export const logOperation = (module: string, action: string, success: boolean = true) => {
+  // Obter timestamp atual
   const timestamp = new Date().toISOString();
-  const user = 'Usuário Atual'; // No futuro, pode ser integrado com o sistema de autenticação
   
-  console.log(`[${timestamp}] ${module}: ${action} (por ${user})${details ? ` - ${details}` : ''}`);
+  // Criar registro de log
+  const logEntry = {
+    timestamp,
+    module,
+    action,
+    success,
+  };
   
-  // Aqui posteriormente poderia ser implementado o envio para o backend
-  // supabase.from('Logs').insert({ module, action, timestamp, user_id: 'user-id-aqui', details });
+  // Recuperar logs anteriores
+  const previousLogs = JSON.parse(localStorage.getItem('system_logs') || '[]');
+  
+  // Adicionar novo log
+  const updatedLogs = [logEntry, ...previousLogs].slice(0, 200); // Manter apenas os 200 logs mais recentes
+  
+  // Salvar logs atualizados
+  localStorage.setItem('system_logs', JSON.stringify(updatedLogs));
+  
+  // Log no console apenas em ambiente de desenvolvimento
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[LOG ${timestamp}] ${module}: ${action} - ${success ? 'Sucesso' : 'Pendente'}`);
+  }
+  
+  return logEntry;
 };
 
-export default logOperation;
+// Função para limpar todos os logs
+export const clearAllLogs = () => {
+  localStorage.removeItem('system_logs');
+  console.log('Todos os logs foram removidos');
+};
+
+// Função para recuperar logs
+export const getLogs = (limit = 100) => {
+  const logs = JSON.parse(localStorage.getItem('system_logs') || '[]');
+  return logs.slice(0, limit);
+};
+
+// Função para filtrar logs por módulo
+export const getLogsByModule = (moduleName: string, limit = 100) => {
+  const logs = JSON.parse(localStorage.getItem('system_logs') || '[]');
+  return logs
+    .filter((log: any) => log.module === moduleName)
+    .slice(0, limit);
+};
+
+// Função para filtrar logs por status (sucesso/pendente)
+export const getLogsByStatus = (success: boolean, limit = 100) => {
+  const logs = JSON.parse(localStorage.getItem('system_logs') || '[]');
+  return logs
+    .filter((log: any) => log.success === success)
+    .slice(0, limit);
+};

@@ -387,3 +387,5 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
     </div>
   );
 };
+
+export default FormularioFreteContratado;
