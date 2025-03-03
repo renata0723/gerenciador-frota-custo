@@ -1,5 +1,5 @@
 
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, BrowserRouter } from "react-router-dom";
 import Index from "./pages/Index";
 import EntradaNotas from "./pages/EntradaNotas";
 import NovaNotaForm from "./pages/NovaNotaForm";
@@ -24,29 +24,31 @@ import "./App.css";
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/entrada-notas" element={<EntradaNotas />} />
-      <Route path="/entrada-notas/nova" element={<NovaNotaForm />} />
-      <Route path="/entrada-notas/editar/:id" element={<NovaNotaForm />} />
-      <Route path="/veiculos" element={<Veiculos />} />
-      <Route path="/veiculos/novo" element={<NovoVeiculoForm />} />
-      <Route path="/veiculos/relatorios" element={<RelatoriosVeiculos />} />
-      <Route path="/motoristas" element={<Motoristas />} />
-      <Route path="/contratos" element={<Contratos />} />
-      <Route path="/contratos/novo" element={<NovoContratoForm />} />
-      <Route path="/contratos/editar/:id" element={<NovoContratoForm />} />
-      <Route path="/abastecimentos" element={<Abastecimentos />} />
-      <Route path="/despesas" element={<DespesasGerais />} />
-      <Route path="/manutencao" element={<Manutencao />} />
-      <Route path="/buscar-contrato" element={<BuscarContrato />} />
-      <Route path="/canhotos" element={<Canhotos />} />
-      <Route path="/saldo-pagar" element={<SaldoPagar />} />
-      <Route path="/tv-dashboard" element={<TVDashboard />} />
-      <Route path="/configuracoes" element={<ConfiguracoesEmpresa />} />
-      <Route path="/utilitarios" element={<Utilitarios />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/entrada-notas" element={<EntradaNotas />} />
+        <Route path="/entrada-notas/nova" element={<NovaNotaForm />} />
+        <Route path="/entrada-notas/editar/:id" element={<NovaNotaForm />} />
+        <Route path="/veiculos" element={<Veiculos />} />
+        <Route path="/veiculos/novo" element={<NovoVeiculoForm />} />
+        <Route path="/veiculos/relatorios" element={<RelatoriosVeiculos />} />
+        <Route path="/motoristas" element={<Motoristas />} />
+        <Route path="/contratos" element={<Contratos />} />
+        <Route path="/contratos/novo" element={<NovoContratoForm />} />
+        <Route path="/contratos/editar/:id" element={<NovoContratoForm />} />
+        <Route path="/abastecimentos" element={<Abastecimentos />} />
+        <Route path="/despesas" element={<DespesasGerais />} />
+        <Route path="/manutencao" element={<Manutencao />} />
+        <Route path="/buscar-contrato" element={<BuscarContrato />} />
+        <Route path="/canhotos" element={<Canhotos />} />
+        <Route path="/saldo-pagar" element={<SaldoPagar />} />
+        <Route path="/tv-dashboard" element={<TVDashboard />} />
+        <Route path="/configuracoes" element={<ConfiguracoesEmpresa />} />
+        <Route path="/utilitarios" element={<Utilitarios />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

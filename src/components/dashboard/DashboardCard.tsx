@@ -19,7 +19,7 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
   action,
 }) => {
   const handleCardClick = () => {
-    logOperation('Card Interaction', `Interação com card: ${title}`, false);
+    logOperation('Card Interaction', `Interação com card: ${title}`, "info");
   };
 
   return (

@@ -19,8 +19,8 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, showProjectionButton 
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Navbar />
-      <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
+      <Navbar toggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
+      <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={`pt-16 transition-all duration-300 ${sidebarOpen ? 'md:ml-60' : 'md:ml-0'} px-4 py-6`}>
         <div className="max-w-7xl mx-auto">
           {children}

@@ -10,6 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { Canhoto } from '@/types/canhoto';
+import { CanhotoStatus } from '@/utils/constants';
 
 interface CanhotoFormProps {
   dados?: Partial<Canhoto>;
@@ -59,7 +60,7 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({ dados, onSubmit, onCancel, co
       data_recebimento_canhoto: format(dataRecebimento, 'yyyy-MM-dd'),
       responsavel_recebimento: responsavel,
       data_programada_pagamento: format(dataProgramadaPagamento, 'yyyy-MM-dd'),
-      status: "Recebido"
+      status: "Recebido" as CanhotoStatus
     };
     
     onSubmit(canhotoData);

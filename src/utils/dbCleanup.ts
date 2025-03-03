@@ -4,6 +4,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { SUPABASE_TABLES, SupabaseTable } from './constants';
 
 // Chaves de armazenamento local usadas no sistema
 const LOCAL_STORAGE_KEYS = [
@@ -18,26 +19,6 @@ const LOCAL_STORAGE_KEYS = [
   'despesas',
   'system_logs'
 ];
-
-// Tabelas do Supabase
-const SUPABASE_TABLES = [
-  'Abastecimentos',
-  'Canhoto',
-  'Contratos',
-  'Despesas Gerais',
-  'Manutenção',
-  'Motorista',
-  'Motoristas',
-  'Notas Fiscais',
-  'Proprietarios',
-  'Relatórios',
-  'Saldo a pagar',
-  'TiposCombustivel',
-  'VeiculoProprietarios',
-  'Veiculos'
-] as const;
-
-type SupabaseTable = typeof SUPABASE_TABLES[number];
 
 // Função para limpar todos os dados armazenados localmente
 export const clearAllLocalData = () => {

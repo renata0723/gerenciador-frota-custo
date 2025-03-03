@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import PageHeader from '@/components/ui/PageHeader';
 import { Canhoto } from '@/types/canhoto';
+import { CanhotoStatus } from '@/utils/constants';
 
 const Canhotos: React.FC = () => {
   const [activeTab, setActiveTab] = useState('pendentes');
@@ -35,7 +36,13 @@ const Canhotos: React.FC = () => {
         return;
       }
       
-      setCanhotos(data || []);
+      // Garantir que o status seja um tipo válido antes de definir o estado
+      const validCanhotos = (data || []).map(canhoto => ({
+        ...canhoto,
+        status: canhoto.status as CanhotoStatus
+      }));
+      
+      setCanhotos(validCanhotos);
     } catch (error) {
       console.error('Erro:', error);
       toast.error('Ocorreu um erro ao processar a solicitação');
@@ -68,7 +75,7 @@ const Canhotos: React.FC = () => {
           data_entrega_cliente: data.data_entrega_cliente,
           responsavel_recebimento: data.responsavel_recebimento,
           data_programada_pagamento: data.data_programada_pagamento,
-          status: 'Recebido'
+          status: 'Recebido' as CanhotoStatus
         })
         .eq('id', selectedCanhoto.id);
         
