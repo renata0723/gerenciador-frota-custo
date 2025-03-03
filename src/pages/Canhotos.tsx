@@ -4,8 +4,8 @@ import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { FileDown, Search, Calendar, Check } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FileDown, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -42,7 +42,8 @@ const Canhotos = () => {
 
       const canhotosFormatados = canhotosData.map(canhoto => ({
         ...canhoto,
-        id: String(canhoto.id) // Converter ID para string para compatibilidade com o tipo
+        id: String(canhoto.id), // Converter ID para string para compatibilidade com o tipo
+        status: (canhoto.status || 'Pendente') as "Pendente" | "Recebido" // Garantir o tipo correto
       }));
 
       // Separar canhotos pendentes e recebidos
@@ -80,7 +81,8 @@ const Canhotos = () => {
 
       const canhotosFormatados = data.map(canhoto => ({
         ...canhoto,
-        id: String(canhoto.id) // Converter ID para string
+        id: String(canhoto.id), // Converter ID para string
+        status: (canhoto.status || 'Pendente') as "Pendente" | "Recebido" // Garantir o tipo correto
       }));
 
       // Separar canhotos pendentes e recebidos
@@ -203,7 +205,7 @@ const Canhotos = () => {
                 <p className="font-medium">{canhotoSelecionado?.numero_manifesto || '-'}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Contrato</span>
+                <span className="text-sm text-gray-500">Número do Contrato</span>
                 <p className="font-medium">{canhotoSelecionado?.contrato_id || '-'}</p>
               </div>
             </div>
@@ -252,6 +254,7 @@ const Canhotos = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div>NF: {canhoto.numero_nota_fiscal || 'N/A'}</div>
                           <div>CTe: {canhoto.numero_cte || 'N/A'}</div>
+                          <div>Contrato: {canhoto.contrato_id || 'N/A'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{canhoto.motorista}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -305,6 +308,7 @@ const Canhotos = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div>NF: {canhoto.numero_nota_fiscal || 'N/A'}</div>
                           <div>CTe: {canhoto.numero_cte || 'N/A'}</div>
+                          <div>Contrato: {canhoto.contrato_id || 'N/A'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatarData(canhoto.data_recebimento_canhoto)}
