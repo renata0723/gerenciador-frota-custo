@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/ui/PageHeader';
@@ -7,6 +8,26 @@ import NovoAbastecimentoForm from '@/components/abastecimentos/NovoAbastecimento
 import TipoCombustivelForm from '@/components/abastecimentos/TipoCombustivelForm';
 
 const Abastecimentos = () => {
+  const [tiposCombustivel, setTiposCombustivel] = useState([
+    { id: 1, nome: 'Diesel S10' },
+    { id: 2, nome: 'Diesel Comum' },
+    { id: 3, nome: 'Arla 32' }
+  ]);
+  
+  const handleSaveAbastecimento = (data) => {
+    console.log('Abastecimento salvo:', data);
+    // Implementar lógica para salvar o abastecimento
+  };
+  
+  const handleSaveTipoCombustivel = (data) => {
+    console.log('Tipo de combustível salvo:', data);
+    const novoTipo = {
+      id: tiposCombustivel.length + 1,
+      nome: data.nome
+    };
+    setTiposCombustivel([...tiposCombustivel, novoTipo]);
+  };
+  
   return (
     <PageLayout>
       <PageHeader 
@@ -31,24 +52,17 @@ const Abastecimentos = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Veículo</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posto</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Combustível</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Litros</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {/* Dados serão carregados aqui */}
                   <tr>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nenhum registro encontrado</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={8}>Nenhum registro encontrado</td>
                   </tr>
                 </tbody>
               </table>
@@ -57,11 +71,16 @@ const Abastecimentos = () => {
         </TabsContent>
         
         <TabsContent value="novo">
-          <NovoAbastecimentoForm />
+          <NovoAbastecimentoForm 
+            onSave={handleSaveAbastecimento} 
+            tiposCombustivel={tiposCombustivel} 
+          />
         </TabsContent>
         
         <TabsContent value="tipos">
-          <TipoCombustivelForm />
+          <TipoCombustivelForm 
+            onSave={handleSaveTipoCombustivel} 
+          />
         </TabsContent>
       </Tabs>
     </PageLayout>

@@ -1,67 +1,64 @@
+
 import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ThumbsDown } from 'lucide-react';
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import FormularioCTeDados from "./FormularioCTeDados";
-import FormularioFreteContratado from "./FormularioFreteContratado";
-import FormularioRejeicaoContrato from "./FormularioRejeicaoContrato";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { FormularioCTeDados } from '@/components/contratos/FormularioCTeDados';
+import { FormularioFreteContratado } from '@/components/contratos/FormularioFreteContratado';
+import { FormularioRejeicaoContrato } from '@/components/contratos/FormularioRejeicaoContrato';
 
 const ContratoFormTabs = () => {
-  const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("dados");
+  
+  // Funções para salvar os dados dos formulários
+  const handleSaveContractData = (data) => {
+    console.log("Dados do contrato salvos:", data);
+    // Implementar lógica de salvamento
+  };
+  
+  const handleSaveFreightData = (data) => {
+    console.log("Dados do frete salvos:", data);
+    // Implementar lógica de salvamento
+  };
+  
+  const handleSaveCTeData = (data) => {
+    console.log("Dados do CTe salvos:", data);
+    // Implementar lógica de salvamento
+  };
+  
+  const handleSaveRejectionData = (data) => {
+    console.log("Dados de rejeição salvos:", data);
+    // Implementar lógica de salvamento
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-end space-x-4">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button variant="rejected">
-              <ThumbsDown className="h-5 w-5" />
-              Rejeitar Contrato
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <FormularioRejeicaoContrato />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Card>
-        <CardContent className="p-6">
-          <Tabs defaultValue="dados" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="dados">Dados do Contrato</TabsTrigger>
-              <TabsTrigger value="frete">Frete Contratado</TabsTrigger>
-              <TabsTrigger value="cte">CTe/Manifesto</TabsTrigger>
-              <TabsTrigger value="observacoes">Observações</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="dados">
-              {/* Conteúdo existente para Dados do Contrato */}
-              <div className="pt-4 space-y-4">
-                {/* Form fields for contract data would be here */}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="frete">
-              <FormularioFreteContratado />
-            </TabsContent>
-            
-            <TabsContent value="cte">
-              <FormularioCTeDados />
-            </TabsContent>
-            
-            <TabsContent value="observacoes">
-              {/* Conteúdo existente para Observações */}
-              <div className="pt-4 space-y-4">
-                {/* Observations form fields would be here */}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="w-full">
+      <Tabs defaultValue="dados" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="dados">Dados do Contrato</TabsTrigger>
+          <TabsTrigger value="frete">Frete Contratado</TabsTrigger>
+          <TabsTrigger value="cte">CTe e Documentos</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="dados" className="p-4 space-y-4">
+          {/* Formulário de dados do contrato */}
+          <h2 className="text-xl font-bold">Dados do Contrato</h2>
+          {/* Adicionar formulário aqui */}
+        </TabsContent>
+        
+        <TabsContent value="frete" className="p-4 space-y-4">
+          <FormularioFreteContratado onSave={handleSaveFreightData} />
+        </TabsContent>
+        
+        <TabsContent value="cte" className="p-4 space-y-4">
+          <FormularioCTeDados onSave={handleSaveCTeData} />
+        </TabsContent>
+        
+        <TabsContent value="rejeicao" className="p-4 space-y-4">
+          <FormularioRejeicaoContrato onSave={handleSaveRejectionData} />
+        </TabsContent>
+      </Tabs>
+    </Card>
   );
 };
 

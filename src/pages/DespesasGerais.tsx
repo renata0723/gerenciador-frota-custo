@@ -7,6 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import NovaDespesaForm from '@/components/despesas/NovaDespesaForm';
 
 const DespesasGerais = () => {
+  const handleSaveDespesa = (data) => {
+    console.log('Despesa salva:', data);
+    // Implementar lógica para salvar a despesa
+  };
+  
   return (
     <PageLayout>
       <PageHeader 
@@ -38,12 +43,7 @@ const DespesasGerais = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {/* Dados serão carregados aqui */}
                   <tr>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nenhum registro encontrado</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={6}>Nenhum registro encontrado</td>
                   </tr>
                 </tbody>
               </table>
@@ -52,7 +52,7 @@ const DespesasGerais = () => {
         </TabsContent>
         
         <TabsContent value="novo">
-          <NovaDespesaForm />
+          <NovaDespesaForm onSave={handleSaveDespesa} />
         </TabsContent>
       </Tabs>
     </PageLayout>

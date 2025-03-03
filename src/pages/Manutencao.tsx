@@ -1,3 +1,4 @@
+
 import React from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import NovaManutencaoForm from '@/components/manutencao/NovaManutencaoForm';
 
 const Manutencao = () => {
+  const handleSaveManutencao = (data) => {
+    console.log('Manutenção salva:', data);
+    // Implementar lógica para salvar a manutenção
+  };
+  
   return (
     <PageLayout>
       <PageHeader 
@@ -30,7 +36,7 @@ const Manutencao = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Veículo</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Local</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serviço</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serviços</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                   </tr>
@@ -38,13 +44,7 @@ const Manutencao = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {/* Dados serão carregados aqui */}
                   <tr>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nenhum registro encontrado</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={7}>Nenhum registro encontrado</td>
                   </tr>
                 </tbody>
               </table>
@@ -53,7 +53,7 @@ const Manutencao = () => {
         </TabsContent>
         
         <TabsContent value="novo">
-          <NovaManutencaoForm />
+          <NovaManutencaoForm onSave={handleSaveManutencao} />
         </TabsContent>
       </Tabs>
     </PageLayout>
