@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -10,16 +10,27 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 interface CadastroMotoristaFormProps {
   onSave: (data: { nome: string; cpf: string; tipo: 'frota' | 'terceiro' }) => void;
   onCancel: () => void;
+  motorista?: { id?: number; nome?: string; cpf?: string; tipo?: 'frota' | 'terceiro' };
 }
 
 const CadastroMotoristaForm: React.FC<CadastroMotoristaFormProps> = ({ 
   onSave, 
-  onCancel 
+  onCancel,
+  motorista
 }) => {
-  const [nome, setNome] = useState('');
-  const [cpf, setCpf] = useState('');
-  const [tipo, setTipo] = useState<'frota' | 'terceiro'>('frota');
+  const [nome, setNome] = useState(motorista?.nome || '');
+  const [cpf, setCpf] = useState(motorista?.cpf || '');
+  const [tipo, setTipo] = useState<'frota' | 'terceiro'>(motorista?.tipo || 'frota');
   const [carregando, setCarregando] = useState(false);
+  const isEditMode = !!motorista?.id;
+
+  useEffect(() => {
+    if (motorista) {
+      setNome(motorista.nome || '');
+      setCpf(motorista.cpf || '');
+      setTipo(motorista.tipo || 'frota');
+    }
+  }, [motorista]);
 
   const validarCPF = (cpf: string) => {
     // Remover caracteres especiais
@@ -72,44 +83,66 @@ const CadastroMotoristaForm: React.FC<CadastroMotoristaFormProps> = ({
         return;
       }
 
-      // Verificar se o motorista já existe
-      const { data: motoristaExistente, error: errorVerificacao } = await supabase
-        .from('Motoristas')
-        .select('*')
-        .eq('nome', nome);
+      if (isEditMode) {
+        // Atualizar motorista existente
+        const { error } = await supabase
+          .from('Motoristas')
+          .update({
+            nome: nome,
+            cpf: cpf,
+            tipo: tipo,
+          })
+          .eq('id', motorista.id);
 
-      if (errorVerificacao) {
-        console.error('Erro ao verificar motorista:', errorVerificacao);
-        toast.error('Erro ao verificar motorista no sistema');
-        setCarregando(false);
-        return;
+        if (error) {
+          console.error('Erro ao atualizar motorista:', error);
+          toast.error('Erro ao atualizar motorista');
+          setCarregando(false);
+          return;
+        }
+
+        toast.success('Motorista atualizado com sucesso!');
+      } else {
+        // Verificar se o motorista já existe
+        const { data: motoristaExistente, error: errorVerificacao } = await supabase
+          .from('Motoristas')
+          .select('*')
+          .eq('cpf', cpf);
+
+        if (errorVerificacao) {
+          console.error('Erro ao verificar motorista:', errorVerificacao);
+          toast.error('Erro ao verificar motorista no sistema');
+          setCarregando(false);
+          return;
+        }
+
+        if (motoristaExistente && motoristaExistente.length > 0) {
+          toast.error('Este CPF já está cadastrado no sistema');
+          setCarregando(false);
+          return;
+        }
+
+        // Inserir o motorista
+        const { error } = await supabase
+          .from('Motoristas')
+          .insert({
+            nome: nome,
+            cpf: cpf,
+            tipo_cadastro: 'simples',
+            tipo: tipo,
+            status: 'active'
+          });
+
+        if (error) {
+          console.error('Erro ao cadastrar motorista:', error);
+          toast.error('Erro ao cadastrar motorista');
+          setCarregando(false);
+          return;
+        }
+
+        toast.success('Motorista cadastrado com sucesso!');
       }
 
-      if (motoristaExistente && motoristaExistente.length > 0) {
-        toast.error('Este motorista já está cadastrado no sistema');
-        setCarregando(false);
-        return;
-      }
-
-      // Inserir o motorista
-      const { error } = await supabase
-        .from('Motoristas')
-        .insert({
-          nome: nome,
-          cpf: cpf,
-          tipo_cadastro: 'simples',
-          tipo: tipo,
-          status: 'active'
-        });
-
-      if (error) {
-        console.error('Erro ao cadastrar motorista:', error);
-        toast.error('Erro ao cadastrar motorista');
-        setCarregando(false);
-        return;
-      }
-
-      toast.success('Motorista cadastrado com sucesso!');
       onSave({ nome, cpf, tipo });
     } catch (error) {
       console.error('Erro:', error);
@@ -166,7 +199,7 @@ const CadastroMotoristaForm: React.FC<CadastroMotoristaFormProps> = ({
           Cancelar
         </Button>
         <Button type="submit" disabled={carregando}>
-          {carregando ? 'Processando...' : 'Salvar'}
+          {carregando ? 'Processando...' : isEditMode ? 'Atualizar' : 'Salvar'}
         </Button>
       </div>
     </form>

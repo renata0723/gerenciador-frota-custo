@@ -20,6 +20,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import MotoristaForm, { MotoristaData } from '@/components/motoristas/MotoristaForm';
+import CadastroMotoristaForm from '@/components/contratos/CadastroMotoristaForm';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
@@ -41,11 +42,14 @@ interface Driver {
 
 const Motoristas = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'active' | 'inactive'>('todos');
   const [filtroTipo, setFiltroTipo] = useState<'todos' | 'frota' | 'parceiro'>('todos');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   
   // Carregar motoristas do banco de dados
   useEffect(() => {
@@ -97,6 +101,11 @@ const Motoristas = () => {
     await carregarMotoristas();
     setIsDialogOpen(false);
   };
+
+  const handleEditMotorista = async (data: { nome: string; cpf: string; tipo: 'frota' | 'terceiro' }) => {
+    await carregarMotoristas();
+    setIsEditDialogOpen(false);
+  };
   
   const handleStatusChange = async (id: number, newStatus: 'active' | 'inactive') => {
     try {
@@ -142,6 +151,16 @@ const Motoristas = () => {
       console.error('Erro ao processar exclusão:', error);
       toast.error('Ocorreu um erro ao processar a exclusão');
     }
+  };
+
+  const handleViewDetails = (driver: Driver) => {
+    setSelectedDriver(driver);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleEditClick = (driver: Driver) => {
+    setSelectedDriver(driver);
+    setIsEditDialogOpen(true);
   };
   
   // Filtrar por termo de busca
@@ -322,10 +341,22 @@ const Motoristas = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Visualizar detalhes">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8" 
+                            title="Visualizar detalhes"
+                            onClick={() => handleViewDetails(driver)}
+                          >
                             <FileText size={16} className="text-gray-500 dark:text-gray-400" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar motorista">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8" 
+                            title="Editar motorista"
+                            onClick={() => handleEditClick(driver)}
+                          >
                             <Edit size={16} className="text-blue-500 dark:text-blue-400" />
                           </Button>
                           <DropdownMenu>
@@ -378,6 +409,108 @@ const Motoristas = () => {
           </div>
         </div>
       </div>
+
+      {/* Dialog para Visualização de Detalhes */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Motorista</DialogTitle>
+          </DialogHeader>
+          {selectedDriver && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500">Nome:</h3>
+                <p className="text-base">{selectedDriver.nome}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500">CPF:</h3>
+                <p className="text-base">{formatarCPF(selectedDriver.cpf)}</p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500">Tipo:</h3>
+                <Badge variant={selectedDriver.tipo === 'frota' ? 'outline' : 'secondary'}>
+                  {selectedDriver.tipo === 'frota' ? 'Frota Própria' : 'Parceiro'}
+                </Badge>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500">Status:</h3>
+                <Badge variant={selectedDriver.status === 'active' ? 'success' : 'secondary'}>
+                  {selectedDriver.status === 'active' ? 'Ativo' : 'Inativo'}
+                </Badge>
+              </div>
+
+              {selectedDriver.cnh && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">CNH:</h3>
+                  <p className="text-base">{selectedDriver.cnh}</p>
+                </div>
+              )}
+
+              {selectedDriver.vencimento_cnh && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">Vencimento CNH:</h3>
+                  <p className="text-base">{selectedDriver.vencimento_cnh}</p>
+                </div>
+              )}
+
+              {selectedDriver.telefone && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">Telefone:</h3>
+                  <p className="text-base">{selectedDriver.telefone}</p>
+                </div>
+              )}
+
+              {selectedDriver.data_contratacao && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">Data de Contratação:</h3>
+                  <p className="text-base">{selectedDriver.data_contratacao}</p>
+                </div>
+              )}
+
+              {selectedDriver.endereco && (
+                <div className="col-span-2">
+                  <h3 className="text-sm font-semibold text-gray-500">Endereço:</h3>
+                  <p className="text-base">{selectedDriver.endereco}</p>
+                </div>
+              )}
+
+              {selectedDriver.proprietario_vinculado && (
+                <div className="col-span-2">
+                  <h3 className="text-sm font-semibold text-gray-500">Proprietário Vinculado:</h3>
+                  <p className="text-base">{selectedDriver.proprietario_vinculado}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <div className="flex justify-end mt-4">
+            <Button onClick={() => setIsViewDialogOpen(false)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para Edição */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Editar Motorista</DialogTitle>
+          </DialogHeader>
+          {selectedDriver && (
+            <CadastroMotoristaForm 
+              onSave={handleEditMotorista} 
+              onCancel={() => setIsEditDialogOpen(false)}
+              motorista={{
+                id: selectedDriver.id,
+                nome: selectedDriver.nome,
+                cpf: selectedDriver.cpf,
+                tipo: selectedDriver.tipo === 'frota' ? 'frota' : 'terceiro'
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };

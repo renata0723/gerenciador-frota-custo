@@ -18,6 +18,20 @@ export const formatCurrency = (value: number | null | undefined): string => {
 };
 
 /**
+ * Formata um valor monetário sem o símbolo da moeda
+ * @param value - Valor a ser formatado
+ * @returns string formatada apenas com o valor (sem símbolo da moeda)
+ */
+export const formatarValorMonetario = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '0,00';
+  
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+
+/**
  * Formata data no padrão brasileiro dd/mm/yyyy
  * @param date - Data a ser formatada
  * @returns string formatada

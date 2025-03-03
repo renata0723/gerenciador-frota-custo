@@ -20,4 +20,5 @@ export interface Canhoto {
 
 export interface CanhotoPendente extends Pick<Canhoto, 'contrato_id' | 'cliente' | 'motorista'> {
   data_entrega?: string;
+  numero_nota_fiscal?: string;
 }
