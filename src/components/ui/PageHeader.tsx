@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { Button } from './button';
 
 export interface BreadcrumbItem {
   label: string;
@@ -14,9 +15,19 @@ export interface PageHeaderProps {
   icon?: React.ReactNode;
   breadcrumbs?: BreadcrumbItem[];
   actions?: React.ReactNode;
+  backButton?: boolean;
+  onBackClick?: () => void;
 }
 
-const PageHeader = ({ title, description, icon, breadcrumbs, actions }: PageHeaderProps) => {
+const PageHeader = ({ 
+  title, 
+  description, 
+  icon, 
+  breadcrumbs, 
+  actions,
+  backButton,
+  onBackClick
+}: PageHeaderProps) => {
   return (
     <div className="mb-8">
       {breadcrumbs && breadcrumbs.length > 0 && (
@@ -41,6 +52,16 @@ const PageHeader = ({ title, description, icon, breadcrumbs, actions }: PageHead
       
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 mb-2">
+          {backButton && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={onBackClick}
+              className="mr-1"
+            >
+              <ChevronLeft size={20} />
+            </Button>
+          )}
           {icon && <div className="flex-shrink-0">{icon}</div>}
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         </div>
