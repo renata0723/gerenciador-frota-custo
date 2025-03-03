@@ -110,3 +110,85 @@ export const restoreDemoData = async (tableName: SupabaseTable): Promise<DbClean
     message: 'A função de restaurar dados de demonstração ainda não está implementada.'
   };
 };
+
+/**
+ * Limpa todos os dados do localStorage
+ */
+export const clearAllLocalData = (): { success: boolean; message: string } => {
+  try {
+    localStorage.clear();
+    return { 
+      success: true, 
+      message: 'Todos os dados locais foram limpos com sucesso.' 
+    };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: 'Erro ao limpar dados locais.' 
+    };
+  }
+};
+
+/**
+ * Limpa dados específicos do localStorage por chave
+ */
+export const clearLocalDataByKey = (key: string): { success: boolean; message: string } => {
+  try {
+    localStorage.removeItem(key);
+    return { 
+      success: true, 
+      message: `Dados da chave '${key}' foram limpos com sucesso.` 
+    };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: `Erro ao limpar dados da chave '${key}'.` 
+    };
+  }
+};
+
+/**
+ * Obtém informações sobre o uso do localStorage
+ */
+export const getLocalStorageUsage = (): { 
+  totalSize: string; 
+  items: { key: string; size: string; }[]; 
+} => {
+  const items: { key: string; size: string }[] = [];
+  let totalBytes = 0;
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key) {
+      const value = localStorage.getItem(key) || '';
+      const bytes = new Blob([value]).size;
+      totalBytes += bytes;
+      items.push({ 
+        key, 
+        size: formatBytes(bytes) 
+      });
+    }
+  }
+
+  return {
+    totalSize: formatBytes(totalBytes),
+    items: items.sort((a, b) => b.key.localeCompare(a.key))
+  };
+};
+
+/**
+ * Formata bytes para uma representação legível
+ */
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+/**
+ * Apelidos para compatibilidade
+ */
+export const clearAllSupabaseTables = cleanupAllTables;
+export const clearSupabaseTable = cleanupTable;

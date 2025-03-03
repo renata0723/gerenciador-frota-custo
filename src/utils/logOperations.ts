@@ -13,9 +13,12 @@ interface LogEntry {
  * @param action Descrição da ação realizada
  * @param success Indica se a operação foi bem-sucedida
  */
-export const logOperation = (module: string, action: string, success: string): void => {
+export const logOperation = (module: string, action: string, success: string | boolean): void => {
   const timestamp = new Date().toISOString();
-  const isSuccess = success === 'true';
+  // Converte o parâmetro success para boolean se for uma string
+  const isSuccess = typeof success === 'string' 
+    ? success === 'true' 
+    : Boolean(success);
   
   const logEntry: LogEntry = {
     module,

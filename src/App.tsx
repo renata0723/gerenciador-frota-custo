@@ -19,6 +19,7 @@ import TVDashboard from "./pages/TVDashboard";
 import ConfiguracoesEmpresa from "./pages/ConfiguracoesEmpresa";
 import NotFound from "./pages/NotFound";
 import Utilitarios from "./pages/Utilitarios";
+import Relatorios from "./pages/Relatorios";
 
 import "./App.css";
 
@@ -43,6 +44,7 @@ function App() {
         <Route path="/buscar-contrato" element={<BuscarContrato />} />
         <Route path="/canhotos" element={<Canhotos />} />
         <Route path="/saldo-pagar" element={<SaldoPagar />} />
+        <Route path="/relatorios" element={<Relatorios />} />
         <Route path="/tv-dashboard" element={<TVDashboard />} />
         <Route path="/configuracoes" element={<ConfiguracoesEmpresa />} />
         <Route path="/utilitarios" element={<Utilitarios />} />
