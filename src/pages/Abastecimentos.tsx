@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
@@ -6,18 +5,13 @@ import PageHeader from '@/components/ui/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import NovoAbastecimentoForm from '@/components/abastecimentos/NovoAbastecimentoForm';
 import TipoCombustivelForm from '@/components/abastecimentos/TipoCombustivelForm';
-
-interface TipoCombustivel {
-  id: number | string;
-  nome: string;
-  descricao: string;
-}
+import { TipoCombustivel } from '@/types/abastecimento';
 
 const Abastecimentos = () => {
   const [tiposCombustivel, setTiposCombustivel] = useState<TipoCombustivel[]>([
-    { id: 1, nome: 'Diesel S10', descricao: 'Combustível Diesel com baixo teor de enxofre' },
-    { id: 2, nome: 'Diesel Comum', descricao: 'Combustível Diesel comum' },
-    { id: 3, nome: 'Arla 32', descricao: 'Agente Redutor Líquido Automotivo' }
+    { id: "1", nome: 'Diesel S10', descricao: 'Combustível Diesel com baixo teor de enxofre' },
+    { id: "2", nome: 'Diesel Comum', descricao: 'Combustível Diesel comum' },
+    { id: "3", nome: 'Arla 32', descricao: 'Agente Redutor Líquido Automotivo' }
   ]);
   
   const handleSaveAbastecimento = (data: any) => {
@@ -27,8 +21,8 @@ const Abastecimentos = () => {
   
   const handleSaveTipoCombustivel = (data: any) => {
     console.log('Tipo de combustível salvo:', data);
-    const novoTipo = {
-      id: tiposCombustivel.length + 1,
+    const novoTipo: TipoCombustivel = {
+      id: String(tiposCombustivel.length + 1),
       nome: data.nome,
       descricao: data.descricao || ''
     };
@@ -67,7 +61,6 @@ const Abastecimentos = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {/* Dados serão carregados aqui */}
                   <tr>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={8}>Nenhum registro encontrado</td>
                   </tr>

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -6,24 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-
-interface TipoCombustivel {
-  id: string;
-  nome: string;
-  descricao: string;
-}
-
-interface AbastecimentoFormData {
-  data: string;
-  placa: string;
-  motorista: string;
-  tipoCombustivel: string;
-  quantidade: number;
-  valor: number;
-  posto: string;
-  responsavel: string;
-  quilometragem: number;
-}
+import { TipoCombustivel, AbastecimentoFormData } from "@/types/abastecimento";
 
 interface NovoAbastecimentoFormProps {
   onSave: (data: AbastecimentoFormData) => void;
