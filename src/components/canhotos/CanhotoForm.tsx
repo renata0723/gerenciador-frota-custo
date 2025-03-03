@@ -15,10 +15,13 @@ interface CanhotoFormProps {
   dados?: Partial<Canhoto>;
   onSubmit: (dados: Partial<Canhoto>) => void;
   onCancel?: () => void;
+  contratoId?: string;
+  dataEntrega?: string;
 }
 
-const CanhotoForm: React.FC<CanhotoFormProps> = ({ dados, onSubmit, onCancel }) => {
-  const [dataEntrega, setDataEntrega] = useState<Date | undefined>(
+const CanhotoForm: React.FC<CanhotoFormProps> = ({ dados, onSubmit, onCancel, contratoId, dataEntrega }) => {
+  const [dataEntregaState, setDataEntregaState] = useState<Date | undefined>(
+    dataEntrega ? new Date(dataEntrega) : 
     dados?.data_entrega_cliente ? new Date(dados.data_entrega_cliente) : undefined
   );
   
@@ -31,7 +34,7 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({ dados, onSubmit, onCancel }) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!dataEntrega) {
+    if (!dataEntregaState) {
       toast.error("Por favor, informe a data de entrega ao cliente");
       return;
     }
@@ -51,7 +54,8 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({ dados, onSubmit, onCancel }) 
     
     const canhotoData: Partial<Canhoto> = {
       ...dados,
-      data_entrega_cliente: format(dataEntrega, 'yyyy-MM-dd'),
+      contrato_id: contratoId || dados?.contrato_id,
+      data_entrega_cliente: format(dataEntregaState, 'yyyy-MM-dd'),
       data_recebimento_canhoto: format(dataRecebimento, 'yyyy-MM-dd'),
       responsavel_recebimento: responsavel,
       data_programada_pagamento: format(dataProgramadaPagamento, 'yyyy-MM-dd'),
@@ -73,8 +77,8 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({ dados, onSubmit, onCancel }) 
                 className="w-full flex justify-start text-left font-normal"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dataEntrega ? (
-                  format(dataEntrega, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                {dataEntregaState ? (
+                  format(dataEntregaState, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
                 ) : (
                   <span>Selecione a data</span>
                 )}
@@ -83,8 +87,8 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({ dados, onSubmit, onCancel }) 
             <PopoverContent className="w-auto p-0">
               <Calendar
                 mode="single"
-                selected={dataEntrega}
-                onSelect={setDataEntrega}
+                selected={dataEntregaState}
+                onSelect={setDataEntregaState}
                 locale={ptBR}
               />
             </PopoverContent>

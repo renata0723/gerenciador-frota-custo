@@ -25,7 +25,17 @@ export interface DadosContratoFormData {
   placaCarreta: string;
   motorista: string;
   proprietario: string;
-  proprietarioInfo?: ProprietarioData; // Adicionando informações detalhadas do proprietário
+  proprietarioInfo?: {
+    nome: string;
+    documento: string;
+    dadosBancarios: {
+      banco: string;
+      agencia: string;
+      conta: string;
+      tipoConta: "corrente" | "poupanca";
+      chavePix: string;
+    };
+  };
 }
 
 interface FormularioDadosContratoProps {
@@ -378,6 +388,42 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
     }));
     await carregarMotoristas();
     toast.success(`Motorista ${data.nome} cadastrado com sucesso!`);
+  };
+
+  const handleProprietarioSelection = (nome: string, dados: any) => {
+    setFormData(prev => ({
+      ...prev,
+      proprietario: nome,
+      proprietarioInfo: {
+        nome: nome,
+        documento: dados.documento || '',
+        dadosBancarios: {
+          banco: dados.dados_bancarios ? JSON.parse(dados.dados_bancarios).banco || '' : '',
+          agencia: dados.dados_bancarios ? JSON.parse(dados.dados_bancarios).agencia || '' : '',
+          conta: dados.dados_bancarios ? JSON.parse(dados.dados_bancarios).conta || '' : '',
+          tipoConta: dados.dados_bancarios ? JSON.parse(dados.dados_bancarios).tipoConta || 'corrente' : 'corrente',
+          chavePix: dados.dados_bancarios ? JSON.parse(dados.dados_bancarios).pix || '' : '',
+        }
+      }
+    }));
+  };
+
+  const handleAddNewProprietario = (novoProprietario: any) => {
+    setFormData(prev => ({
+      ...prev,
+      proprietario: novoProprietario.nome,
+      proprietarioInfo: {
+        nome: novoProprietario.nome,
+        documento: novoProprietario.documento || '',
+        dadosBancarios: {
+          banco: novoProprietario.banco || '',
+          agencia: novoProprietario.agencia || '',
+          conta: novoProprietario.conta || '',
+          tipoConta: novoProprietario.tipoConta || 'corrente',
+          chavePix: novoProprietario.pix || '',
+        }
+      }
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {

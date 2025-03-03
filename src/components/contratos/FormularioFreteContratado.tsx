@@ -1,40 +1,32 @@
 
 import React, { useState, useEffect } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { Card } from '@/components/ui/card';
-import { ProprietarioData } from './CadastroProprietarioForm';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { Checkbox } from '@/components/ui/checkbox';
-import { logOperation } from '@/utils/logOperations';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { format, addDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DadosContratoFormData } from './FormularioDadosContrato';
 
-export interface FreteContratadoData {
+interface FreteContratadoFormData {
   valorFreteContratado: number;
   valorAdiantamento: number;
-  dataAdiantamento?: Date | null;
   valorPedagio: number;
   saldoPagar: number;
-  observacoes: string;
   gerarSaldoPagar: boolean;
-  gerarObrigacao: boolean;
-  proprietarioInfo: ProprietarioData | null;
-  dataVencimento?: Date | null;
+  dataVencimento?: Date;
 }
 
 interface FormularioFreteContratadoProps {
-  onSubmit: (data: FreteContratadoData) => void;
-  onBack: () => void;
-  onNext: () => void;
-  initialData?: FreteContratadoData;
-  dadosContrato?: any; // Recebe os dados do contrato com informações do proprietário e placas
+  onSubmit: (data: FreteContratadoFormData) => void;
+  onBack?: () => void;
+  onNext?: () => void;
+  initialData?: FreteContratadoFormData;
+  dadosContrato?: DadosContratoFormData | null;
 }
 
 export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
@@ -44,385 +36,194 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
   initialData,
   dadosContrato
 }) => {
-  const [formData, setFormData] = useState<FreteContratadoData>(
-    initialData || {
-      valorFreteContratado: 0,
-      valorAdiantamento: 0,
-      dataAdiantamento: null,
-      valorPedagio: 0,
-      saldoPagar: 0,
-      observacoes: '',
-      gerarSaldoPagar: false,
-      gerarObrigacao: false,
-      proprietarioInfo: null,
-      dataVencimento: null
-    }
+  const [valorFreteContratado, setValorFreteContratado] = useState(initialData?.valorFreteContratado || 0);
+  const [valorAdiantamento, setValorAdiantamento] = useState(initialData?.valorAdiantamento || 0);
+  const [valorPedagio, setValorPedagio] = useState(initialData?.valorPedagio || 0);
+  const [saldoPagar, setSaldoPagar] = useState(initialData?.saldoPagar || 0);
+  const [gerarSaldoPagar, setGerarSaldoPagar] = useState(initialData?.gerarSaldoPagar || false);
+  const [dataVencimento, setDataVencimento] = useState<Date | undefined>(
+    initialData?.dataVencimento || addDays(new Date(), 30)
   );
-
-  const isFrotaPropria = dadosContrato?.tipo === 'frota';
-
-  // Quando mudar o tipo de frete (quando dadosContrato mudar)
+  
+  const isTipoFrota = dadosContrato?.tipo === 'frota';
+  
+  // Calcular o saldo a pagar automaticamente quando os valores mudam
   useEffect(() => {
-    if (isFrotaPropria) {
-      // Se for frota própria, zera os valores do frete contratado
-      setFormData(prev => ({
-        ...prev,
-        valorFreteContratado: 0,
-        valorAdiantamento: 0,
-        valorPedagio: 0,
-        saldoPagar: 0,
-        gerarSaldoPagar: false,
-        gerarObrigacao: false
-      }));
-    }
-  }, [isFrotaPropria]);
-
-  // Carregar informações do proprietário quando o componente montar ou quando dadosContrato mudar
+    const calculatedSaldo = valorFreteContratado - valorAdiantamento - valorPedagio;
+    setSaldoPagar(calculatedSaldo > 0 ? calculatedSaldo : 0);
+  }, [valorFreteContratado, valorAdiantamento, valorPedagio]);
+  
+  // Se for tipo frota, limpar todos os valores
   useEffect(() => {
-    if (dadosContrato && dadosContrato.tipo === 'terceiro' && dadosContrato.proprietario) {
-      // Se o proprietário já tiver informações detalhadas no dadosContrato, use-as
-      if (dadosContrato.proprietarioInfo) {
-        setFormData(prev => ({
-          ...prev,
-          proprietarioInfo: dadosContrato.proprietarioInfo as ProprietarioData,
-          gerarSaldoPagar: true
-        }));
-      } else {
-        // Simulação de busca de dados do proprietário se não estiver disponível
-        const proprietarioInfo: ProprietarioData = {
-          nome: dadosContrato.proprietario,
-          documento: 'Documento do proprietário', // Simulado
-          dadosBancarios: {
-            banco: 'Banco do proprietário',
-            agencia: '1234',
-            conta: '56789-0',
-            tipoConta: 'corrente',
-            chavePix: ''
-          }
-        };
-        
-        setFormData(prev => ({
-          ...prev,
-          proprietarioInfo: proprietarioInfo,
-          gerarSaldoPagar: true
-        }));
-      }
+    if (isTipoFrota) {
+      setValorFreteContratado(0);
+      setValorAdiantamento(0);
+      setValorPedagio(0);
+      setSaldoPagar(0);
+      setGerarSaldoPagar(false);
     }
-  }, [dadosContrato]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    
-    if (type === 'number') {
-      const numValue = parseFloat(value);
-      
-      setFormData(prev => {
-        const newData = {
-          ...prev,
-          [name]: isNaN(numValue) ? 0 : numValue
-        };
-        
-        // Recalcular o saldo a pagar automaticamente
-        if (name === 'valorFreteContratado' || name === 'valorAdiantamento' || name === 'valorPedagio') {
-          newData.saldoPagar = newData.valorFreteContratado - newData.valorAdiantamento - newData.valorPedagio;
-        }
-        
-        return newData;
-      });
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-  };
-
-  const handleCheckboxChange = (name: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: checked
-    }));
-  };
-
-  const handleDateSelect = (field: 'dataVencimento' | 'dataAdiantamento', date: Date | undefined) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: date || null
-    }));
-  };
+  }, [isTipoFrota]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Se for frota própria, não validamos o valor do frete contratado
-    if (!isFrotaPropria && formData.valorFreteContratado <= 0) {
-      toast.error('O valor do frete contratado deve ser maior que zero');
-      return;
-    }
-    
-    // Se foi informado valor de adiantamento mas não data
-    if (formData.valorAdiantamento > 0 && !formData.dataAdiantamento) {
-      toast.error('Por favor, informe a data do adiantamento');
-      return;
-    }
-    
-    // Se for frete terceirizado e estiver marcado para gerar saldo a pagar
-    if (dadosContrato?.tipo === 'terceiro' && formData.gerarSaldoPagar) {
-      if (!formData.proprietarioInfo) {
-        toast.error('Informações do proprietário são necessárias para gerar saldo a pagar');
-        return;
-      }
-      
-      if (!formData.dataVencimento) {
-        toast.error('Por favor, defina uma data de vencimento para o saldo a pagar');
-        return;
-      }
-    }
-    
-    // Se estiver marcado para gerar obrigação
-    if (formData.gerarObrigacao) {
-      if (!formData.dataVencimento) {
-        toast.error('É necessário informar a data de vencimento para gerar obrigação de pagamento');
-        return;
-      }
-      
-      if (!formData.proprietarioInfo) {
-        toast.error('Informações do proprietário são necessárias para gerar obrigação de pagamento');
-        return;
-      }
-      
-      toast.success(`Obrigação de pagamento será gerada com vencimento em ${format(formData.dataVencimento, 'dd/MM/yyyy')}`);
-    }
-    
-    logOperation('Contratos', 'Formulário de frete preenchido', `Tipo: ${dadosContrato?.tipo}, Valor: ${formData.valorFreteContratado}`);
+    const formData: FreteContratadoFormData = {
+      valorFreteContratado,
+      valorAdiantamento,
+      valorPedagio,
+      saldoPagar,
+      gerarSaldoPagar,
+      dataVencimento
+    };
     
     onSubmit(formData);
-    onNext();
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <h2 className="text-xl font-bold">Frete Contratado</h2>
-      
-      {dadosContrato && (
-        <div className="text-sm text-gray-600 mb-4">
-          <p><strong>Contrato:</strong> {dadosContrato.idContrato}</p>
-          <p><strong>Tipo:</strong> {dadosContrato.tipo === 'frota' ? 'Frota Própria' : 'Terceirizado'}</p>
-          <p><strong>Placa do Cavalo:</strong> {dadosContrato.placaCavalo}</p>
-          {dadosContrato.proprietario && (
-            <p><strong>Proprietário:</strong> {dadosContrato.proprietario}</p>
-          )}
-        </div>
-      )}
-      
-      {isFrotaPropria && (
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-          <p className="text-blue-700 font-medium">
-            O campo de Frete Contratado está desabilitado pois este contrato é para a frota própria.
-          </p>
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="valorFreteContratado">Valor do Frete Contratado (R$) {!isFrotaPropria && '*'}</Label>
-            <Input
-              id="valorFreteContratado"
-              name="valorFreteContratado"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.valorFreteContratado || ''}
-              onChange={handleChange}
-              disabled={isFrotaPropria}
-              className={isFrotaPropria ? "bg-gray-100" : ""}
-              required={!isFrotaPropria}
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="valorAdiantamento">Valor do Adiantamento (R$)</Label>
-            <Input
-              id="valorAdiantamento"
-              name="valorAdiantamento"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.valorAdiantamento || ''}
-              onChange={handleChange}
-              disabled={isFrotaPropria}
-              className={isFrotaPropria ? "bg-gray-100" : ""}
-            />
-          </div>
-          
-          {formData.valorAdiantamento > 0 && !isFrotaPropria && (
-            <div>
-              <Label htmlFor="dataAdiantamento">Data do Adiantamento *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="dataAdiantamento"
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.dataAdiantamento && "text-muted-foreground"
-                    )}
-                    disabled={isFrotaPropria}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.dataAdiantamento ? (
-                      format(formData.dataAdiantamento, "PPP", { locale: ptBR })
-                    ) : (
-                      <span>Selecione a data do adiantamento</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.dataAdiantamento || undefined}
-                    onSelect={(date) => handleDateSelect('dataAdiantamento', date)}
-                    locale={ptBR}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {isTipoFrota ? (
+        <Alert className="bg-blue-50 border-blue-200">
+          <AlertDescription>
+            Este contrato é do tipo <strong>Frota</strong>, portanto não há valores de frete contratado.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="valorFreteContratado">Valor do Frete Contratado (R$)</Label>
+              <Input
+                id="valorFreteContratado"
+                type="number"
+                step="0.01"
+                min="0"
+                value={valorFreteContratado}
+                onChange={(e) => setValorFreteContratado(parseFloat(e.target.value) || 0)}
+                placeholder="0,00"
+                disabled={isTipoFrota}
+              />
             </div>
-          )}
-          
-          <div>
-            <Label htmlFor="valorPedagio">Valor do Pedágio (R$)</Label>
-            <Input
-              id="valorPedagio"
-              name="valorPedagio"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.valorPedagio || ''}
-              onChange={handleChange}
-              disabled={isFrotaPropria}
-              className={isFrotaPropria ? "bg-gray-100" : ""}
-            />
+            
+            <div className="space-y-2">
+              <Label htmlFor="valorAdiantamento">Valor do Adiantamento (R$)</Label>
+              <Input
+                id="valorAdiantamento"
+                type="number"
+                step="0.01"
+                min="0"
+                value={valorAdiantamento}
+                onChange={(e) => setValorAdiantamento(parseFloat(e.target.value) || 0)}
+                placeholder="0,00"
+                disabled={isTipoFrota}
+              />
+            </div>
           </div>
           
-          <div>
-            <Label htmlFor="saldoPagar">Saldo a Pagar (R$)</Label>
-            <Input
-              id="saldoPagar"
-              name="saldoPagar"
-              type="number"
-              step="0.01"
-              value={formData.saldoPagar || ''}
-              readOnly
-              className="bg-gray-100"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="valorPedagio">Valor do Pedágio (R$)</Label>
+              <Input
+                id="valorPedagio"
+                type="number"
+                step="0.01"
+                min="0"
+                value={valorPedagio}
+                onChange={(e) => setValorPedagio(parseFloat(e.target.value) || 0)}
+                placeholder="0,00"
+                disabled={isTipoFrota}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="saldoPagar">Saldo a Pagar (R$)</Label>
+              <Input
+                id="saldoPagar"
+                type="number"
+                step="0.01"
+                min="0"
+                value={saldoPagar}
+                disabled={true}
+                className="bg-gray-50"
+              />
+            </div>
           </div>
-        </div>
-        
-        {dadosContrato?.tipo === 'terceiro' && (
-          <Card className="p-4 mt-4">
-            <div className="flex items-center mb-4">
+          
+          <div className="border rounded-md p-4 space-y-4">
+            <div className="flex items-center space-x-2">
               <Checkbox
                 id="gerarSaldoPagar"
-                checked={formData.gerarSaldoPagar}
-                onCheckedChange={(checked) => 
-                  handleCheckboxChange('gerarSaldoPagar', checked === true)}
-                className="mr-2 h-4 w-4"
+                checked={gerarSaldoPagar}
+                onCheckedChange={(checked) => {
+                  const isChecked = checked as boolean;
+                  setGerarSaldoPagar(isChecked);
+                }}
+                disabled={isTipoFrota || saldoPagar <= 0}
               />
-              <Label htmlFor="gerarSaldoPagar" className="cursor-pointer">
-                Gerar saldo a pagar no sistema para o proprietário
-              </Label>
+              <label
+                htmlFor="gerarSaldoPagar"
+                className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${
+                  isTipoFrota || saldoPagar <= 0 ? 'text-gray-400' : ''
+                }`}
+              >
+                Gerar saldo a pagar para o proprietário
+              </label>
             </div>
             
-            <div className="flex items-center mb-4">
-              <Checkbox
-                id="gerarObrigacao"
-                checked={formData.gerarObrigacao}
-                onCheckedChange={(checked) => 
-                  handleCheckboxChange('gerarObrigacao', checked === true)}
-                className="mr-2 h-4 w-4"
-              />
-              <Label htmlFor="gerarObrigacao" className="cursor-pointer">
-                Gerar obrigação no Saldo a Pagar
-              </Label>
-            </div>
-            
-            {(formData.gerarSaldoPagar || formData.gerarObrigacao) && (
-              <div className="space-y-4">
-                {formData.proprietarioInfo && (
-                  <div className="space-y-3">
-                    <h3 className="font-medium text-sm">Dados do Proprietário</h3>
-                    <p className="text-sm"><strong>Nome:</strong> {formData.proprietarioInfo.nome}</p>
-                    <p className="text-sm"><strong>Documento:</strong> {formData.proprietarioInfo.documento}</p>
-                    
-                    <h3 className="font-medium text-sm mt-3">Dados Bancários</h3>
-                    <p className="text-sm"><strong>Banco:</strong> {formData.proprietarioInfo.dadosBancarios?.banco}</p>
-                    <p className="text-sm"><strong>Agência:</strong> {formData.proprietarioInfo.dadosBancarios?.agencia}</p>
-                    <p className="text-sm"><strong>Conta:</strong> {formData.proprietarioInfo.dadosBancarios?.conta}</p>
-                    <p className="text-sm"><strong>Tipo de Conta:</strong> {formData.proprietarioInfo.dadosBancarios?.tipoConta === 'corrente' ? 'Conta Corrente' : 'Conta Poupança'}</p>
-                    <p className="text-sm"><strong>Chave PIX:</strong> {formData.proprietarioInfo.dadosBancarios?.chavePix || 'Não informada'}</p>
-                  </div>
-                )}
+            {gerarSaldoPagar && (
+              <div className="space-y-2 ml-6">
+                <Label htmlFor="dataVencimento">Data prevista de pagamento</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full flex justify-start text-left font-normal"
+                      disabled={!gerarSaldoPagar}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dataVencimento ? (
+                        format(dataVencimento, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                      ) : (
+                        <span>Selecione a data</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={dataVencimento}
+                      onSelect={setDataVencimento}
+                      locale={ptBR}
+                      disabled={(date) => date < new Date()}
+                    />
+                  </PopoverContent>
+                </Popover>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="dataVencimento">Data de Vencimento *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="dataVencimento"
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !formData.dataVencimento && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.dataVencimento ? (
-                          format(formData.dataVencimento, "PPP", { locale: ptBR })
-                        ) : (
-                          <span>Selecione a data de vencimento</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={formData.dataVencimento || undefined}
-                        onSelect={(date) => handleDateSelect('dataVencimento', date)}
-                        locale={ptBR}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Este saldo só poderá ser pago após o recebimento do canhoto assinado.
+                </p>
               </div>
             )}
-          </Card>
-        )}
-        
-        <div>
-          <Label htmlFor="observacoes">Observações</Label>
-          <Textarea
-            id="observacoes"
-            name="observacoes"
-            value={formData.observacoes}
-            onChange={handleChange}
-            rows={3}
-          />
-        </div>
-        
-        <div className="flex justify-between pt-4">
+          </div>
+        </>
+      )}
+      
+      <div className="flex justify-between pt-4">
+        {onBack && (
           <Button type="button" variant="outline" onClick={onBack}>
             Voltar
           </Button>
+        )}
+        <div className="flex space-x-2">
+          {onNext && (
+            <Button type="button" variant="outline" onClick={onNext}>
+              Pular
+            </Button>
+          )}
           <Button type="submit">
-            Próximo
+            {onNext ? "Salvar e Continuar" : "Salvar"}
           </Button>
         </div>
-      </form>
-    </div>
+      </div>
+    </form>
   );
 };
-
-export default FormularioFreteContratado;

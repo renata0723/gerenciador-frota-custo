@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import FormularioDadosContrato, { DadosContratoFormData } from '@/components/contratos/FormularioDadosContrato';
@@ -29,7 +29,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({
   const navigate = useNavigate();
   
   // Carregar dados do contrato se estiver editando
-  React.useEffect(() => {
+  useEffect(() => {
     if (contratoId) {
       // Aqui você implementaria a lógica para carregar os dados do contrato
       toast.info(`Carregando contrato #${contratoId}`);

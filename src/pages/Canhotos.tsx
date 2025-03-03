@@ -73,7 +73,10 @@ const Canhotos: React.FC = () => {
       const { error } = await supabase
         .from('Canhoto')
         .update({
-          data_recebimento_canhoto: data.dataRecebimento,
+          data_recebimento_canhoto: data.data_recebimento_canhoto,
+          data_entrega_cliente: data.data_entrega_cliente,
+          responsavel_recebimento: data.responsavel_recebimento,
+          data_programada_pagamento: data.data_programada_pagamento,
           status: 'Recebido'
         })
         .eq('id', selectedCanhoto.id);
@@ -196,9 +199,9 @@ const Canhotos: React.FC = () => {
           </DialogHeader>
           {selectedCanhoto && (
             <CanhotoForm 
-              contratoId={selectedCanhoto.contrato_id}
-              dataEntrega={selectedCanhoto.data_entrega_cliente}
-              onSave={handleSaveCanhoto}
+              dados={selectedCanhoto}
+              onSubmit={handleSaveCanhoto}
+              onCancel={() => setIsDialogOpen(false)}
             />
           )}
         </DialogContent>
