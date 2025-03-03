@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -385,6 +384,67 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
           )}
         </Card>
         
+        {/* Seção de Notas Fiscais */}
+        <Card className="p-4">
+          <h3 className="text-lg font-semibold mb-4">Notas Fiscais</h3>
+          
+          <div className="flex items-end gap-2 mb-4">
+            <div className="flex-1">
+              <Label htmlFor="nova-nota">Adicionar Nota Fiscal</Label>
+              <Input
+                id="nova-nota"
+                placeholder="Digite o número da nota fiscal"
+                value={novaNota}
+                onChange={(e) => setNovaNota(e.target.value)}
+              />
+            </div>
+            <Button 
+              type="button" 
+              onClick={() => adicionarNota(novaNota)}
+              className="flex gap-1 items-center"
+            >
+              <Plus size={16} /> Adicionar
+            </Button>
+          </div>
+          
+          {formData.notas.length > 0 ? (
+            <div className="bg-gray-50 p-4 rounded-md">
+              <ul className="space-y-2">
+                {formData.notas.map(item => (
+                  <li key={item.id} className="flex justify-between items-center p-2 bg-white rounded border">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{item.numero}</span>
+                        {notaEstaVinculada(item.id) && (
+                          <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
+                            Vinculada
+                          </span>
+                        )}
+                      </div>
+                      {notaEstaVinculada(item.id) && (
+                        <span className="text-xs text-gray-600 mt-1">
+                          CTEs: {getCTEsVinculadosANota(item.id).join(', ')}
+                        </span>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removerItem('nota', item.id)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Trash2 size={16} className="text-red-500" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm">Nenhuma nota fiscal registrada</p>
+          )}
+        </Card>
+        
         {/* Seção de CTes */}
         <Card className="p-4">
           <h3 className="text-lg font-semibold mb-4">Números de CTe</h3>
@@ -486,68 +546,7 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
           )}
         </Card>
         
-        {/* Seção de Notas Fiscais */}
-        <Card className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Notas Fiscais</h3>
-          
-          <div className="flex items-end gap-2 mb-4">
-            <div className="flex-1">
-              <Label htmlFor="nova-nota">Adicionar Nota Fiscal</Label>
-              <Input
-                id="nova-nota"
-                placeholder="Digite o número da nota fiscal"
-                value={novaNota}
-                onChange={(e) => setNovaNota(e.target.value)}
-              />
-            </div>
-            <Button 
-              type="button" 
-              onClick={() => adicionarNota(novaNota)}
-              className="flex gap-1 items-center"
-            >
-              <Plus size={16} /> Adicionar
-            </Button>
-          </div>
-          
-          {formData.notas.length > 0 ? (
-            <div className="bg-gray-50 p-4 rounded-md">
-              <ul className="space-y-2">
-                {formData.notas.map(item => (
-                  <li key={item.id} className="flex justify-between items-center p-2 bg-white rounded border">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{item.numero}</span>
-                        {notaEstaVinculada(item.id) && (
-                          <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
-                            Vinculada
-                          </span>
-                        )}
-                      </div>
-                      {notaEstaVinculada(item.id) && (
-                        <span className="text-xs text-gray-600 mt-1">
-                          CTEs: {getCTEsVinculadosANota(item.id).join(', ')}
-                        </span>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removerItem('nota', item.id)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Trash2 size={16} className="text-red-500" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="text-gray-500 text-sm">Nenhuma nota fiscal registrada</p>
-          )}
-        </Card>
-        
-        {/* Seção de Valores (agora são calculados automaticamente a partir dos CTes) */}
+        {/* Seção de Valores Totais */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="valorFrete">Valor do Frete (Receita da Empresa) (R$) *</Label>
@@ -602,7 +601,7 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
         </div>
       </form>
 
-      {/* Diálogo para adicionar CTe com valores */}
+      {/* Diálogos */}
       <Dialog open={cteDialogOpen} onOpenChange={setCteDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
@@ -670,7 +669,6 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo para vincular notas fiscais ao CTe */}
       <Dialog open={vinculacaoNotasDialogOpen} onOpenChange={setVinculacaoNotasDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
