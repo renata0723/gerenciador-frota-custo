@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Plus } from 'lucide-react';
+import { Plus, Search, LogOut } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PageHeader from '@/components/ui/PageHeader';
 import NovoAbastecimentoForm from '@/components/abastecimentos/NovoAbastecimentoForm';
@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { DialogContabilizacao } from '@/components/contabilidade/DialogContabilizacao';
 
 const Abastecimentos = () => {
   const navigate = useNavigate();
@@ -23,6 +24,9 @@ const Abastecimentos = () => {
   const [tiposCombustivel, setTiposCombustivel] = useState<TipoCombustivel[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalAbastecimentoOpen, setModalAbastecimentoOpen] = useState(false);
+  const [modalContabilizacaoOpen, setModalContabilizacaoOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [operacaoConcluida, setOperacaoConcluida] = useState<{tipo: string, dados: any} | null>(null);
 
   useEffect(() => {
     carregarAbastecimentos();
@@ -41,7 +45,20 @@ const Abastecimentos = () => {
         return;
       }
 
-      setAbastecimentos(data || []);
+      const abastecimentosFormatados: AbastecimentoItem[] = (data || []).map(item => ({
+        id: item.id,
+        data_abastecimento: item.data_abastecimento,
+        placa_veiculo: item.placa_veiculo,
+        quilometragem: item.quilometragem,
+        tipo_combustivel: item.tipo_combustivel,
+        posto: item.posto,
+        motorista_solicitante: item.motorista_solicitante,
+        responsavel_autorizacao: item.responsavel_autorizacao,
+        valor_total: item.valor_total,
+        quantidade: item.quantidade || 0
+      }));
+
+      setAbastecimentos(abastecimentosFormatados);
     } catch (error) {
       console.error('Erro ao processar dados:', error);
     } finally {
@@ -68,9 +85,21 @@ const Abastecimentos = () => {
 
   const handleSalvarAbastecimento = async (dados: any) => {
     try {
+      const novoAbastecimento = {
+        data_abastecimento: dados.data,
+        placa_veiculo: dados.placa,
+        quilometragem: dados.quilometragem,
+        tipo_combustivel: dados.tipoCombustivel,
+        posto: dados.posto,
+        motorista_solicitante: dados.motorista,
+        responsavel_autorizacao: dados.responsavel,
+        valor_total: dados.valor,
+        quantidade: dados.quantidade
+      };
+
       const { error } = await supabase
         .from('Abastecimentos')
-        .insert([dados]);
+        .insert([novoAbastecimento]);
 
       if (error) {
         console.error('Erro ao salvar abastecimento:', error);
@@ -82,18 +111,21 @@ const Abastecimentos = () => {
       carregarAbastecimentos();
       setModalAbastecimentoOpen(false);
       
-      // Perguntar se deseja voltar ao menu principal
-      const deveVoltar = window.confirm('Abastecimento registrado com sucesso! Deseja voltar ao menu principal?');
-      if (deveVoltar) {
-        navigate('/');
-      }
+      // Armazenar informações da operação para possível contabilização
+      setOperacaoConcluida({
+        tipo: 'abastecimento',
+        dados: novoAbastecimento
+      });
+      
+      // Perguntar se deseja contabilizar
+      setModalContabilizacaoOpen(true);
     } catch (error) {
       console.error('Erro:', error);
       toast.error('Ocorreu um erro ao registrar o abastecimento');
     }
   };
 
-  const handleCadastrarTipo = async (tipo: TipoCombustivel) => {
+  const handleCadastrarTipoCombustivel = async (tipo: TipoCombustivel) => {
     try {
       const { error } = await supabase
         .from('TiposCombustivel')
@@ -129,6 +161,20 @@ const Abastecimentos = () => {
       currency: 'BRL',
     });
   };
+  
+  const handleVoltarMenu = () => {
+    navigate('/');
+  };
+  
+  const filteredAbastecimentos = abastecimentos.filter(item => {
+    const termo = searchTerm.toLowerCase();
+    return (
+      item.placa_veiculo?.toLowerCase().includes(termo) ||
+      item.motorista_solicitante?.toLowerCase().includes(termo) ||
+      item.posto?.toLowerCase().includes(termo) ||
+      item.data_abastecimento?.includes(termo)
+    );
+  });
 
   return (
     <PageLayout>
@@ -155,9 +201,15 @@ const Abastecimentos = () => {
             >
               Manutenção
             </button>
+            <button
+              onClick={() => navigate('/despesas-gerais')}
+              className="flex items-center gap-2 w-full px-3 py-2 rounded hover:bg-slate-800 transition-colors"
+            >
+              Despesas Gerais
+            </button>
             <hr className="my-4 border-slate-700" />
             <button
-              onClick={() => navigate('/')}
+              onClick={handleVoltarMenu}
               className="flex items-center gap-2 text-red-400 w-full px-3 py-2 rounded hover:bg-slate-800 transition-colors"
             >
               <LogOut size={16} />
@@ -168,15 +220,15 @@ const Abastecimentos = () => {
 
         {/* Conteúdo principal */}
         <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <PageHeader 
-              title="Gerenciamento de Abastecimentos" 
-              description="Registro e controle de abastecimentos da frota"
-            />
-            <Button onClick={() => navigate('/')}>Voltar ao Menu Principal</Button>
-          </div>
+          <PageHeader 
+            title="Gerenciamento de Abastecimentos" 
+            description="Registro e controle de abastecimentos da frota"
+            actions={
+              <Button onClick={handleVoltarMenu}>Voltar ao Menu Principal</Button>
+            }
+          />
 
-          <Tabs defaultValue="abastecimentos" className="w-full">
+          <Tabs defaultValue="abastecimentos" className="w-full mt-6">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="abastecimentos">Abastecimentos</TabsTrigger>
               <TabsTrigger value="tiposCombustivel">Tipos de Combustível</TabsTrigger>
@@ -188,6 +240,9 @@ const Abastecimentos = () => {
                   <Input
                     placeholder="Buscar por placa, motorista ou data..."
                     className="max-w-md"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    prefix={<Search className="h-4 w-4 text-gray-500 mr-2" />}
                   />
                 </div>
                 <Button onClick={() => setModalAbastecimentoOpen(true)}>
@@ -200,7 +255,7 @@ const Abastecimentos = () => {
 
                 {loading ? (
                   <p className="text-center py-4">Carregando dados...</p>
-                ) : abastecimentos.length === 0 ? (
+                ) : filteredAbastecimentos.length === 0 ? (
                   <p className="text-center py-4">Nenhum abastecimento registrado.</p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -213,11 +268,12 @@ const Abastecimentos = () => {
                           <TableHead>Posto</TableHead>
                           <TableHead>Motorista</TableHead>
                           <TableHead>Quilometragem</TableHead>
+                          <TableHead>Quantidade (L)</TableHead>
                           <TableHead>Valor</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {abastecimentos.map((item) => (
+                        {filteredAbastecimentos.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell>{formatarData(item.data_abastecimento)}</TableCell>
                             <TableCell>{item.placa_veiculo}</TableCell>
@@ -225,6 +281,7 @@ const Abastecimentos = () => {
                             <TableCell>{item.posto}</TableCell>
                             <TableCell>{item.motorista_solicitante}</TableCell>
                             <TableCell>{item.quilometragem} km</TableCell>
+                            <TableCell>{item.quantidade} L</TableCell>
                             <TableCell>{formatarValor(item.valor_total)}</TableCell>
                           </TableRow>
                         ))}
@@ -239,7 +296,7 @@ const Abastecimentos = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-xl font-semibold mb-4">Cadastrar Novo Tipo</h2>
-                  <TipoCombustivelForm onSubmit={handleCadastrarTipo} />
+                  <TipoCombustivelForm onSubmit={handleCadastrarTipoCombustivel} />
                 </div>
 
                 <div className="bg-white rounded-lg shadow p-6">
@@ -273,20 +330,34 @@ const Abastecimentos = () => {
         </div>
       </div>
 
+      {/* Modal para novo abastecimento */}
       <Dialog open={modalAbastecimentoOpen} onOpenChange={setModalAbastecimentoOpen}>
         <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Registrar Novo Abastecimento</DialogTitle>
-            <DialogDescription>
-              Preencha os dados do abastecimento de veículo
-            </DialogDescription>
-          </DialogHeader>
           <NovoAbastecimentoForm 
-            onSubmit={handleSalvarAbastecimento} 
+            onSave={handleSalvarAbastecimento} 
             tiposCombustivel={tiposCombustivel}
           />
         </DialogContent>
       </Dialog>
+      
+      {/* Modal de contabilização */}
+      <DialogContabilizacao 
+        open={modalContabilizacaoOpen} 
+        onOpenChange={setModalContabilizacaoOpen}
+        tipo={operacaoConcluida?.tipo}
+        dados={operacaoConcluida?.dados}
+        onContabilizar={(contabilizado) => {
+          if (contabilizado) {
+            toast.success("Operação contabilizada com sucesso!");
+          }
+          setModalContabilizacaoOpen(false);
+          // Perguntar se deseja voltar ao menu principal
+          const deveVoltar = window.confirm('Deseja voltar ao menu principal?');
+          if (deveVoltar) {
+            navigate('/');
+          }
+        }}
+      />
     </PageLayout>
   );
 };

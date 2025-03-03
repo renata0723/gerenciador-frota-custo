@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { logOperation } from '@/utils/logOperations';
+import { DialogContabilizacao } from '@/components/contabilidade/DialogContabilizacao';
 
 const DespesasGerais = () => {
   const navigate = useNavigate();
@@ -26,6 +27,10 @@ const DespesasGerais = () => {
   const [filtroTipo, setFiltroTipo] = useState<string>('todos');
   const [filtroCategoria, setFiltroCategoria] = useState<string>('todos');
   const [filtroData, setFiltroData] = useState<string>('');
+  
+  // Modal de contabilização
+  const [modalContabilizacaoOpen, setModalContabilizacaoOpen] = useState(false);
+  const [operacaoConcluida, setOperacaoConcluida] = useState<{tipo: string, dados: any} | null>(null);
   
   useEffect(() => {
     carregarDespesas();
@@ -48,7 +53,7 @@ const DespesasGerais = () => {
       const despesasConvertidas: Despesa[] = (data || []).map(item => ({
         ...item,
         tipo_despesa: item.tipo_despesa as TipoDespesa,
-        categoria: item.categoria as "viagem" | "administrativa" | undefined,
+        categoria: (item.categoria as "viagem" | "administrativa") || "viagem",
         rateio: Boolean(item.rateio)
       }));
       
@@ -88,11 +93,14 @@ const DespesasGerais = () => {
       
       logOperation('Despesas Gerais', `Registrada nova despesa: ${data.descricao.substring(0, 30)}...`);
       
-      // Perguntar se deseja voltar ao menu principal
-      const deveVoltar = window.confirm('Despesa registrada com sucesso! Deseja voltar ao menu principal?');
-      if (deveVoltar) {
-        navigate('/');
-      }
+      // Armazenar informações da operação para possível contabilização
+      setOperacaoConcluida({
+        tipo: 'despesa',
+        dados: despesaData
+      });
+      
+      // Perguntar se deseja contabilizar
+      setModalContabilizacaoOpen(true);
     } catch (error) {
       console.error('Erro ao processar:', error);
       toast.error('Ocorreu um erro ao registrar a despesa');
@@ -270,6 +278,25 @@ const DespesasGerais = () => {
           </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Modal de contabilização */}
+      <DialogContabilizacao 
+        open={modalContabilizacaoOpen} 
+        onOpenChange={setModalContabilizacaoOpen}
+        tipo={operacaoConcluida?.tipo}
+        dados={operacaoConcluida?.dados}
+        onContabilizar={(contabilizado) => {
+          if (contabilizado) {
+            toast.success("Operação contabilizada com sucesso!");
+          }
+          setModalContabilizacaoOpen(false);
+          // Perguntar se deseja voltar ao menu principal
+          const deveVoltar = window.confirm('Deseja voltar ao menu principal?');
+          if (deveVoltar) {
+            navigate('/');
+          }
+        }}
+      />
     </PageLayout>
   );
 };

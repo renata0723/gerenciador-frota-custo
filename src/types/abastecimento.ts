@@ -5,10 +5,17 @@ export interface TipoCombustivel {
   descricao?: string;
 }
 
-export interface TipoCombustivelFormData {
-  nome: string;
-  descricao?: string;
-  id?: string;
+export interface AbastecimentoItem {
+  id?: number;
+  data_abastecimento: string;
+  placa_veiculo: string;
+  quilometragem: number;
+  tipo_combustivel: string;
+  posto: string;
+  motorista_solicitante: string;
+  responsavel_autorizacao?: string;
+  valor_total: number;
+  quantidade: number;
 }
 
 export interface AbastecimentoFormData {
@@ -21,31 +28,4 @@ export interface AbastecimentoFormData {
   posto: string;
   responsavel: string;
   quilometragem: number;
-}
-
-export interface AbastecimentoItem {
-  tipo: string;
-  quantidade: number;
-  valor?: number;
-}
-
-export interface Abastecimento {
-  id: number;
-  data_abastecimento: string;
-  placa_veiculo: string;
-  motorista_solicitante: string;
-  tipo_combustivel: string;
-  valor_abastecimento: number;
-  valor_total: number;
-  posto: string;
-  responsavel_autorizacao: string;
-  quilometragem: number;
-  itens_abastecidos: string; // JSON string que será convertido para AbastecimentoItem[]
-}
-
-export interface CanhotoFormProps {
-  // Define as propriedades necessárias para o CanhotoForm
-  dataEntrega: string; 
-  contratoId?: string;
-  onSave: (data: any) => Promise<void>;
 }

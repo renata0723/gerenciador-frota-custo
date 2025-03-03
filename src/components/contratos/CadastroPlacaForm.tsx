@@ -21,7 +21,6 @@ interface Proprietario {
 interface CadastroPlacaFormProps {
   onSave: (data: { 
     placaCavalo?: string; 
-    placaCarreta?: string; 
     tipoFrota: 'frota' | 'terceiro'; 
     proprietario?: string;
     proprietarioInfo?: {
@@ -31,13 +30,11 @@ interface CadastroPlacaFormProps {
     }
   }) => void;
   onCancel: () => void;
-  isCarreta?: boolean;
 }
 
 const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({ 
   onSave, 
-  onCancel,
-  isCarreta = false 
+  onCancel
 }) => {
   const [placaCavalo, setPlacaCavalo] = useState('');
   const [tipoFrota, setTipoFrota] = useState<'frota' | 'terceiro'>('frota');
@@ -107,139 +104,32 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
     setErro(null);
 
     try {
-      if (isCarreta) {
-        // Formatar e validar a placa da carreta
-        const placaFormatada = formatarPlaca(placaCavalo);
-        
-        if (!placaFormatada || !validarPlaca(placaFormatada)) {
-          setErro('Por favor, insira uma placa de carreta válida (formato: ABC-1234 ou ABC1D23)');
-          setCarregando(false);
-          return;
-        }
+      // Formatar e validar a placa do cavalo
+      const placaFormatada = formatarPlaca(placaCavalo);
+      
+      if (!placaFormatada || !validarPlaca(placaFormatada)) {
+        setErro('Por favor, insira uma placa de cavalo válida (formato: ABC-1234 ou ABC1D23)');
+        setCarregando(false);
+        return;
+      }
 
-        // Verificar se a placa já existe
-        const { data: placaExistente, error: errorVerificacao } = await supabase
-          .from('Veiculos')
-          .select('*')
-          .eq('placa_carreta', placaFormatada);
+      // Verificar se a placa já existe
+      const { data: placaExistente, error: errorVerificacao } = await supabase
+        .from('Veiculos')
+        .select('*')
+        .eq('placa_cavalo', placaFormatada);
 
-        if (errorVerificacao) {
-          console.error('Erro ao verificar placa:', errorVerificacao);
-          setErro('Erro ao verificar placa no sistema');
-          setCarregando(false);
-          return;
-        }
+      if (errorVerificacao) {
+        console.error('Erro ao verificar placa:', errorVerificacao);
+        setErro('Erro ao verificar placa no sistema');
+        setCarregando(false);
+        return;
+      }
 
-        if (placaExistente && placaExistente.length > 0) {
-          setErro('Esta placa de carreta já está cadastrada no sistema');
-          setCarregando(false);
-          return;
-        }
+      if (placaExistente && placaExistente.length > 0) {
+        // Se a placa já existe, vamos utilizá-la em vez de gerar erro
+        toast.info('Esta placa já está cadastrada no sistema e será usada neste contrato');
 
-        // Inserir a placa da carreta
-        const { error } = await supabase
-          .from('Veiculos')
-          .insert({
-            placa_carreta: placaFormatada,
-            tipo_frota: tipoFrota,
-            status_veiculo: 'Ativo'
-          });
-
-        if (error) {
-          console.error('Erro ao cadastrar placa:', error);
-          setErro('Erro ao cadastrar placa de carreta. Verifique as permissões.');
-          logOperation('Veículos', 'Erro ao cadastrar carreta', 'false');
-          setCarregando(false);
-          return;
-        }
-
-        logOperation('Veículos', 'Cadastro de carreta', 'true');
-        toast.success('Placa de carreta cadastrada com sucesso!');
-        
-        const resultData = { 
-          placaCarreta: placaFormatada, 
-          tipoFrota 
-        };
-        
-        // Adicionar proprietário se for terceirizado
-        if (tipoFrota === 'terceiro' && proprietario) {
-          Object.assign(resultData, { 
-            proprietario,
-            proprietarioInfo: proprietarioSelecionado ? {
-              nome: proprietarioSelecionado.nome,
-              documento: proprietarioSelecionado.documento,
-              dadosBancarios: proprietarioSelecionado.dados_bancarios ? JSON.parse(proprietarioSelecionado.dados_bancarios) : null
-            } : undefined
-          });
-        }
-        
-        onSave(resultData);
-      } else {
-        // Formatar e validar a placa do cavalo
-        const placaFormatada = formatarPlaca(placaCavalo);
-        
-        if (!placaFormatada || !validarPlaca(placaFormatada)) {
-          setErro('Por favor, insira uma placa de cavalo válida (formato: ABC-1234 ou ABC1D23)');
-          setCarregando(false);
-          return;
-        }
-
-        // Verificar se a placa já existe
-        const { data: placaExistente, error: errorVerificacao } = await supabase
-          .from('Veiculos')
-          .select('*')
-          .eq('placa_cavalo', placaFormatada);
-
-        if (errorVerificacao) {
-          console.error('Erro ao verificar placa:', errorVerificacao);
-          setErro('Erro ao verificar placa no sistema');
-          setCarregando(false);
-          return;
-        }
-
-        if (placaExistente && placaExistente.length > 0) {
-          setErro('Esta placa de cavalo já está cadastrada no sistema');
-          setCarregando(false);
-          return;
-        }
-
-        // Inserir o veículo
-        const { data: veiculo, error } = await supabase
-          .from('Veiculos')
-          .insert({
-            placa_cavalo: placaFormatada,
-            tipo_frota: tipoFrota,
-            status_veiculo: 'Ativo'
-          })
-          .select();
-
-        if (error) {
-          console.error('Erro ao cadastrar veículo:', error);
-          setErro('Erro ao cadastrar veículo. Por favor, verifique as permissões ou tente novamente.');
-          logOperation('Veículos', 'Erro ao cadastrar cavalo', 'false');
-          setCarregando(false);
-          return;
-        }
-
-        // Se for veículo terceirizado e tiver proprietário selecionado, associar
-        if (tipoFrota === 'terceiro' && proprietario) {
-          // Associar proprietário ao veículo
-          const { error: errorAssociacao } = await supabase
-            .from('VeiculoProprietarios')
-            .insert({
-              placa_cavalo: placaFormatada,
-              proprietario_nome: proprietario
-            });
-            
-          if (errorAssociacao) {
-            console.error('Erro ao associar proprietário:', errorAssociacao);
-            toast.error('Veículo cadastrado, mas houve erro ao associar proprietário');
-          }
-        }
-
-        logOperation('Veículos', 'Cadastro de cavalo', 'true');
-        toast.success('Veículo cadastrado com sucesso!');
-        
         const resultData = { 
           placaCavalo: placaFormatada,
           tipoFrota 
@@ -258,7 +148,64 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         }
         
         onSave(resultData);
+        setCarregando(false);
+        return;
       }
+
+      // Inserir o veículo
+      const { error } = await supabase
+        .from('Veiculos')
+        .insert({
+          placa_cavalo: placaFormatada,
+          tipo_frota: tipoFrota,
+          status_veiculo: 'Ativo'
+        });
+
+      if (error) {
+        console.error('Erro ao cadastrar veículo:', error);
+        setErro('Erro ao cadastrar veículo. Por favor, verifique as permissões ou tente novamente.');
+        logOperation('Veículos', 'Erro ao cadastrar cavalo', 'false');
+        setCarregando(false);
+        return;
+      }
+
+      // Se for veículo terceirizado e tiver proprietário selecionado, associar
+      if (tipoFrota === 'terceiro' && proprietario) {
+        // Associar proprietário ao veículo
+        const { error: errorAssociacao } = await supabase
+          .from('VeiculoProprietarios')
+          .insert({
+            placa_cavalo: placaFormatada,
+            proprietario_nome: proprietario
+          });
+          
+        if (errorAssociacao) {
+          console.error('Erro ao associar proprietário:', errorAssociacao);
+          toast.error('Veículo cadastrado, mas houve erro ao associar proprietário');
+        }
+      }
+
+      logOperation('Veículos', 'Cadastro de cavalo', 'true');
+      toast.success('Veículo cadastrado com sucesso!');
+      
+      const resultData = { 
+        placaCavalo: placaFormatada,
+        tipoFrota 
+      };
+      
+      // Adicionar proprietário se for terceirizado
+      if (tipoFrota === 'terceiro' && proprietario) {
+        Object.assign(resultData, { 
+          proprietario,
+          proprietarioInfo: proprietarioSelecionado ? {
+            nome: proprietarioSelecionado.nome,
+            documento: proprietarioSelecionado.documento,
+            dadosBancarios: proprietarioSelecionado.dados_bancarios ? JSON.parse(proprietarioSelecionado.dados_bancarios) : null
+          } : undefined
+        });
+      }
+      
+      onSave(resultData);
     } catch (error) {
       console.error('Erro:', error);
       setErro('Ocorreu um erro ao processar a solicitação');
@@ -278,29 +225,16 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         </Alert>
       )}
       
-      {isCarreta ? (
-        <div className="space-y-2">
-          <Label htmlFor="placaCarreta">Placa da Carreta *</Label>
-          <Input
-            id="placaCarreta"
-            value={placaCavalo}
-            onChange={(e) => setPlacaCavalo(e.target.value.toUpperCase())}
-            placeholder="Formato: ABC-1234 ou ABC1D23"
-            required
-          />
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <Label htmlFor="placaCavalo">Placa do Cavalo *</Label>
-          <Input
-            id="placaCavalo"
-            value={placaCavalo}
-            onChange={(e) => setPlacaCavalo(e.target.value.toUpperCase())}
-            placeholder="Formato: ABC-1234 ou ABC1D23"
-            required
-          />
-        </div>
-      )}
+      <div className="space-y-2">
+        <Label htmlFor="placaCavalo">Placa do Cavalo *</Label>
+        <Input
+          id="placaCavalo"
+          value={placaCavalo}
+          onChange={(e) => setPlacaCavalo(e.target.value.toUpperCase())}
+          placeholder="Formato: ABC-1234 ou ABC1D23"
+          required
+        />
+      </div>
       
       <div className="space-y-2">
         <Label>Tipo de Frota *</Label>

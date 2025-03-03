@@ -25,6 +25,10 @@ const badgeVariants = cva(
           "border-transparent bg-teal-500 text-white hover:bg-teal-600",
         pendente:
           "border-transparent bg-orange-500 text-white hover:bg-orange-600",
+        parcial:
+          "border-transparent bg-amber-500 text-white hover:bg-amber-600",
+        pago:
+          "border-transparent bg-emerald-500 text-white hover:bg-emerald-600",
       },
     },
     defaultVariants: {

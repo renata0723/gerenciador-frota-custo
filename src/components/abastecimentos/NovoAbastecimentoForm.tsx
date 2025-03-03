@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { TipoCombustivel, AbastecimentoFormData } from "@/types/abastecimento";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +36,8 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
   const [motoristasDisponiveis, setMotoristasDisponiveis] = useState<{nome: string}[]>([]);
   const [carregandoPlacas, setCarregandoPlacas] = useState(false);
   const [carregandoMotoristas, setCarregandoMotoristas] = useState(false);
+  const [filtroPlaca, setFiltroPlaca] = useState("");
+  const [filtroMotorista, setFiltroMotorista] = useState("");
 
   useEffect(() => {
     carregarPlacas();
@@ -73,6 +75,7 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
 
       if (error) {
         console.error('Erro ao carregar motoristas:', error);
+        // Valores padrão caso não consiga carregar
         setMotoristasDisponiveis([
           { nome: 'João Silva' },
           { nome: 'Maria Oliveira' },
@@ -102,6 +105,20 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
       ...formData,
       [name]: value
     });
+  };
+
+  const filtrarPlacas = () => {
+    if (!filtroPlaca) return placasDisponiveis;
+    return placasDisponiveis.filter(p => 
+      p.placa_cavalo.toLowerCase().includes(filtroPlaca.toLowerCase())
+    );
+  };
+
+  const filtrarMotoristas = () => {
+    if (!filtroMotorista) return motoristasDisponiveis;
+    return motoristasDisponiveis.filter(m => 
+      m.nome.toLowerCase().includes(filtroMotorista.toLowerCase())
+    );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -134,25 +151,15 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
     }
 
     onSave(formData);
-    
-    // Limpar o formulário
-    setFormData({
-      data: "",
-      placa: "",
-      motorista: "",
-      tipoCombustivel: "",
-      quantidade: 0,
-      valor: 0,
-      posto: "",
-      responsavel: "",
-      quilometragem: 0
-    });
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
+    <div className="bg-white">
       <DialogHeader>
         <DialogTitle className="text-xl font-semibold">Registrar Novo Abastecimento</DialogTitle>
+        <DialogDescription>
+          Preencha os dados do abastecimento de veículo
+        </DialogDescription>
       </DialogHeader>
       
       <form onSubmit={handleSubmit} className="space-y-4 mt-4">
@@ -171,22 +178,30 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
           
           <div>
             <Label htmlFor="placa">Placa do Veículo *</Label>
-            <Select 
-              value={formData.placa} 
-              onValueChange={(value) => handleSelectChange("placa", value)}
-              disabled={carregandoPlacas || placasDisponiveis.length === 0}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={carregandoPlacas ? "Carregando..." : "Selecione a placa"} />
-              </SelectTrigger>
-              <SelectContent>
-                {placasDisponiveis.map((veiculo) => (
-                  <SelectItem key={veiculo.placa_cavalo} value={veiculo.placa_cavalo}>
-                    {veiculo.placa_cavalo}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Input
+                placeholder="Filtrar placas..."
+                value={filtroPlaca}
+                onChange={(e) => setFiltroPlaca(e.target.value)}
+                className="mb-2"
+              />
+              <Select 
+                value={formData.placa} 
+                onValueChange={(value) => handleSelectChange("placa", value)}
+                disabled={carregandoPlacas || placasDisponiveis.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={carregandoPlacas ? "Carregando..." : "Selecione a placa"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {filtrarPlacas().map((veiculo) => (
+                    <SelectItem key={veiculo.placa_cavalo} value={veiculo.placa_cavalo}>
+                      {veiculo.placa_cavalo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           <div>
@@ -203,22 +218,30 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
           
           <div>
             <Label htmlFor="motorista">Motorista *</Label>
-            <Select 
-              value={formData.motorista} 
-              onValueChange={(value) => handleSelectChange("motorista", value)}
-              disabled={carregandoMotoristas || motoristasDisponiveis.length === 0}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={carregandoMotoristas ? "Carregando..." : "Selecione o motorista"} />
-              </SelectTrigger>
-              <SelectContent>
-                {motoristasDisponiveis.map((motorista) => (
-                  <SelectItem key={motorista.nome} value={motorista.nome}>
-                    {motorista.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Input
+                placeholder="Filtrar motoristas..."
+                value={filtroMotorista}
+                onChange={(e) => setFiltroMotorista(e.target.value)}
+                className="mb-2"
+              />
+              <Select 
+                value={formData.motorista} 
+                onValueChange={(value) => handleSelectChange("motorista", value)}
+                disabled={carregandoMotoristas || motoristasDisponiveis.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={carregandoMotoristas ? "Carregando..." : "Selecione o motorista"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {filtrarMotoristas().map((motorista) => (
+                    <SelectItem key={motorista.nome} value={motorista.nome}>
+                      {motorista.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           <div>

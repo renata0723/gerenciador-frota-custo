@@ -1,75 +1,61 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
 import { Truck, Plus, Search, Filter, Download, Trash, Edit, Eye, AlertTriangle, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 import VeiculosTable from '@/components/veiculos/VeiculosTable';
 import VeiculosStats from '@/components/veiculos/VeiculosStats';
 
 const Veiculos = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [veiculosData, setVeiculosData] = useState([
-    { 
-      id: 1, 
-      placa: 'ABC-1234', 
-      tipo: 'Cavalo', 
-      modelo: 'Scania R450', 
-      ano: 2020, 
-      status: 'Ativo', 
-      frota: 'Própria',
-      inativacao: null
-    },
-    { 
-      id: 2, 
-      placa: 'DEF-5678', 
-      tipo: 'Carreta', 
-      modelo: 'Randon SR GS', 
-      ano: 2019, 
-      status: 'Ativo', 
-      frota: 'Própria',
-      inativacao: null
-    },
-    { 
-      id: 3, 
-      placa: 'GHI-9012', 
-      tipo: 'Cavalo', 
-      modelo: 'Volvo FH 460', 
-      ano: 2021, 
-      status: 'Inativo', 
-      frota: 'Própria',
-      inativacao: { 
-        data: '2023-07-15', 
-        motivo: 'Manutenção prolongada' 
+  const [veiculosData, setVeiculosData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    carregarVeiculos();
+  }, []);
+
+  const carregarVeiculos = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('Veiculos')
+        .select('*');
+
+      if (error) {
+        console.error("Erro ao carregar veículos:", error);
+        toast.error("Erro ao carregar a lista de veículos");
+        return;
       }
-    },
-    { 
-      id: 4, 
-      placa: 'JKL-3456', 
-      tipo: 'Carreta', 
-      modelo: 'Librelato LS3', 
-      ano: 2018, 
-      status: 'Ativo', 
-      frota: 'Terceirizada',
-      inativacao: null
-    },
-    { 
-      id: 5, 
-      placa: 'MNO-7890', 
-      tipo: 'Cavalo', 
-      modelo: 'Mercedes Actros', 
-      ano: 2022, 
-      status: 'Inativo', 
-      frota: 'Terceirizada',
-      inativacao: { 
-        data: '2023-09-20', 
-        motivo: 'Contrato encerrado' 
-      }
-    },
-  ]);
+
+      // Mapear dados para o formato esperado pelo componente
+      const veiculosFormatados = (data || []).map(veiculo => ({
+        id: veiculo.id || Math.random().toString(36).substr(2, 9),
+        placa: veiculo.placa_cavalo || veiculo.placa_carreta || 'Sem placa',
+        tipo: veiculo.placa_cavalo ? 'Cavalo' : 'Carreta',
+        modelo: veiculo.modelo || 'Não especificado',
+        ano: veiculo.ano || new Date().getFullYear(),
+        status: veiculo.status_veiculo || 'Ativo',
+        frota: veiculo.tipo_frota || 'Própria',
+        inativacao: veiculo.status_veiculo === 'Inativo' ? {
+          data: veiculo.data_inativacao || '2023-01-01',
+          motivo: veiculo.motivo_inativacao || 'Não especificado'
+        } : null
+      }));
+
+      setVeiculosData(veiculosFormatados);
+    } catch (error) {
+      console.error("Erro ao processar dados:", error);
+      toast.error("Ocorreu um erro ao processar os dados dos veículos");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filtrar veículos pelo termo de busca
   const filteredVeiculos = veiculosData.filter(veiculo => 
@@ -78,32 +64,108 @@ const Veiculos = () => {
     veiculo.tipo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleInativarVeiculo = (id, motivo, data) => {
-    setVeiculosData(veiculos => veiculos.map(veiculo => {
-      if (veiculo.id === id) {
-        return {
-          ...veiculo,
-          status: 'Inativo',
-          inativacao: { data, motivo }
-        };
+  const handleInativarVeiculo = async (id, motivo, data) => {
+    try {
+      const veiculoParaInativar = veiculosData.find(v => v.id === id);
+      if (!veiculoParaInativar) return;
+
+      // Atualiza no banco de dados
+      const { error } = await supabase
+        .from('Veiculos')
+        .update({
+          status_veiculo: 'Inativo',
+          data_inativacao: data,
+          motivo_inativacao: motivo
+        })
+        .eq('placa_cavalo', veiculoParaInativar.placa)
+        .eq('tipo', veiculoParaInativar.tipo === 'Cavalo' ? 'cavalo' : 'carreta');
+
+      if (error) {
+        console.error("Erro ao inativar veículo:", error);
+        toast.error("Erro ao inativar veículo");
+        return;
       }
-      return veiculo;
-    }));
-    
-    toast({
-      title: "Veículo inativado",
-      description: "O veículo foi inativado com sucesso!",
-    });
+
+      // Atualiza estado local
+      setVeiculosData(veiculos => veiculos.map(veiculo => {
+        if (veiculo.id === id) {
+          return {
+            ...veiculo,
+            status: 'Inativo',
+            inativacao: { data, motivo }
+          };
+        }
+        return veiculo;
+      }));
+      
+      toast({
+        title: "Veículo inativado",
+        description: "O veículo foi inativado com sucesso!",
+      });
+    } catch (error) {
+      console.error("Erro ao processar inativação:", error);
+      toast.error("Ocorreu um erro ao inativar o veículo");
+    }
   };
 
-  const handleDeleteVeiculo = (id) => {
-    setVeiculosData(veiculos => veiculos.filter(veiculo => veiculo.id !== id));
-    
-    toast({
-      title: "Veículo excluído",
-      description: "O veículo foi excluído com sucesso!",
-      variant: "destructive"
-    });
+  const handleDeleteVeiculo = async (id) => {
+    try {
+      const veiculoParaDeletar = veiculosData.find(v => v.id === id);
+      if (!veiculoParaDeletar) return;
+
+      // Exclui do banco de dados
+      const { error } = await supabase
+        .from('Veiculos')
+        .delete()
+        .or(`placa_cavalo.eq.${veiculoParaDeletar.placa},placa_carreta.eq.${veiculoParaDeletar.placa}`);
+
+      if (error) {
+        console.error("Erro ao excluir veículo:", error);
+        toast.error("Erro ao excluir veículo");
+        return;
+      }
+
+      // Atualiza estado local
+      setVeiculosData(veiculos => veiculos.filter(veiculo => veiculo.id !== id));
+      
+      toast({
+        title: "Veículo excluído",
+        description: "O veículo foi excluído com sucesso!",
+        variant: "destructive"
+      });
+    } catch (error) {
+      console.error("Erro ao processar exclusão:", error);
+      toast.error("Ocorreu um erro ao excluir o veículo");
+    }
+  };
+
+  const excluirTodosVeiculos = async () => {
+    // Confirmar a exclusão
+    if (!window.confirm("Tem certeza que deseja excluir TODOS os veículos? Esta ação não pode ser desfeita!")) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('Veiculos')
+        .delete()
+        .neq('id', -1); // Condição que sempre será verdadeira, para excluir todos
+
+      if (error) {
+        console.error("Erro ao excluir todos os veículos:", error);
+        toast.error("Erro ao excluir todos os veículos");
+        return;
+      }
+
+      setVeiculosData([]);
+      toast.success("Todos os veículos foram excluídos com sucesso!");
+    } catch (error) {
+      console.error("Erro ao processar exclusão em massa:", error);
+      toast.error("Ocorreu um erro ao excluir os veículos");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -111,13 +173,22 @@ const Veiculos = () => {
       <PageHeader 
         title="Veículos" 
         description="Gerencie sua frota de veículos"
-        icon={<Truck size={26} className="text-sistema-primary" />}
+        icon={<Truck size={26} className="text-blue-500" />}
         breadcrumbs={[
           { label: 'Dashboard', href: '/' },
           { label: 'Veículos' }
         ]}
         actions={
           <>
+            <Button 
+              variant="destructive" 
+              className="mr-2" 
+              onClick={excluirTodosVeiculos}
+              disabled={loading || veiculosData.length === 0}
+            >
+              <Trash size={16} className="mr-2" />
+              Excluir Todos
+            </Button>
             <Link to="/veiculos/relatorios">
               <Button variant="outline" className="mr-2">
                 <FileText size={16} className="mr-2" />
@@ -165,11 +236,15 @@ const Veiculos = () => {
           </div>
         </div>
         
-        <VeiculosTable 
-          veiculos={filteredVeiculos}
-          onInativar={handleInativarVeiculo}
-          onDelete={handleDeleteVeiculo}
-        />
+        {loading ? (
+          <div className="p-8 text-center">Carregando veículos...</div>
+        ) : (
+          <VeiculosTable 
+            veiculos={filteredVeiculos}
+            onInativar={handleInativarVeiculo}
+            onDelete={handleDeleteVeiculo}
+          />
+        )}
         
         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
           <div>
