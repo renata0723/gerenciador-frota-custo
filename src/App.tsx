@@ -35,6 +35,7 @@ function App() {
       <Route path="/motoristas" element={<Motoristas />} />
       <Route path="/contratos" element={<Contratos />} />
       <Route path="/contratos/novo" element={<NovoContratoForm />} />
+      <Route path="/contratos/editar/:id" element={<NovoContratoForm />} />
       <Route path="/abastecimentos" element={<Abastecimentos />} />
       <Route path="/despesas" element={<DespesasGerais />} />
       <Route path="/manutencao" element={<Manutencao />} />

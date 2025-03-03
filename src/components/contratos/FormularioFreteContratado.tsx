@@ -14,6 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
+import { logOperation } from '@/utils/logOperations';
 
 export interface FreteContratadoData {
   valorFreteContratado: number;
@@ -57,6 +58,24 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
       dataVencimento: null
     }
   );
+
+  const isFrotaPropria = dadosContrato?.tipo === 'frota';
+
+  // Quando mudar o tipo de frete (quando dadosContrato mudar)
+  useEffect(() => {
+    if (isFrotaPropria) {
+      // Se for frota própria, zera os valores do frete contratado
+      setFormData(prev => ({
+        ...prev,
+        valorFreteContratado: 0,
+        valorAdiantamento: 0,
+        valorPedagio: 0,
+        saldoPagar: 0,
+        gerarSaldoPagar: false,
+        gerarObrigacao: false
+      }));
+    }
+  }, [isFrotaPropria]);
 
   // Carregar informações do proprietário quando o componente montar ou quando dadosContrato mudar
   useEffect(() => {
@@ -135,7 +154,8 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (formData.valorFreteContratado <= 0) {
+    // Se for frota própria, não validamos o valor do frete contratado
+    if (!isFrotaPropria && formData.valorFreteContratado <= 0) {
       toast.error('O valor do frete contratado deve ser maior que zero');
       return;
     }
@@ -174,6 +194,8 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
       toast.success(`Obrigação de pagamento será gerada com vencimento em ${format(formData.dataVencimento, 'dd/MM/yyyy')}`);
     }
     
+    logOperation('Contratos', 'Formulário de frete preenchido', `Tipo: ${dadosContrato?.tipo}, Valor: ${formData.valorFreteContratado}`);
+    
     onSubmit(formData);
     onNext();
   };
@@ -193,10 +215,18 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
         </div>
       )}
       
+      {isFrotaPropria && (
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+          <p className="text-blue-700 font-medium">
+            O campo de Frete Contratado está desabilitado pois este contrato é para a frota própria.
+          </p>
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="valorFreteContratado">Valor do Frete Contratado (R$) *</Label>
+            <Label htmlFor="valorFreteContratado">Valor do Frete Contratado (R$) {!isFrotaPropria && '*'}</Label>
             <Input
               id="valorFreteContratado"
               name="valorFreteContratado"
@@ -205,7 +235,9 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
               min="0"
               value={formData.valorFreteContratado || ''}
               onChange={handleChange}
-              required
+              disabled={isFrotaPropria}
+              className={isFrotaPropria ? "bg-gray-100" : ""}
+              required={!isFrotaPropria}
             />
           </div>
           
@@ -219,10 +251,12 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
               min="0"
               value={formData.valorAdiantamento || ''}
               onChange={handleChange}
+              disabled={isFrotaPropria}
+              className={isFrotaPropria ? "bg-gray-100" : ""}
             />
           </div>
           
-          {formData.valorAdiantamento > 0 && (
+          {formData.valorAdiantamento > 0 && !isFrotaPropria && (
             <div>
               <Label htmlFor="dataAdiantamento">Data do Adiantamento *</Label>
               <Popover>
@@ -234,6 +268,7 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
                       "w-full justify-start text-left font-normal",
                       !formData.dataAdiantamento && "text-muted-foreground"
                     )}
+                    disabled={isFrotaPropria}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {formData.dataAdiantamento ? (
@@ -266,6 +301,8 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
               min="0"
               value={formData.valorPedagio || ''}
               onChange={handleChange}
+              disabled={isFrotaPropria}
+              className={isFrotaPropria ? "bg-gray-100" : ""}
             />
           </div>
           

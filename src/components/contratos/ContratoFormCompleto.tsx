@@ -10,12 +10,17 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { logOperation } from '@/utils/logOperations';
 
 interface ContratoFormCompletoProps {
   contratoId?: string;
+  onContratoSalvo?: (data: any) => void;
 }
 
-const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId }) => {
+const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ 
+  contratoId,
+  onContratoSalvo
+}) => {
   const [activeTab, setActiveTab] = useState("dados");
   const [dadosContrato, setDadosContrato] = useState<DadosContratoFormData | null>(null);
   const [dadosFrete, setDadosFrete] = useState<any | null>(null);
@@ -169,7 +174,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
           proprietario: dadosContrato.proprietario,
           status_contrato: 'Em Andamento',
           tipo_frota: dadosContrato.tipo,
-          valor_frete: dadosFrete?.valorFreteContratado || null,
+          valor_frete: dadosContrato.tipo === 'terceiro' ? dadosFrete?.valorFreteContratado || null : null,
           valor_carga: dadosDocumentos?.valorTotalCarga || null
         });
         
@@ -178,6 +183,9 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
         toast.error('Erro ao salvar contrato');
         return;
       }
+      
+      // Registrar a operação no log
+      logOperation('Contratos', 'Novo contrato criado', `ID: ${dadosContrato.idContrato}, Tipo: ${dadosContrato.tipo}`);
       
       // Criar entrada na tabela de Canhoto para futuro recebimento
       if (dadosDocumentos?.numeroManifesto || dadosDocumentos?.numeroCTe || dadosDocumentos?.notasFiscais?.length) {
@@ -207,10 +215,22 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({ contratoId 
       
       toast.success("Contrato registrado com sucesso!");
       
-      // Redirecionar para a lista de contratos
-      setTimeout(() => {
-        navigate('/contratos');
-      }, 1500);
+      // Chamar a função de callback se existir, passando os dados completos
+      if (onContratoSalvo) {
+        // Montar um objeto com todos os dados para exibição do recibo
+        const contratoData = {
+          ...dadosContrato,
+          ...dadosFrete,
+          ...dadosDocumentos,
+          ...dadosObservacoes
+        };
+        onContratoSalvo(contratoData);
+      } else {
+        // Redirecionar para a lista de contratos se não houver callback
+        setTimeout(() => {
+          navigate('/contratos');
+        }, 1500);
+      }
     } catch (error) {
       console.error('Erro ao salvar contrato:', error);
       toast.error('Ocorreu um erro ao salvar o contrato');

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileDown, PrinterIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { logOperation } from '@/utils/logOperations';
 
 const NovoContratoForm = () => {
   const navigate = useNavigate();
@@ -26,6 +27,9 @@ const NovoContratoForm = () => {
     setContratoData(data);
     toast.success('Contrato salvo com sucesso!');
     setDialogRecibo(true);
+    
+    // Registrar operação no log
+    logOperation('Contratos', 'Contrato finalizado', `ID: ${data.idContrato}, Cliente: ${data.clienteDestino}`);
   };
 
   const imprimirRecibo = () => {
@@ -211,8 +215,8 @@ const NovoContratoForm = () => {
                 </div>
               )}
               <div>
-                <span className="font-semibold">Valor do Frete:</span> R$ {contratoData?.valorFrete 
-                  ? parseFloat(contratoData.valorFrete).toFixed(2).replace('.', ',') 
+                <span className="font-semibold">Valor do Frete:</span> R$ {contratoData?.valorFreteContratado 
+                  ? parseFloat(contratoData.valorFreteContratado).toFixed(2).replace('.', ',') 
                   : '0,00'}
               </div>
               {contratoData?.tipo === 'terceiro' && (
