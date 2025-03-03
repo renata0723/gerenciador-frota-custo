@@ -22,3 +22,13 @@ export interface CanhotoPendente extends Pick<Canhoto, 'contrato_id' | 'cliente'
   data_entrega?: string;
   numero_nota_fiscal?: string;
 }
+
+export interface CancelamentoDocumento {
+  id?: number;
+  tipo_documento: 'Contrato' | 'CT-e' | 'Manifesto';
+  numero_documento: string;
+  data_cancelamento: string;
+  motivo: string;
+  responsavel: string;
+  observacoes?: string;
+}

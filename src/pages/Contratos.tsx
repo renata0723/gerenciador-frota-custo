@@ -6,12 +6,14 @@ import PageHeader from '@/components/ui/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
-import { ThumbsDown, FileDown, Plus, Search } from 'lucide-react';
+import FormularioCancelamento from '@/components/contratos/FormularioCancelamento';
+import { ThumbsDown, FileDown, Plus, Search, Ban } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const Contratos = () => {
   const [rejeicaoDialogOpen, setRejeicaoDialogOpen] = useState(false);
+  const [cancelamentoDialogOpen, setCancelamentoDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("em-andamento");
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +35,12 @@ const Contratos = () => {
     console.log('Contrato rejeitado:', data);
     // Implementar lógica para salvar a rejeição
     setRejeicaoDialogOpen(false);
+  };
+
+  const handleCancelamentoRealizado = () => {
+    setCancelamentoDialogOpen(false);
+    // Recarregar lista de contratos após cancelamento
+    toast.success("Documento cancelado com sucesso");
   };
 
   return (
@@ -63,6 +71,25 @@ const Contratos = () => {
         </div>
         
         <div className="flex gap-2">
+          {/* Dialog de Cancelamento de Documentos */}
+          <Dialog open={cancelamentoDialogOpen} onOpenChange={setCancelamentoDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="destructive" className="flex items-center gap-2">
+                <Ban size={18} />
+                Cancelar Documento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Cancelar Documento</DialogTitle>
+              </DialogHeader>
+              <FormularioCancelamento 
+                onCancelamentoRealizado={handleCancelamentoRealizado}
+                onCancel={() => setCancelamentoDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+          
           <Dialog open={rejeicaoDialogOpen} onOpenChange={setRejeicaoDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="destructive">

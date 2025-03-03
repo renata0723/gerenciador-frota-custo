@@ -32,10 +32,13 @@ const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({
     setCarregando(true);
     
     try {
+      // Converter numeroContrato para número se preenchido
+      const contratoId = numeroContrato ? parseInt(numeroContrato) : null;
+      
       let query = supabase.from('Contratos').select('*');
       
-      if (numeroContrato) {
-        query = query.eq('id', numeroContrato);
+      if (contratoId) {
+        query = query.eq('id', contratoId);
       }
       
       if (numeroManifesto) {
@@ -47,7 +50,8 @@ const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({
       }
       
       if (numeroNotaFiscal) {
-        query = query.eq('numero_nota_fiscal', numeroNotaFiscal);
+        // Buscar por nota fiscal relacionada ao contrato
+        query = query.ilike('notas_relacionadas', `%${numeroNotaFiscal}%`);
       }
       
       const { data, error } = await query.limit(1);
@@ -65,12 +69,24 @@ const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({
       
       const contrato = data[0];
       
-      // Buscar informações adicionais se necessário
+      // Buscar informações de motorista
+      const { data: motoristaDado, error: motoristaError } = await supabase
+        .from('Motoristas')
+        .select('nome')
+        .eq('id', contrato.motorista_id)
+        .single();
+        
+      let nomeMotorista = 'Motorista não informado';
+      if (!motoristaError && motoristaDado) {
+        nomeMotorista = motoristaDado.nome;
+      }
+      
+      // Criar objeto de canhoto pendente
       const canhotoPendente: CanhotoPendente = {
-        contrato_id: contrato.id,
+        contrato_id: contrato.id.toString(),
         cliente: contrato.cliente_destino || 'Cliente não informado',
-        motorista: contrato.motorista || 'Motorista não informado',
-        data_entrega: contrato.data_entrega
+        motorista: nomeMotorista,
+        data_entrega: contrato.data_saida // Usar data de saída como referência
       };
       
       onResultadoEncontrado(canhotoPendente);
