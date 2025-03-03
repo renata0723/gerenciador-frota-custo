@@ -7,10 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ContratoFormTabs from '@/components/contratos/ContratoFormTabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
-import { ThumbsDown } from 'lucide-react';
+import { ThumbsDown, FileDown, Plus } from 'lucide-react';
 
 const Contratos = () => {
   const [rejeicaoDialogOpen, setRejeicaoDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("em-andamento");
 
   const handleSaveRejection = (data: any) => {
     console.log('Contrato rejeitado:', data);
@@ -27,7 +28,10 @@ const Contratos = () => {
       
       <div className="flex justify-between mb-6">
         <div className="flex gap-2">
-          <Button variant="outline">Exportar</Button>
+          <Button variant="outline" className="flex items-center gap-2">
+            <FileDown size={18} />
+            Exportar
+          </Button>
           <Button variant="outline" className="flex items-center gap-2">
             <ThumbsDown size={18} />
             Histórico de Rejeições
@@ -50,13 +54,14 @@ const Contratos = () => {
             </DialogContent>
           </Dialog>
           
-          <Button>
-            + Novo Contrato
+          <Button onClick={() => setActiveTab("novo")} className="flex items-center gap-2">
+            <Plus size={18} />
+            Novo Contrato
           </Button>
         </div>
       </div>
       
-      <Tabs defaultValue="em-andamento" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4 mb-8">
           <TabsTrigger value="em-andamento">Em Andamento</TabsTrigger>
           <TabsTrigger value="concluidos">Concluídos</TabsTrigger>

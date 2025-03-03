@@ -3,32 +3,53 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import FormularioDadosContrato, { DadosContratoFormData } from '@/components/contratos/FormularioDadosContrato';
 import FormularioCTeDados from '@/components/contratos/FormularioCTeDados';
 import { FormularioFreteContratado } from '@/components/contratos/FormularioFreteContratado';
 import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
+import { toast } from 'sonner';
 
 const ContratoFormTabs = () => {
   const [activeTab, setActiveTab] = useState("dados");
+  const [dadosContrato, setDadosContrato] = useState<DadosContratoFormData | null>(null);
+  const [dadosFrete, setDadosFrete] = useState<any | null>(null);
+  const [dadosCTe, setDadosCTe] = useState<any | null>(null);
   
   // Funções para salvar os dados dos formulários
-  const handleSaveContractData = (data: any) => {
+  const handleSaveContractData = (data: DadosContratoFormData) => {
     console.log("Dados do contrato salvos:", data);
-    // Implementar lógica de salvamento
+    setDadosContrato(data);
+    toast.success("Dados do contrato salvos com sucesso!");
   };
   
   const handleSaveFreightData = (data: any) => {
     console.log("Dados do frete salvos:", data);
-    // Implementar lógica de salvamento
+    setDadosFrete(data);
+    toast.success("Dados do frete salvos com sucesso!");
   };
   
   const handleSaveCTeData = (data: any) => {
     console.log("Dados do CTe salvos:", data);
-    // Implementar lógica de salvamento
+    setDadosCTe(data);
+    toast.success("Dados do CTe salvos com sucesso!");
+    // Aqui você poderia chamar uma função para salvar todos os dados coletados
+    handleSaveAllData();
   };
   
   const handleSaveRejectionData = (data: any) => {
     console.log("Dados de rejeição salvos:", data);
-    // Implementar lógica de salvamento
+    toast.success("Contrato rejeitado com sucesso!");
+  };
+
+  const handleSaveAllData = () => {
+    // Aqui você enviaria todos os dados para o servidor
+    const contratoCompleto = {
+      dadosContrato,
+      dadosFrete,
+      dadosCTe
+    };
+    console.log("Contrato completo para salvar:", contratoCompleto);
+    toast.success("Contrato registrado com sucesso!");
   };
 
   return (
@@ -41,17 +62,36 @@ const ContratoFormTabs = () => {
         </TabsList>
         
         <TabsContent value="dados" className="p-4 space-y-4">
-          {/* Formulário de dados do contrato */}
-          <h2 className="text-xl font-bold">Dados do Contrato</h2>
-          {/* Adicionar formulário aqui */}
+          <FormularioDadosContrato 
+            onSubmit={handleSaveContractData} 
+            onNext={() => setActiveTab("frete")}
+            initialData={dadosContrato || undefined}
+          />
         </TabsContent>
         
         <TabsContent value="frete" className="p-4 space-y-4">
-          <FormularioFreteContratado onSubmit={handleSaveFreightData} onBack={() => setActiveTab("dados")} />
+          <FormularioFreteContratado 
+            onSubmit={handleSaveFreightData} 
+            onBack={() => setActiveTab("dados")}
+            onNext={() => setActiveTab("cte")}
+            initialData={dadosFrete || undefined}
+          />
         </TabsContent>
         
         <TabsContent value="cte" className="p-4 space-y-4">
-          <FormularioCTeDados onSave={handleSaveCTeData} />
+          <FormularioCTeDados 
+            onSave={handleSaveCTeData} 
+            initialData={dadosCTe || undefined}
+          />
+          
+          <div className="flex justify-between mt-4">
+            <Button variant="outline" onClick={() => setActiveTab("frete")}>
+              Voltar
+            </Button>
+            <Button onClick={handleSaveAllData}>
+              Finalizar Contrato
+            </Button>
+          </div>
         </TabsContent>
         
         <TabsContent value="rejeicao" className="p-4 space-y-4">

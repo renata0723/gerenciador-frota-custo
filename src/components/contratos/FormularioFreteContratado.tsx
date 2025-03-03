@@ -1,155 +1,161 @@
 
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
-export interface FormularioFreteContratadoProps {
-  onSubmit: (data: any) => void;
+export interface FreteContratadoData {
+  valorFreteContratado: number;
+  valorAdiantamento: number;
+  valorPedagio: number;
+  saldoPagar: number;
+  observacoes: string;
+}
+
+interface FormularioFreteContratadoProps {
+  onSubmit: (data: FreteContratadoData) => void;
   onBack: () => void;
+  onNext: () => void;
+  initialData?: FreteContratadoData;
 }
 
 export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
   onSubmit,
   onBack,
+  onNext,
+  initialData
 }) => {
-  const [valorFrete, setValorFrete] = useState('');
-  const [valorAdiantamento, setValorAdiantamento] = useState('');
-  const [dataAdiantamento, setDataAdiantamento] = useState('');
-  const [valorPedagio, setValorPedagio] = useState('');
-  const [saldoPagar, setSaldoPagar] = useState('0,00');
+  const [formData, setFormData] = useState<FreteContratadoData>(
+    initialData || {
+      valorFreteContratado: 0,
+      valorAdiantamento: 0,
+      valorPedagio: 0,
+      saldoPagar: 0,
+      observacoes: ''
+    }
+  );
 
-  useEffect(() => {
-    // Calcular o saldo a pagar
-    const calcularSaldo = () => {
-      try {
-        const frete = parseFloat(valorFrete.replace('.', '').replace(',', '.')) || 0;
-        const adiantamento = parseFloat(valorAdiantamento.replace('.', '').replace(',', '.')) || 0;
-        const pedagio = parseFloat(valorPedagio.replace('.', '').replace(',', '.')) || 0;
-        
-        const saldo = frete - adiantamento - pedagio;
-        return saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      } catch (error) {
-        return '0,00';
-      }
-    };
-
-    setSaldoPagar(calcularSaldo());
-  }, [valorFrete, valorAdiantamento, valorPedagio]);
-
-  const formatarValor = (valor: string) => {
-    // Remove tudo que não for número
-    let numero = valor.replace(/\D/g, '');
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
     
-    // Converte para número e formata para reais
-    if (numero.length > 0) {
-      numero = (parseInt(numero) / 100).toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+    if (type === 'number') {
+      const numValue = parseFloat(value);
+      
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          [name]: isNaN(numValue) ? 0 : numValue
+        };
+        
+        // Recalcular o saldo a pagar automaticamente
+        if (name === 'valorFreteContratado' || name === 'valorAdiantamento' || name === 'valorPedagio') {
+          newData.saldoPagar = newData.valorFreteContratado - newData.valorAdiantamento - newData.valorPedagio;
+        }
+        
+        return newData;
       });
     } else {
-      numero = '0,00';
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
     }
-    
-    return numero;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = {
-      valorFrete,
-      valorAdiantamento,
-      dataAdiantamento,
-      valorPedagio,
-      saldoPagar
-    };
+    
+    if (formData.valorFreteContratado <= 0) {
+      toast.error('O valor do frete contratado deve ser maior que zero');
+      return;
+    }
+    
     onSubmit(formData);
+    onNext();
   };
 
   return (
-    <Card className="p-6">
-      <form onSubmit={handleSubmit}>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="valorFrete">
-                Valor do Frete Contratado (R$)
-              </label>
-              <input
-                id="valorFrete"
-                name="valorFrete"
-                value={valorFrete}
-                onChange={(e) => setValorFrete(formatarValor(e.target.value))}
-                className="w-full px-3 py-2 border rounded-md"
-                placeholder="0,00"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="valorAdiantamento">
-                Valor do Adiantamento (R$)
-              </label>
-              <input
-                id="valorAdiantamento"
-                name="valorAdiantamento"
-                value={valorAdiantamento}
-                onChange={(e) => setValorAdiantamento(formatarValor(e.target.value))}
-                className="w-full px-3 py-2 border rounded-md"
-                placeholder="0,00"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="dataAdiantamento">
-                Data do Adiantamento
-              </label>
-              <input
-                id="dataAdiantamento"
-                name="dataAdiantamento"
-                type="date"
-                value={dataAdiantamento}
-                onChange={(e) => setDataAdiantamento(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="valorPedagio">
-                Valor do Pedágio (R$)
-              </label>
-              <input
-                id="valorPedagio"
-                name="valorPedagio"
-                value={valorPedagio}
-                onChange={(e) => setValorPedagio(formatarValor(e.target.value))}
-                className="w-full px-3 py-2 border rounded-md"
-                placeholder="0,00"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium" htmlFor="saldoPagar">
-              Saldo a Pagar (R$)
-            </label>
-            <input
-              id="saldoPagar"
-              name="saldoPagar"
-              value={saldoPagar}
-              className="w-full px-3 py-2 border rounded-md bg-gray-100"
-              readOnly
+    <div className="p-4 space-y-4">
+      <h2 className="text-xl font-bold">Frete Contratado</h2>
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="valorFreteContratado">Valor do Frete Contratado (R$) *</Label>
+            <Input
+              id="valorFreteContratado"
+              name="valorFreteContratado"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.valorFreteContratado || ''}
+              onChange={handleChange}
+              required
             />
           </div>
-
-          <div className="flex justify-between pt-4">
-            <Button variant="outline" type="button" onClick={onBack}>
-              Voltar
-            </Button>
-            <Button type="submit">Continuar</Button>
+          
+          <div>
+            <Label htmlFor="valorAdiantamento">Valor do Adiantamento (R$)</Label>
+            <Input
+              id="valorAdiantamento"
+              name="valorAdiantamento"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.valorAdiantamento || ''}
+              onChange={handleChange}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="valorPedagio">Valor do Pedágio (R$)</Label>
+            <Input
+              id="valorPedagio"
+              name="valorPedagio"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.valorPedagio || ''}
+              onChange={handleChange}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="saldoPagar">Saldo a Pagar (R$)</Label>
+            <Input
+              id="saldoPagar"
+              name="saldoPagar"
+              type="number"
+              step="0.01"
+              value={formData.saldoPagar || ''}
+              readOnly
+              className="bg-gray-100"
+            />
           </div>
         </div>
+        
+        <div>
+          <Label htmlFor="observacoes">Observações</Label>
+          <Textarea
+            id="observacoes"
+            name="observacoes"
+            value={formData.observacoes}
+            onChange={handleChange}
+            rows={3}
+          />
+        </div>
+        
+        <div className="flex justify-between pt-4">
+          <Button type="button" variant="outline" onClick={onBack}>
+            Voltar
+          </Button>
+          <Button type="submit">
+            Próximo
+          </Button>
+        </div>
       </form>
-    </Card>
+    </div>
   );
 };
