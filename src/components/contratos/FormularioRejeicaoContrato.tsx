@@ -6,31 +6,38 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ThumbsDown } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
-const FormularioRejeicaoContrato = () => {
+interface FormularioRejeicaoContratoProps {
+  onSave?: (data: any) => void;
+}
+
+const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({ onSave }) => {
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [responsavel, setResponsavel] = useState('');
-  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!motivoRejeicao) {
-      toast({
-        title: "Erro",
-        description: "Por favor, selecione um motivo de rejeição",
-        variant: "destructive",
-      });
+      toast.error("Por favor, selecione um motivo de rejeição");
       return;
     }
     
     // Aqui seria implementada a lógica para salvar a rejeição do contrato
-    toast({
-      title: "Contrato rejeitado",
-      description: "O contrato foi rejeitado e devolvido para correção",
-    });
+    toast.success("Contrato rejeitado e devolvido para correção");
+    
+    const rejeicaoData = {
+      motivo: motivoRejeicao,
+      observacoes,
+      responsavel,
+      data: new Date()
+    };
+    
+    if (onSave) {
+      onSave(rejeicaoData);
+    }
     
     // Limpar formulário
     setMotivoRejeicao('');
@@ -85,8 +92,8 @@ const FormularioRejeicaoContrato = () => {
         </div>
         
         <div className="flex justify-end gap-3 pt-4">
-          <Button type="submit" variant="rejected">
-            <ThumbsDown className="h-5 w-5" />
+          <Button type="submit" variant="destructive">
+            <ThumbsDown className="h-5 w-5 mr-2" />
             Rejeitar e Devolver Contrato
           </Button>
         </div>

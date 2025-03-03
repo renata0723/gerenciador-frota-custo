@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
@@ -5,13 +6,13 @@ import PageHeader from '@/components/ui/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ContratoFormTabs from '@/components/contratos/ContratoFormTabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { FormularioRejeicaoContrato } from '@/components/contratos/FormularioRejeicaoContrato';
+import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
 import { ThumbsDown } from 'lucide-react';
 
 const Contratos = () => {
   const [rejeicaoDialogOpen, setRejeicaoDialogOpen] = useState(false);
 
-  const handleSaveRejection = (data) => {
+  const handleSaveRejection = (data: any) => {
     console.log('Contrato rejeitado:', data);
     // Implementar lógica para salvar a rejeição
     setRejeicaoDialogOpen(false);
@@ -36,8 +37,8 @@ const Contratos = () => {
         <div className="flex gap-2">
           <Dialog open={rejeicaoDialogOpen} onOpenChange={setRejeicaoDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="rejected">
-                <ThumbsDown size={18} />
+              <Button variant="destructive">
+                <ThumbsDown size={18} className="mr-2" />
                 Rejeitar Contrato
               </Button>
             </DialogTrigger>

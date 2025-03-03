@@ -3,30 +3,30 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { FormularioCTeDados } from '@/components/contratos/FormularioCTeDados';
+import FormularioCTeDados from '@/components/contratos/FormularioCTeDados';
 import { FormularioFreteContratado } from '@/components/contratos/FormularioFreteContratado';
-import { FormularioRejeicaoContrato } from '@/components/contratos/FormularioRejeicaoContrato';
+import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
 
 const ContratoFormTabs = () => {
   const [activeTab, setActiveTab] = useState("dados");
   
   // Funções para salvar os dados dos formulários
-  const handleSaveContractData = (data) => {
+  const handleSaveContractData = (data: any) => {
     console.log("Dados do contrato salvos:", data);
     // Implementar lógica de salvamento
   };
   
-  const handleSaveFreightData = (data) => {
+  const handleSaveFreightData = (data: any) => {
     console.log("Dados do frete salvos:", data);
     // Implementar lógica de salvamento
   };
   
-  const handleSaveCTeData = (data) => {
+  const handleSaveCTeData = (data: any) => {
     console.log("Dados do CTe salvos:", data);
     // Implementar lógica de salvamento
   };
   
-  const handleSaveRejectionData = (data) => {
+  const handleSaveRejectionData = (data: any) => {
     console.log("Dados de rejeição salvos:", data);
     // Implementar lógica de salvamento
   };
@@ -47,7 +47,7 @@ const ContratoFormTabs = () => {
         </TabsContent>
         
         <TabsContent value="frete" className="p-4 space-y-4">
-          <FormularioFreteContratado onSave={handleSaveFreightData} />
+          <FormularioFreteContratado onSubmit={handleSaveFreightData} onBack={() => setActiveTab("dados")} />
         </TabsContent>
         
         <TabsContent value="cte" className="p-4 space-y-4">

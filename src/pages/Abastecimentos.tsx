@@ -7,23 +7,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import NovoAbastecimentoForm from '@/components/abastecimentos/NovoAbastecimentoForm';
 import TipoCombustivelForm from '@/components/abastecimentos/TipoCombustivelForm';
 
+interface TipoCombustivel {
+  id: number | string;
+  nome: string;
+  descricao: string;
+}
+
 const Abastecimentos = () => {
-  const [tiposCombustivel, setTiposCombustivel] = useState([
-    { id: 1, nome: 'Diesel S10' },
-    { id: 2, nome: 'Diesel Comum' },
-    { id: 3, nome: 'Arla 32' }
+  const [tiposCombustivel, setTiposCombustivel] = useState<TipoCombustivel[]>([
+    { id: 1, nome: 'Diesel S10', descricao: 'Combustível Diesel com baixo teor de enxofre' },
+    { id: 2, nome: 'Diesel Comum', descricao: 'Combustível Diesel comum' },
+    { id: 3, nome: 'Arla 32', descricao: 'Agente Redutor Líquido Automotivo' }
   ]);
   
-  const handleSaveAbastecimento = (data) => {
+  const handleSaveAbastecimento = (data: any) => {
     console.log('Abastecimento salvo:', data);
     // Implementar lógica para salvar o abastecimento
   };
   
-  const handleSaveTipoCombustivel = (data) => {
+  const handleSaveTipoCombustivel = (data: any) => {
     console.log('Tipo de combustível salvo:', data);
     const novoTipo = {
       id: tiposCombustivel.length + 1,
-      nome: data.nome
+      nome: data.nome,
+      descricao: data.descricao || ''
     };
     setTiposCombustivel([...tiposCombustivel, novoTipo]);
   };

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useState, useEffect } from 'react';
 
-interface FormularioFreteContratadoProps {
+export interface FormularioFreteContratadoProps {
   onSubmit: (data: any) => void;
   onBack: () => void;
 }
