@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 interface DespesaFormData {
   data: string;
@@ -25,7 +26,7 @@ const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({
   initialData
 }) => {
   const [formData, setFormData] = useState<DespesaFormData>({
-    data: initialData?.data || "",
+    data: initialData?.data || format(new Date(), 'yyyy-MM-dd'),
     tipo: initialData?.tipo || "descarga",
     descricao: initialData?.descricao || "",
     valor: initialData?.valor || 0
@@ -48,6 +49,22 @@ const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.data) {
+      toast.error("Por favor, informe a data da despesa");
+      return;
+    }
+    
+    if (!formData.descricao) {
+      toast.error("Por favor, informe a descrição da despesa");
+      return;
+    }
+    
+    if (formData.valor <= 0) {
+      toast.error("Por favor, informe um valor válido para a despesa");
+      return;
+    }
+    
     onSave(formData);
     toast.success("Despesa registrada com sucesso!");
   };
@@ -59,7 +76,7 @@ const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({
       </DialogHeader>
       
       <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="data">Data</Label>
             <Input

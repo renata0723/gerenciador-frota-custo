@@ -6,9 +6,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PageLayoutProps {
   children: ReactNode;
+  showProjectionButton?: boolean;
 }
 
-const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
+const PageLayout: React.FC<PageLayoutProps> = ({ children, showProjectionButton }) => {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = React.useState(!isMobile);
 

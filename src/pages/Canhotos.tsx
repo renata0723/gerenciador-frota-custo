@@ -9,23 +9,14 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import PageHeader from '@/components/ui/PageHeader';
-
-interface Canhoto {
-  id: number;
-  contrato_id: string;
-  data_entrega_cliente: string;
-  data_recebimento_canhoto: string;
-  status: string;
-  cliente: string;
-  motorista: string;
-}
+import { Canhoto } from '@/types/canhoto';
 
 const Canhotos: React.FC = () => {
   const [activeTab, setActiveTab] = useState('pendentes');
   const [canhotos, setCanhotos] = useState<Canhoto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCanhoto, setSelectedCanhoto] = useState<Canhoto | null>(null);
+  const [selectedCanhoto, setSelectedCanhoto] = useState<Partial<Canhoto> | null>(null);
 
   const loadCanhotos = async () => {
     setIsLoading(true);
@@ -66,9 +57,9 @@ const Canhotos: React.FC = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSaveCanhoto = async (data: any) => {
+  const handleSaveCanhoto = async (data: Partial<Canhoto>) => {
     try {
-      if (!selectedCanhoto) return;
+      if (!selectedCanhoto?.id) return;
       
       const { error } = await supabase
         .from('Canhoto')

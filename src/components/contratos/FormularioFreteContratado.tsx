@@ -154,7 +154,7 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
                 id="gerarSaldoPagar"
                 checked={gerarSaldoPagar}
                 onCheckedChange={(checked) => {
-                  const isChecked = checked as boolean;
+                  const isChecked = checked === true;
                   setGerarSaldoPagar(isChecked);
                 }}
                 disabled={isTipoFrota || saldoPagar <= 0}

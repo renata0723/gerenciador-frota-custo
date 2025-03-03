@@ -15,3 +15,11 @@ export interface Canhoto {
   saldo_a_pagar?: number;
   data_programada_pagamento?: string;
 }
+
+export interface DadosBancarios {
+  banco: string;
+  agencia: string;
+  conta: string;
+  tipoConta: "corrente" | "poupanca";
+  chavePix: string;
+}

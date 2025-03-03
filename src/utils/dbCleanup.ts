@@ -1,7 +1,9 @@
 
 /**
- * Utilitário para limpar dados armazenados localmente
+ * Utilitário para limpar dados armazenados localmente e no Supabase
  */
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Chaves de armazenamento local usadas no sistema
 const LOCAL_STORAGE_KEYS = [
@@ -15,6 +17,24 @@ const LOCAL_STORAGE_KEYS = [
   'manutencoes',
   'despesas',
   'system_logs'
+];
+
+// Tabelas do Supabase
+const SUPABASE_TABLES = [
+  'Abastecimentos',
+  'Canhoto',
+  'Contratos',
+  'Despesas Gerais',
+  'Manutenção',
+  'Motorista',
+  'Motoristas',
+  'Notas Fiscais',
+  'Proprietarios',
+  'Relatórios',
+  'Saldo a pagar',
+  'TiposCombustivel',
+  'VeiculoProprietarios',
+  'Veiculos'
 ];
 
 // Função para limpar todos os dados armazenados localmente
@@ -67,4 +87,63 @@ export const getLocalStorageUsage = () => {
     totalSize,
     formattedSize: `${(totalSize / 1024).toFixed(2)} KB`
   };
+};
+
+// Limpar dados de uma tabela específica do Supabase
+export const clearSupabaseTable = async (tableName: string) => {
+  if (!SUPABASE_TABLES.includes(tableName)) {
+    console.warn(`Tabela ${tableName} não reconhecida no sistema`);
+    return false;
+  }
+
+  try {
+    const { error } = await supabase
+      .from(tableName as any)
+      .delete()
+      .neq('id', 0); // Isso exclui todos os registros
+
+    if (error) {
+      console.error(`Erro ao limpar tabela ${tableName}:`, error);
+      return false;
+    }
+
+    console.log(`Dados da tabela ${tableName} foram removidos`);
+    return true;
+  } catch (error) {
+    console.error(`Erro ao limpar tabela ${tableName}:`, error);
+    return false;
+  }
+};
+
+// Limpar todas as tabelas do Supabase
+export const clearAllSupabaseTables = async () => {
+  let success = true;
+  const failedTables: string[] = [];
+
+  for (const table of SUPABASE_TABLES) {
+    try {
+      const { error } = await supabase
+        .from(table as any)
+        .delete()
+        .neq('id', 0);
+
+      if (error) {
+        console.error(`Erro ao limpar tabela ${table}:`, error);
+        failedTables.push(table);
+        success = false;
+      }
+    } catch (error) {
+      console.error(`Erro ao limpar tabela ${table}:`, error);
+      failedTables.push(table);
+      success = false;
+    }
+  }
+
+  if (failedTables.length > 0) {
+    toast.error(`Não foi possível limpar as seguintes tabelas: ${failedTables.join(', ')}`);
+  } else {
+    toast.success('Todas as tabelas do Supabase foram limpas com sucesso');
+  }
+
+  return success;
 };

@@ -59,7 +59,7 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({ dados, onSubmit, onCancel, co
       data_recebimento_canhoto: format(dataRecebimento, 'yyyy-MM-dd'),
       responsavel_recebimento: responsavel,
       data_programada_pagamento: format(dataProgramadaPagamento, 'yyyy-MM-dd'),
-      status: "Recebido"
+      status: "Recebido" as 'Pendente' | 'Recebido' | 'Aguardando'
     };
     
     onSubmit(canhotoData);
