@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 // Registrar cancelamento de documento (Contrato, CT-e ou Manifesto)
 export const registrarCancelamento = async (cancelamento: CancelamentoDocumento): Promise<boolean> => {
   try {
-    // Inserir o registro de cancelamento
+    // Inserir o registro de cancelamento na tabela Cancelamentos
     const { error: cancelamentoError } = await supabase
       .from('Cancelamentos')
       .insert({
@@ -33,7 +33,7 @@ export const registrarCancelamento = async (cancelamento: CancelamentoDocumento)
           data_cancelamento: cancelamento.data_cancelamento || new Date().toISOString(),
           status_contrato: 'Cancelado'
         })
-        .eq('id', parseInt(cancelamento.numero_documento));
+        .eq('id', Number(cancelamento.numero_documento));
       
       if (contratoError) {
         console.error('Erro ao atualizar contrato:', contratoError);
@@ -47,6 +47,11 @@ export const registrarCancelamento = async (cancelamento: CancelamentoDocumento)
       `Cancelamento de ${cancelamento.tipo_documento}`, 
       `Documento: ${cancelamento.numero_documento}, Motivo: ${cancelamento.motivo}`
     );
+    
+    // Atualizar DRE para remover o valor do contrato cancelado
+    if (cancelamento.tipo_documento === 'CT-e') {
+      await atualizarDREAposCancelamento(cancelamento.tipo_documento, cancelamento.numero_documento);
+    }
     
     return true;
   } catch (error) {
@@ -66,7 +71,7 @@ export const getCancelamentos = async (): Promise<CancelamentoDocumento[]> => {
     
     if (error) throw error;
     
-    return data as CancelamentoDocumento[];
+    return data as unknown as CancelamentoDocumento[];
   } catch (error) {
     console.error('Erro ao buscar cancelamentos:', error);
     return [];
@@ -84,7 +89,7 @@ export const getCancelamentosPorTipo = async (tipo: 'Contrato' | 'CT-e' | 'Manif
     
     if (error) throw error;
     
-    return data as CancelamentoDocumento[];
+    return data as unknown as CancelamentoDocumento[];
   } catch (error) {
     console.error(`Erro ao buscar cancelamentos de ${tipo}:`, error);
     return [];
@@ -125,8 +130,8 @@ export const atualizarDREAposCancelamento = async (tipo: string, numeroDocumento
         
         // Se encontrou DRE, atualizar receita
         if (dreData) {
-          const novaReceita = (dreData.receita_bruta || 0) - (contratoData.valor_frete || 0);
-          const novaReceitaLiquida = (dreData.receita_liquida || 0) - (contratoData.valor_frete || 0);
+          const novaReceita = parseFloat(dreData.receita_bruta || '0') - parseFloat(contratoData.valor_frete || '0');
+          const novaReceitaLiquida = parseFloat(dreData.receita_liquida || '0') - parseFloat(contratoData.valor_frete || '0');
           
           const { error: updateError } = await supabase
             .from('DRE')

@@ -19,7 +19,7 @@ export const verificarAdministrador = async (usuarioId: number): Promise<Adminis
       throw error;
     }
     
-    return data as Administrador;
+    return data as unknown as Administrador;
   } catch (error) {
     console.error('Erro ao verificar administrador:', error);
     return null;
@@ -38,6 +38,7 @@ export const autenticarAdministradorGeral = async (credenciais: CredenciaisAdmin
       .single();
     
     if (usuarioError || !usuarioData) {
+      console.log('Erro na autenticação (usuário):', usuarioError);
       return false;
     }
     
@@ -50,6 +51,7 @@ export const autenticarAdministradorGeral = async (credenciais: CredenciaisAdmin
       .single();
     
     if (adminError || !adminData) {
+      console.log('Erro na autenticação (admin):', adminError);
       return false;
     }
     
@@ -70,18 +72,18 @@ export const autenticarAdministradorGeral = async (credenciais: CredenciaisAdmin
 };
 
 // Criar novo administrador
-export const criarAdministrador = async (usuarioId: number, nivelAcesso: 'Parcial' | 'Total' | 'Geral'): Promise<boolean> => {
+export const criarAdministrador = async (dados: { usuario_id: number, nivel_acesso: 'Parcial' | 'Total' | 'Geral' }): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('Administradores')
       .insert({
-        usuario_id: usuarioId,
-        nivel_acesso: nivelAcesso
+        usuario_id: dados.usuario_id,
+        nivel_acesso: dados.nivel_acesso
       });
     
     if (error) throw error;
     
-    logOperation('Administradores', 'Novo administrador criado', `ID: ${usuarioId}, Nível: ${nivelAcesso}`);
+    logOperation('Administradores', 'Novo administrador criado', `ID: ${dados.usuario_id}, Nível: ${dados.nivel_acesso}`);
     return true;
   } catch (error) {
     console.error('Erro ao criar administrador:', error);

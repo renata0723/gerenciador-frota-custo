@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,16 @@ const Login = () => {
   const [activeTab, setActiveTab] = useState('usuario');
   const navigate = useNavigate();
 
+  // Verificar se o usuário já está logado ao carregar a página
+  useEffect(() => {
+    const usuarioLogado = sessionStorage.getItem('usuario');
+    const adminLogado = sessionStorage.getItem('adminGeral');
+    
+    if (usuarioLogado || adminLogado) {
+      navigate('/');
+    }
+  }, [navigate]);
+
   const handleUsuarioSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -29,6 +39,7 @@ const Login = () => {
     setLoading(true);
     
     try {
+      console.log('Tentando autenticar usuário:', email);
       const usuario = await autenticarUsuario(email, senha);
       
       if (usuario) {
@@ -61,6 +72,7 @@ const Login = () => {
     setLoading(true);
     
     try {
+      console.log('Tentando autenticar administrador:', email);
       const autenticado = await autenticarAdministradorGeral({ email, senha });
       
       if (autenticado) {
@@ -73,6 +85,7 @@ const Login = () => {
         navigate('/');
       } else {
         toast.error('Credenciais de administrador inválidas');
+        console.log('Falha na autenticação de administrador');
       }
     } catch (error) {
       console.error('Erro ao autenticar administrador:', error);

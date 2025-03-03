@@ -16,7 +16,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   useEffect(() => {
     // Verificar se o usuário está autenticado
     const usuarioString = sessionStorage.getItem('usuario');
+    const adminGeral = sessionStorage.getItem('adminGeral');
     
+    // Verificar se é usuário ou admin
     if (usuarioString) {
       try {
         const usuario: Usuario = JSON.parse(usuarioString);
@@ -30,6 +32,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         console.error('Erro ao processar dados de autenticação:', error);
         setIsAuthenticated(false);
       }
+    } else if (adminGeral === 'true') {
+      // Se for administrador geral
+      setIsAuthenticated(true);
     } else {
       setIsAuthenticated(false);
     }
