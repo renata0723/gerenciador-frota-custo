@@ -21,6 +21,7 @@ import SaldoPagar from "./pages/SaldoPagar";
 import Abastecimentos from "./pages/Abastecimentos";
 import Manutencao from "./pages/Manutencao";
 import DespesasGerais from "./pages/DespesasGerais";
+import NovoContratoForm from "./pages/NovoContratoForm";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,8 @@ const App = () => (
           <Route path="/configuracoes" element={<ConfiguracoesEmpresa />} />
           <Route path="/tv-dashboard" element={<TVDashboard />} />
           <Route path="/contratos" element={<Contratos />} />
+          <Route path="/contratos/novo" element={<NovoContratoForm />} />
+          <Route path="/contratos/editar/:id" element={<NovoContratoForm />} />
           <Route path="/buscar-contrato" element={<BuscarContrato />} />
           <Route path="/canhotos" element={<Canhotos />} />
           <Route path="/veiculos" element={<Veiculos />} />

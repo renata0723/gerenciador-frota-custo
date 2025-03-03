@@ -4,7 +4,6 @@ import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/ui/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ContratoFormTabs from '@/components/contratos/ContratoFormTabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
 import { ThumbsDown, FileDown, Plus, Search } from 'lucide-react';
@@ -25,9 +24,10 @@ const Contratos = () => {
     if (contratoId) {
       // Se houver um ID, simula a abertura de um contrato específico
       toast.info(`Visualizando contrato #${contratoId}`);
-      // Poderia carregar os dados do contrato aqui
+      // Poderia direcionar para a página de edição
+      navigate(`/contratos/editar/${contratoId}`);
     }
-  }, [location]);
+  }, [location, navigate]);
 
   const handleSaveRejection = (data: any) => {
     console.log('Contrato rejeitado:', data);
@@ -78,7 +78,10 @@ const Contratos = () => {
             </DialogContent>
           </Dialog>
           
-          <Button onClick={() => setActiveTab("novo")} className="flex items-center gap-2">
+          <Button 
+            onClick={() => navigate('/contratos/novo')} 
+            className="flex items-center gap-2"
+          >
             <Plus size={18} />
             Novo Contrato
           </Button>
@@ -86,11 +89,10 @@ const Contratos = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-8">
+        <TabsList className="grid w-full grid-cols-3 mb-8">
           <TabsTrigger value="em-andamento">Em Andamento</TabsTrigger>
           <TabsTrigger value="concluidos">Concluídos</TabsTrigger>
           <TabsTrigger value="aguardando-canhoto">Aguardando Canhoto</TabsTrigger>
-          <TabsTrigger value="novo">Novo Contrato</TabsTrigger>
         </TabsList>
         
         <TabsContent value="em-andamento" className="space-y-4">
@@ -133,10 +135,6 @@ const Contratos = () => {
             <h2 className="text-xl font-semibold mb-4">Contratos Aguardando Canhoto</h2>
             {/* Tabela de contratos aguardando canhoto */}
           </div>
-        </TabsContent>
-        
-        <TabsContent value="novo">
-          <ContratoFormTabs />
         </TabsContent>
       </Tabs>
     </PageLayout>
