@@ -35,7 +35,9 @@ const SUPABASE_TABLES = [
   'TiposCombustivel',
   'VeiculoProprietarios',
   'Veiculos'
-];
+] as const;
+
+type SupabaseTable = typeof SUPABASE_TABLES[number];
 
 // Função para limpar todos os dados armazenados localmente
 export const clearAllLocalData = () => {
@@ -90,15 +92,10 @@ export const getLocalStorageUsage = () => {
 };
 
 // Limpar dados de uma tabela específica do Supabase
-export const clearSupabaseTable = async (tableName: string) => {
-  if (!SUPABASE_TABLES.includes(tableName)) {
-    console.warn(`Tabela ${tableName} não reconhecida no sistema`);
-    return false;
-  }
-
+export const clearSupabaseTable = async (tableName: SupabaseTable) => {
   try {
     const { error } = await supabase
-      .from(tableName as any)
+      .from(tableName)
       .delete()
       .neq('id', 0); // Isso exclui todos os registros
 
@@ -123,7 +120,7 @@ export const clearAllSupabaseTables = async () => {
   for (const table of SUPABASE_TABLES) {
     try {
       const { error } = await supabase
-        .from(table as any)
+        .from(table)
         .delete()
         .neq('id', 0);
 
@@ -134,7 +131,7 @@ export const clearAllSupabaseTables = async () => {
       }
     } catch (error) {
       console.error(`Erro ao limpar tabela ${table}:`, error);
-      failedTables.push(table);
+      failedTables.push(String(table));
       success = false;
     }
   }

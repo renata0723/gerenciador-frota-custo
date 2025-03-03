@@ -249,7 +249,8 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
           banco: 'Desconhecido',
           agencia: '',
           conta: '',
-          tipoConta: 'corrente'
+          tipoConta: 'corrente',
+          chavePix: ''
         };
       }
 
@@ -264,7 +265,8 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
             banco: dadosBancarios.banco,
             agencia: dadosBancarios.agencia,
             conta: dadosBancarios.conta,
-            tipoConta: dadosBancarios.tipoConta
+            tipoConta: dadosBancarios.tipoConta,
+            chavePix: dadosBancarios.chavePix || ''
           }
         }
       }));
@@ -313,10 +315,11 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
               nome: value,
               documento: '', // Seria preenchido com dados reais do banco
               dadosBancarios: {
-                banco: dadosBancarios.banco,
-                agencia: dadosBancarios.agencia,
-                conta: dadosBancarios.conta,
-                tipoConta: dadosBancarios.tipoConta
+                banco: dadosBancarios.banco || '',
+                agencia: dadosBancarios.agencia || '',
+                conta: dadosBancarios.conta || '',
+                tipoConta: dadosBancarios.tipoConta || 'corrente',
+                chavePix: dadosBancarios.chavePix || ''
               }
             }
           }));

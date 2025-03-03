@@ -2,404 +2,256 @@
 import React, { useState } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, RefreshCw, Database, AlertTriangle, Check } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Trash2, Database, Download, FileWarning } from 'lucide-react';
 import { toast } from 'sonner';
-import { clearAllLocalData, clearLocalDataByKey, getLocalStorageUsage } from '@/utils/dbCleanup';
-import { supabase } from '@/integrations/supabase/client';
+import { clearAllLocalData, clearLocalDataByKey, getLocalStorageUsage, clearAllSupabaseTables, clearSupabaseTable } from '@/utils/dbCleanup';
+import { SUPABASE_TABLES } from '@/utils/constants';
 
-const DATABASE_TABLES = [
-  'Contratos',
-  'Canhoto',
-  'Saldo a pagar',
-  'Veiculos',
-  'Motoristas',
-  'Abastecimentos',
-  'Manutenção',
-  'Despesas Gerais',
-  'Notas Fiscais',
-  'Proprietarios',
-  'TiposCombustivel',
-  'VeiculoProprietarios',
-  'Relatórios'
-];
-
-const Utilitarios: React.FC = () => {
-  const [confirmDialog, setConfirmDialog] = useState(false);
-  const [confirmTableDialog, setConfirmTableDialog] = useState(false);
+const Utilitarios = () => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogTable, setDialogTable] = useState('');
+  const [dialogAction, setDialogAction] = useState<'limpar' | 'resetar' | 'limparTudo'>('limpar');
   const [selectedTable, setSelectedTable] = useState('');
-  const [isClearing, setIsClearing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [usageData, setUsageData] = useState(getLocalStorageUsage());
+  const [usage, setUsage] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
-  // Limpar todos os dados locais
-  const handleClearLocalData = () => {
-    clearAllLocalData();
-    toast.success('Todos os dados locais foram limpos com sucesso!');
-    refreshUsageData();
+  const handleCheckStorage = () => {
+    const storageUsage = getLocalStorageUsage();
+    setUsage(storageUsage);
+    toast.info(`Tamanho total dos dados: ${storageUsage.formattedSize}`);
   };
 
-  // Limpar tabela específica no Supabase
-  const handleClearTable = async (table: string) => {
-    setIsClearing(true);
-    setProgress(10);
-    
-    try {
-      setProgress(30);
-      
-      const { error } = await supabase
-        .from(table)
-        .delete()
-        .neq('id', 0); // Deleta todos os registros
-      
-      setProgress(80);
-      
-      if (error) {
-        console.error(`Erro ao limpar tabela ${table}:`, error);
-        toast.error(`Erro ao limpar tabela ${table}`);
-        return;
-      }
-      
-      toast.success(`Tabela ${table} limpa com sucesso!`);
-      
-    } catch (error) {
-      console.error('Erro:', error);
-      toast.error('Ocorreu um erro ao limpar a tabela');
-    } finally {
-      setProgress(100);
-      setIsClearing(false);
-      setConfirmTableDialog(false);
+  const handleClearTableConfirm = () => {
+    setDialogOpen(false);
+    setLoading(true);
+
+    if (dialogAction === 'limparTudo') {
+      clearAllLocalData();
+      toast.success('Todos os dados locais foram removidos');
+      setLoading(false);
+      return;
     }
-  };
 
-  // Limpar todas as tabelas no Supabase
-  const handleClearAllTables = async () => {
-    setIsClearing(true);
-    setProgress(0);
-    
-    try {
-      for (let i = 0; i < DATABASE_TABLES.length; i++) {
-        const table = DATABASE_TABLES[i];
-        setProgress(Math.round((i / DATABASE_TABLES.length) * 100));
-        
-        // Deletar dados da tabela
-        const { error } = await supabase
-          .from(table)
-          .delete()
-          .neq('id', 0);
-          
-        if (error) {
-          console.error(`Erro ao limpar tabela ${table}:`, error);
-          // Continuar mesmo com erro
-        }
-      }
-      
-      setProgress(100);
-      toast.success('Todas as tabelas foram limpas com sucesso!');
-      
-    } catch (error) {
-      console.error('Erro:', error);
-      toast.error('Ocorreu um erro ao limpar todas as tabelas');
-    } finally {
-      setIsClearing(false);
-      setConfirmDialog(false);
+    if (!selectedTable) {
+      toast.error('Selecione uma tabela para limpar');
+      setLoading(false);
+      return;
     }
-  };
 
-  // Atualizar dados de uso do localStorage
-  const refreshUsageData = () => {
-    setUsageData(getLocalStorageUsage());
-  };
-
-  // Formatar tamanho para visualização
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) {
-      return `${bytes} bytes`;
-    } else if (bytes < 1024 * 1024) {
-      return `${(bytes / 1024).toFixed(2)} KB`;
+    const success = clearLocalDataByKey(selectedTable);
+    
+    if (success) {
+      toast.success(`Dados de ${selectedTable} removidos com sucesso`);
     } else {
-      return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+      toast.error(`Erro ao remover dados de ${selectedTable}`);
+    }
+    
+    setLoading(false);
+  };
+
+  const handleClearTable = (table: string) => {
+    setSelectedTable(table);
+    setDialogTable(table);
+    setDialogAction('limpar');
+    setDialogOpen(true);
+  };
+
+  const handleClearAllTables = () => {
+    setDialogAction('limparTudo');
+    setDialogOpen(true);
+  };
+
+  const handleClearSupabaseTable = async (tableName: string) => {
+    setLoading(true);
+    const result = await clearSupabaseTable(tableName as any);
+    
+    if (result) {
+      toast.success(`Tabela ${tableName} limpa com sucesso no Supabase`);
+    } else {
+      toast.error(`Erro ao limpar tabela ${tableName} no Supabase`);
+    }
+    
+    setLoading(false);
+  };
+
+  const handleClearAllSupabaseTables = async () => {
+    setLoading(true);
+    const result = await clearAllSupabaseTables();
+    setLoading(false);
+    
+    if (result) {
+      toast.success('Todas as tabelas do Supabase foram limpas com sucesso');
     }
   };
 
   return (
     <PageLayout>
-      <PageHeader
-        title="Utilitários do Sistema" 
-        description="Ferramentas para administração e manutenção do sistema"
-        icon={<Database className="h-6 w-6 text-sistema-primary" />}
+      <PageHeader 
+        title="Utilitários de Sistema" 
+        description="Ferramentas para manutenção e limpeza de dados"
       />
       
-      <Tabs defaultValue="local-data" className="mt-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="local-data">Dados Locais</TabsTrigger>
-          <TabsTrigger value="database">Banco de Dados</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="local-data" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dados Armazenados Localmente</CardTitle>
-              <CardDescription>
-                Gerenciamento de dados armazenados no navegador
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Atenção</AlertTitle>
-                  <AlertDescription>
-                    A limpeza de dados locais afetará apenas os dados armazenados neste navegador.
-                    Isso não impacta os dados no servidor.
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="border rounded-md p-4">
-                  <h3 className="font-medium mb-2">Uso de Armazenamento Local</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Uso Total:</span>
-                      <span className="font-medium">{usageData.formattedSize}</span>
-                    </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-blue-500" 
-                        style={{ width: `${Math.min(100, (usageData.totalSize / (5 * 1024 * 1024)) * 100)}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-500 text-right">
-                      {usageData.totalSize} bytes de 5 MB
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium mb-2">Uso por Item:</h4>
-                    <div className="space-y-1 max-h-40 overflow-y-auto">
-                      {Object.entries(usageData.byKey).map(([key, size]) => (
-                        <div key={key} className="flex justify-between text-sm">
-                          <span className="text-gray-600">{key}:</span>
-                          <span>{formatSize(size)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button 
-                variant="outline" 
-                onClick={refreshUsageData}
-                className="flex items-center"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Atualizar
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={handleClearLocalData}
-                className="flex items-center"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Limpar Todos os Dados Locais
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="database" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gerenciamento de Banco de Dados</CardTitle>
-              <CardDescription>
-                Limpar tabelas e dados do banco de dados Supabase
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Atenção!</AlertTitle>
-                <AlertDescription>
-                  A limpeza de tabelas do banco de dados é IRREVERSÍVEL. 
-                  Todos os dados serão removidos permanentemente.
-                  Use apenas para fins de teste ou em ambiente de homologação.
-                </AlertDescription>
-              </Alert>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                {DATABASE_TABLES.map((table) => (
-                  <Card key={table} className="hover:shadow-md transition-shadow">
-                    <CardHeader className="py-4 px-4">
-                      <CardTitle className="text-base">{table}</CardTitle>
-                    </CardHeader>
-                    <CardFooter className="py-2 px-4 bg-gray-50">
-                      <Button 
-                        variant="ghost" 
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => {
-                          setSelectedTable(table);
-                          setConfirmTableDialog(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Limpar Tabela
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                variant="destructive"
-                onClick={() => setConfirmDialog(true)}
-                className="flex items-center"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Limpar Todas as Tabelas
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-      </Tabs>
-      
-      {/* Diálogo para confirmar limpeza de todas as tabelas */}
-      <Dialog open={confirmDialog} onOpenChange={setConfirmDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar Limpeza de Dados</DialogTitle>
-            <DialogDescription>
-              Você está prestes a limpar TODAS as tabelas do banco de dados. 
-              Esta ação é irreversível e todos os dados serão perdidos.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {isClearing ? (
-            <div className="py-4">
-              <div className="mb-2 flex justify-between">
-                <span>Progresso:</span>
-                <span>{progress}%</span>
-              </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-blue-500 transition-all duration-300" 
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-sm text-gray-500 mt-2">
-                Limpando tabelas, por favor aguarde...
-              </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Database className="mr-2 h-5 w-5" />
+              Limpeza de Dados Locais
+            </CardTitle>
+            <CardDescription>
+              Remova dados armazenados no navegador para limpar o sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="table-select">Selecione a tabela para limpar</Label>
+              <Select value={selectedTable} onValueChange={setSelectedTable}>
+                <SelectTrigger id="table-select">
+                  <SelectValue placeholder="Selecione uma tabela" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="controlfrota_notas_fiscais">Notas Fiscais</SelectItem>
+                  <SelectItem value="contratos">Contratos</SelectItem>
+                  <SelectItem value="canhotos">Canhotos</SelectItem>
+                  <SelectItem value="motoristas">Motoristas</SelectItem>
+                  <SelectItem value="proprietarios">Proprietários</SelectItem>
+                  <SelectItem value="veiculos">Veículos</SelectItem>
+                  <SelectItem value="abastecimentos">Abastecimentos</SelectItem>
+                  <SelectItem value="manutencoes">Manutenções</SelectItem>
+                  <SelectItem value="despesas">Despesas</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <div className="py-4">
-              <Alert variant="destructive" className="mb-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Atenção!</AlertTitle>
-                <AlertDescription>
-                  Esta ação removerá PERMANENTEMENTE todos os dados de todas as tabelas.
-                </AlertDescription>
-              </Alert>
-              
-              <p className="text-sm">
-                Digite "CONFIRMAR" para prosseguir com a limpeza de dados:
-              </p>
-              <input 
-                type="text"
-                className="w-full border rounded-md px-3 py-2 mt-2"
-                placeholder="Digite CONFIRMAR para prosseguir"
-              />
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialog(false)} disabled={isClearing}>
-              Cancelar
-            </Button>
+            
             <Button 
               variant="destructive" 
-              onClick={handleClearAllTables}
-              disabled={isClearing}
-            >
-              {isClearing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Processando...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Confirmar Limpeza
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Diálogo para confirmar limpeza de uma tabela específica */}
-      <Dialog open={confirmTableDialog} onOpenChange={setConfirmTableDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar Limpeza de Tabela</DialogTitle>
-            <DialogDescription>
-              Você está prestes a limpar todos os dados da tabela <strong>{selectedTable}</strong>.
-              Esta ação é irreversível.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {isClearing ? (
-            <div className="py-4">
-              <div className="mb-2 flex justify-between">
-                <span>Progresso:</span>
-                <span>{progress}%</span>
-              </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-blue-500 transition-all duration-300" 
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-sm text-gray-500 mt-2">
-                Limpando tabela, por favor aguarde...
-              </p>
-            </div>
-          ) : (
-            <div className="py-4">
-              <Alert variant="destructive" className="mb-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Atenção!</AlertTitle>
-                <AlertDescription>
-                  Esta ação removerá PERMANENTEMENTE todos os dados da tabela selecionada.
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmTableDialog(false)} disabled={isClearing}>
-              Cancelar
-            </Button>
-            <Button 
-              variant="destructive" 
+              className="w-full" 
+              disabled={!selectedTable || loading}
               onClick={() => handleClearTable(selectedTable)}
-              disabled={isClearing}
             >
-              {isClearing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Processando...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Confirmar Limpeza
-                </>
-              )}
+              <Trash2 className="mr-2 h-4 w-4" />
+              Limpar Tabela Selecionada
+            </Button>
+            
+            <Button 
+              variant="destructive" 
+              className="w-full" 
+              disabled={loading}
+              onClick={handleClearAllTables}
+            >
+              <FileWarning className="mr-2 h-4 w-4" />
+              Limpar Todos os Dados
+            </Button>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleCheckStorage}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Verificar Uso de Armazenamento
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Database className="mr-2 h-5 w-5" />
+              Limpeza de Dados no Supabase
+            </CardTitle>
+            <CardDescription>
+              Remova dados armazenados no servidor para limpar o sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="supabase-table-select">Selecione a tabela para limpar</Label>
+              <Select value={selectedTable} onValueChange={setSelectedTable}>
+                <SelectTrigger id="supabase-table-select">
+                  <SelectValue placeholder="Selecione uma tabela" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPABASE_TABLES.map((table) => (
+                    <SelectItem key={table} value={table}>{table}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <Button 
+              variant="destructive" 
+              className="w-full" 
+              disabled={!selectedTable || loading}
+              onClick={() => handleClearSupabaseTable(selectedTable)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Limpar Tabela Selecionada no Supabase
+            </Button>
+            
+            <Button 
+              variant="destructive" 
+              className="w-full" 
+              disabled={loading}
+              onClick={handleClearAllSupabaseTables}
+            >
+              <FileWarning className="mr-2 h-4 w-4" />
+              Limpar Todas as Tabelas no Supabase
+            </Button>
+          </CardContent>
+          <CardFooter>
+            <p className="text-xs text-gray-500 italic">
+              Atenção: A limpeza de dados no servidor é permanente e não pode ser desfeita.
+              Tenha certeza antes de prosseguir.
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
+      
+      {usage && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Uso de Armazenamento Local</CardTitle>
+            <CardDescription>
+              Tamanho total dos dados: {usage.formattedSize}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {Object.entries(usage.byKey).map(([key, size]: [string, any]) => (
+                <div key={key} className="flex justify-between items-center border-b pb-2">
+                  <span>{key}</span>
+                  <span>{(size / 1024).toFixed(2)} KB</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar limpeza de dados</DialogTitle>
+            <DialogDescription>
+              {dialogAction === 'limparTudo' 
+                ? 'Você tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.'
+                : `Você tem certeza que deseja limpar os dados da tabela ${dialogTable}? Esta ação não pode ser desfeita.`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleClearTableConfirm}>
+              Limpar Dados
             </Button>
           </DialogFooter>
         </DialogContent>

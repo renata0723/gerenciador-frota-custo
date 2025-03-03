@@ -54,12 +54,12 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({ dados, onSubmit, onCancel, co
     
     const canhotoData: Partial<Canhoto> = {
       ...dados,
-      contrato_id: contratoId || dados?.contrato_id,
+      contrato_id: contratoId || dados?.contrato_id || '',
       data_entrega_cliente: format(dataEntregaState, 'yyyy-MM-dd'),
       data_recebimento_canhoto: format(dataRecebimento, 'yyyy-MM-dd'),
       responsavel_recebimento: responsavel,
       data_programada_pagamento: format(dataProgramadaPagamento, 'yyyy-MM-dd'),
-      status: "Recebido" as 'Pendente' | 'Recebido' | 'Aguardando'
+      status: "Recebido"
     };
     
     onSubmit(canhotoData);
