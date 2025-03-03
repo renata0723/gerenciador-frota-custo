@@ -1,127 +1,112 @@
 
-/**
- * Utilitário para limpar dados armazenados localmente e no Supabase
- */
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { SUPABASE_TABLES, SupabaseTable } from './constants';
+import { SupabaseTable } from '@/utils/constants';
 
-// Chaves de armazenamento local usadas no sistema
-const LOCAL_STORAGE_KEYS = [
-  'controlfrota_notas_fiscais',
-  'contratos',
-  'canhotos',
-  'motoristas',
-  'proprietarios',
-  'veiculos',
-  'abastecimentos',
-  'manutencoes',
-  'despesas',
-  'system_logs'
-];
+interface DbCleanupResponse {
+  success: boolean;
+  message: string;
+  details?: { table: string; count: number }[];
+}
 
-// Função para limpar todos os dados armazenados localmente
-export const clearAllLocalData = () => {
-  LOCAL_STORAGE_KEYS.forEach(key => {
-    localStorage.removeItem(key);
-  });
-  
-  console.log('Todos os dados locais foram removidos');
-  return true;
-};
+// Interface para rastrear dados de usuário
+interface UserData {
+  userId: string;
+  email: string;
+  createdAt: string;
+}
 
-// Função para limpar dados específicos
-export const clearLocalDataByKey = (key: string) => {
-  if (LOCAL_STORAGE_KEYS.includes(key)) {
-    localStorage.removeItem(key);
-    console.log(`Dados de ${key} removidos`);
-    return true;
-  } else {
-    console.warn(`Chave ${key} não reconhecida no sistema`);
-    return false;
-  }
-};
-
-// Função para restaurar dados iniciais para uma chave específica
-export const resetToInitialData = (key: string, initialData: any) => {
-  localStorage.setItem(key, JSON.stringify(initialData));
-  console.log(`Dados de ${key} restaurados para valores iniciais`);
-  return true;
-};
-
-// Função para verificar tamanho dos dados armazenados
-export const getLocalStorageUsage = () => {
-  const usage: Record<string, number> = {};
-  let totalSize = 0;
-  
-  LOCAL_STORAGE_KEYS.forEach(key => {
-    const data = localStorage.getItem(key);
-    if (data) {
-      const size = new Blob([data]).size;
-      usage[key] = size;
-      totalSize += size;
-    } else {
-      usage[key] = 0;
-    }
-  });
-  
-  return {
-    byKey: usage,
-    totalSize,
-    formattedSize: `${(totalSize / 1024).toFixed(2)} KB`
-  };
-};
-
-// Limpar dados de uma tabela específica do Supabase
-export const clearSupabaseTable = async (tableName: SupabaseTable) => {
+/**
+ * Limpa todas as tabelas do banco de dados, exceto dados de usuários e configurações do sistema.
+ */
+export const cleanupAllTables = async (): Promise<DbCleanupResponse> => {
   try {
-    const { error } = await supabase
-      .from(tableName)
-      .delete()
-      .neq('id', 0); // Isso exclui todos os registros
+    const tables: SupabaseTable[] = [
+      'Abastecimentos',
+      'Canhoto',
+      'Contratos',
+      'Despesas Gerais',
+      'Manutenção',
+      'Motorista',
+      'Notas Fiscais',
+      'Proprietarios',
+      'Relatórios',
+      'Saldo a pagar',
+      'TiposCombustivel',
+      'VeiculoProprietarios',
+      'Veiculos'
+    ];
 
-    if (error) {
-      console.error(`Erro ao limpar tabela ${tableName}:`, error);
-      return false;
-    }
+    const results = [];
 
-    console.log(`Dados da tabela ${tableName} foram removidos`);
-    return true;
-  } catch (error) {
-    console.error(`Erro ao limpar tabela ${tableName}:`, error);
-    return false;
-  }
-};
-
-// Limpar todas as tabelas do Supabase
-export const clearAllSupabaseTables = async () => {
-  let success = true;
-  const failedTables: string[] = [];
-
-  for (const table of SUPABASE_TABLES) {
-    try {
-      const { error } = await supabase
+    // Limpa cada tabela
+    for (const table of tables) {
+      const { data, error, count } = await supabase
         .from(table)
         .delete()
-        .neq('id', 0);
+        .neq('id', 0) // Isso garante que todos os registros serão deletados
+        .select('count');
 
       if (error) {
         console.error(`Erro ao limpar tabela ${table}:`, error);
-        failedTables.push(table);
-        success = false;
+      } else {
+        results.push({ table, count: count || 0 });
       }
-    } catch (error) {
-      console.error(`Erro ao limpar tabela ${table}:`, error);
-      failedTables.push(String(table));
-      success = false;
     }
-  }
 
-  if (failedTables.length > 0) {
-    toast.error(`Não foi possível limpar as seguintes tabelas: ${failedTables.join(', ')}`);
-  } else {
-    toast.success('Todas as tabelas do Supabase foram limpas com sucesso');
+    return {
+      success: true,
+      message: 'Todas as tabelas foram limpas com sucesso.',
+      details: results
+    };
+  } catch (error) {
+    console.error('Erro durante a limpeza das tabelas:', error);
+    return {
+      success: false,
+      message: 'Ocorreu um erro durante a limpeza das tabelas.'
+    };
   }
+};
 
-  return success;
+/**
+ * Limpa uma tabela específica do banco de dados.
+ */
+export const cleanupTable = async (tableName: SupabaseTable): Promise<DbCleanupResponse> => {
+  try {
+    const { error, count } = await supabase
+      .from(tableName)
+      .delete()
+      .neq('id', 0) // Isso garante que todos os registros serão deletados
+      .select('count');
+
+    if (error) {
+      return {
+        success: false,
+        message: `Erro ao limpar a tabela ${tableName}: ${error.message}`
+      };
+    }
+
+    return {
+      success: true,
+      message: `Tabela ${tableName} foi limpa com sucesso.`,
+      details: [{ table: tableName, count: count || 0 }]
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    return {
+      success: false,
+      message: `Ocorreu um erro durante a limpeza da tabela ${tableName}: ${errorMessage}`
+    };
+  }
+};
+
+/**
+ * Restaura dados de demonstração para uma tabela específica.
+ * Esta função ainda não está implementada.
+ */
+export const restoreDemoData = async (tableName: SupabaseTable): Promise<DbCleanupResponse> => {
+  // Implementação futura para restaurar dados de demonstração
+  return {
+    success: false,
+    message: 'A função de restaurar dados de demonstração ainda não está implementada.'
+  };
 };

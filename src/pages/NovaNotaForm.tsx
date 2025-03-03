@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageLayout from '../components/layout/PageLayout';
@@ -20,16 +19,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Chave para armazenamento no localStorage
 const STORAGE_KEY = 'controlfrota_notas_fiscais';
 
-// Lista correta dos estados brasileiros em ordem alfabética
 const estados = [
   'AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 
   'PA', 'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO'
 ];
 
-// Tipos de veículos
 const tiposVeiculos = [
   'Utilitário', 'VUC', '3/4', 'Toco', 'Truck', 'Carreta', 'Bitrem', 'Vanderleia'
 ];
@@ -46,7 +42,7 @@ const NovaNotaForm = () => {
     dataEntrega: '',
     clienteDestinatario: '',
     cidadeDestino: '',
-    estadoDestino: 'SP', // Estado default
+    estadoDestino: 'SP',
     numeroNotaFiscal: '',
     senhaAgendamento: '',
     valorNotaFiscal: '',
@@ -55,7 +51,7 @@ const NovaNotaForm = () => {
     quantidadePaletes: '',
     valorCotacao: '',
     numeroTotalPaletes: '',
-    tipoCarga: 'paletizada', // paletizada ou batida
+    tipoCarga: 'paletizada',
     quantidadeCarga: '',
     tipoVeiculo: ''
   });
@@ -63,17 +59,15 @@ const NovaNotaForm = () => {
   const [isNotaDuplicada, setIsNotaDuplicada] = useState(false);
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
 
-  // Verificar se estamos em modo de edição
   useEffect(() => {
     if (location.state && location.state.noteData) {
       const note = location.state.noteData;
       setIsEditing(true);
       setOriginalId(note.id);
       
-      // Preencher o formulário com os dados da nota
       setFormData({
-        dataColeta: note.date.split('/').reverse().join('-') || '',  // Converter data para formato de input date
-        horaColeta: '08:00', // Valor padrão pois não temos o dado
+        dataColeta: note.date.split('/').reverse().join('-') || '',
+        horaColeta: '08:00',
         dataEntrega: note.deliveryDate.split('/').reverse().join('-') || '',
         clienteDestinatario: note.client || '',
         cidadeDestino: note.destination.split(',')[0] || '',
@@ -97,10 +91,7 @@ const NovaNotaForm = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Verifica duplicidade ao digitar o número da nota fiscal, mas apenas se não estiver em modo de edição
-    // ou se o ID for diferente do original
     if (name === 'numeroNotaFiscal' && (!isEditing || value !== originalId)) {
-      // Verificar no localStorage se a nota já existe
       const storedNotes = localStorage.getItem(STORAGE_KEY);
       let notasFiscaisExistentes: string[] = [];
       
@@ -117,25 +108,20 @@ const NovaNotaForm = () => {
   const handleCidadeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
     
-    // Aqui você pode implementar uma lógica para extrair o estado da cidade
-    // Por exemplo, se o usuário digitar "São Paulo - SP", você pode extrair o "SP"
     const cityParts = inputValue.split('-');
     
     setFormData(prev => ({ 
       ...prev, 
       cidadeDestino: inputValue,
-      // Se houver um formato "Cidade - UF", atualize automaticamente o estado
       estadoDestino: cityParts.length > 1 ? cityParts[1].trim() : prev.estadoDestino
     }));
   };
 
   const verificarDuplicidade = () => {
-    // Se estiver editando e o ID não foi alterado, não há duplicidade
     if (isEditing && formData.numeroNotaFiscal === originalId) {
       return false;
     }
     
-    // Verificar no localStorage se a nota já existe
     const storedNotes = localStorage.getItem(STORAGE_KEY);
     let notasFiscaisExistentes: string[] = [];
     
@@ -150,18 +136,15 @@ const NovaNotaForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Verifica se a nota fiscal já existe
     if (verificarDuplicidade()) {
       setIsAlertDialogOpen(true);
       return;
     }
     
-    // Continua com o salvamento se não houver duplicidade
     finalizarSalvamento();
   };
 
   const finalizarSalvamento = () => {
-    // Formatar os dados para o formato esperado pela lista
     const formattedNote = {
       id: formData.numeroNotaFiscal,
       date: formData.dataColeta.split('-').reverse().join('/'),
@@ -171,7 +154,6 @@ const NovaNotaForm = () => {
       value: `R$ ${parseFloat(formData.valorNotaFiscal).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
       status: isEditing ? location.state?.noteData?.status || 'Em trânsito' : 'Em trânsito',
       
-      // Dados adicionais completos
       password: formData.senhaAgendamento,
       volume: formData.volume,
       weight: formData.pesoTotal,
@@ -183,7 +165,6 @@ const NovaNotaForm = () => {
       vehicleType: formData.tipoVeiculo
     };
 
-    // Buscar as notas existentes
     const storedNotes = localStorage.getItem(STORAGE_KEY);
     let allNotes = [];
     
@@ -192,37 +173,28 @@ const NovaNotaForm = () => {
     }
     
     if (isEditing) {
-      // Se estiver editando, substitui a nota existente
       const updatedNotes = allNotes.map((note: any) => 
         note.id === originalId ? formattedNote : note
       );
       
-      // Salvar no localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
       
-      // Registrar operação
-      logOperation('EntradaNotas', `Atualizou nota fiscal: ${formData.numeroNotaFiscal}`, true);
+      logOperation('EntradaNotas', `Atualizou nota fiscal: ${formData.numeroNotaFiscal}`, 'true');
       
-      // Redirecionar para lista com dados atualizados
       navigate('/entrada-notas', { 
         state: { updatedNote: formattedNote }
       });
     } else {
-      // Se for uma nova nota, adiciona ao início do array
       const updatedNotes = [formattedNote, ...allNotes];
       
-      // Salvar no localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
       
-      // Registrar operação para nova nota
-      logOperation('EntradaNotas', `Cadastrou nova nota fiscal: ${formData.numeroNotaFiscal}`, true);
+      logOperation('EntradaNotas', `Cadastrou nova nota fiscal: ${formData.numeroNotaFiscal}`, 'true');
       
-      // Notificar usuário
       toast.success('Nota fiscal cadastrada com sucesso!', {
         description: `NF ${formData.numeroNotaFiscal} para ${formData.clienteDestinatario}`,
       });
       
-      // Redirecionar para lista com a nova nota
       navigate('/entrada-notas', { 
         state: { newNote: formattedNote }
       });
@@ -372,7 +344,7 @@ const NovaNotaForm = () => {
                   value={formData.numeroNotaFiscal}
                   onChange={handleInputChange}
                   className={isNotaDuplicada ? "border-red-500 pr-10" : ""}
-                  readOnly={isEditing} // Tornar somente leitura em modo de edição
+                  readOnly={isEditing}
                 />
                 {isNotaDuplicada && (
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -582,7 +554,6 @@ const NovaNotaForm = () => {
         </div>
       </form>
 
-      {/* Diálogo de alerta para nota fiscal duplicada */}
       <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

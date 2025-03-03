@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
@@ -27,7 +26,6 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 
-// Tipo para estruturar os dados das notas fiscais
 interface NotaFiscal {
   id: string;
   date: string;
@@ -47,10 +45,7 @@ interface NotaFiscal {
   vehicleType?: string;
 }
 
-// Chave para armazenamento no localStorage
 const STORAGE_KEY = 'controlfrota_notas_fiscais';
-
-// Quantidade de itens por página
 const ITEMS_PER_PAGE = 6;
 
 const EntradaNotas = () => {
@@ -61,12 +56,10 @@ const EntradaNotas = () => {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NotaFiscal | null>(null);
   const [isDuplicateWarningOpen, setIsDuplicateWarningOpen] = useState(false);
-  
-  // Estado para controle da paginação
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  
-  // Dados simulados de notas iniciais (só serão usados se não houver dados no localStorage)
+
   const dadosIniciaisNotas: NotaFiscal[] = [
     { id: 'NF-12345', date: '10/04/2023', client: 'Empresa ABC Ltda', destination: 'São Paulo, SP', deliveryDate: '15/04/2023', value: 'R$ 15.450,00', status: 'Em trânsito' },
     { id: 'NF-12346', date: '11/04/2023', client: 'Distribuidora XYZ', destination: 'Rio de Janeiro, RJ', deliveryDate: '18/04/2023', value: 'R$ 8.720,50', status: 'Entregue' },
@@ -75,55 +68,40 @@ const EntradaNotas = () => {
     { id: 'NF-12349', date: '14/04/2023', client: 'Atacadista UVW', destination: 'Salvador, BA', deliveryDate: '21/04/2023', value: 'R$ 12.540,30', status: 'Entregue' },
   ];
 
-  // Estado para armazenar as notas fiscais
   const [notesData, setNotesData] = useState<NotaFiscal[]>([]);
 
-  // Carregar notas do localStorage na inicialização
   useEffect(() => {
     const storedNotes = localStorage.getItem(STORAGE_KEY);
     if (storedNotes) {
       setNotesData(JSON.parse(storedNotes));
     } else {
-      // Se não existir dados no localStorage, usa os dados iniciais
       setNotesData(dadosIniciaisNotas);
-      // Salva os dados iniciais no localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dadosIniciaisNotas));
     }
   }, []);
 
-  // Verificar se há dados atualizados na navegação
   useEffect(() => {
-    // Verificar se temos dados atualizados na navegação (edição de nota)
     if (location.state && location.state.updatedNote) {
       const updatedNote = location.state.updatedNote;
       
-      // Atualizar o localStorage e o estado
       setNotesData(current => {
         const updated = current.map(note => 
           note.id === updatedNote.id ? updatedNote : note
         );
         
-        // Salvar no localStorage
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
         return updated;
       });
       
-      // Exibir notificação de sucesso
       toast.success(`Nota fiscal ${updatedNote.id} atualizada com sucesso`);
-      
-      // Limpar o state para evitar atualizações duplicadas
       window.history.replaceState({}, document.title);
-      
-      logOperation('EntradaNotas', `Atualizou nota fiscal ${updatedNote.id}`, true);
+      logOperation('EntradaNotas', `Atualizou nota fiscal ${updatedNote.id}`, 'true');
     }
     
-    // Verificar se temos uma nova nota fiscal
     if (location.state && location.state.newNote) {
       const newNote = location.state.newNote;
       
-      // Adicionar a nova nota ao array de notas
       setNotesData(current => {
-        // Verificar se a nota já existe
         const noteExists = current.some(note => note.id === newNote.id);
         
         if (noteExists) {
@@ -131,64 +109,49 @@ const EntradaNotas = () => {
           return current;
         }
         
-        // Adicionar a nova nota ao início do array
         const updated = [newNote, ...current];
         
-        // Salvar no localStorage
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-        
-        // Disparar evento para atualizar o componente LatestInvoicesTable
         window.dispatchEvent(new Event('storage'));
         
         return updated;
       });
       
-      // Exibir notificação de sucesso
       toast.success(`Nota fiscal ${newNote.id} cadastrada com sucesso`);
-      
-      // Limpar o state para evitar inserções duplicadas
       window.history.replaceState({}, document.title);
-      
-      logOperation('EntradaNotas', `Cadastrou nova nota fiscal ${newNote.id}`, true);
+      logOperation('EntradaNotas', `Cadastrou nova nota fiscal ${newNote.id}`, 'true');
     }
   }, [location]);
 
-  // Filtrar notas pelo termo de busca
   const filteredNotes = notesData.filter(note => 
     note.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.destination.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calcular total de páginas e atualizar quando a lista de notas for filtrada
   useEffect(() => {
     setTotalPages(Math.max(1, Math.ceil(filteredNotes.length / ITEMS_PER_PAGE)));
-    // Resetar para página 1 quando o filtro mudar
     setCurrentPage(1);
   }, [filteredNotes.length]);
 
-  // Obter notas para a página atual
   const getCurrentPageNotes = () => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     return filteredNotes.slice(startIndex, endIndex);
   };
 
-  // Navegar para a próxima página
   const nextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(prev => prev + 1);
     }
   };
 
-  // Navegar para a página anterior
   const previousPage = () => {
     if (currentPage > 1) {
       setCurrentPage(prev => prev - 1);
     }
   };
 
-  // Navegar para uma página específica
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -196,109 +159,89 @@ const EntradaNotas = () => {
   };
 
   const handleAddNote = () => {
-    logOperation('EntradaNotas', 'Iniciou o cadastro de nova nota fiscal', false);
+    logOperation('EntradaNotas', 'Iniciou o cadastro de nova nota fiscal', 'false');
   };
 
-  // Função para verificar se já existe nota com o mesmo número
   const verificarNotaDuplicada = (numeroNota: string) => {
     return notesData.some(note => note.id === numeroNota);
   };
 
-  // Função para abrir o diálogo de exclusão
   const handleDeleteClick = (note: NotaFiscal) => {
     setSelectedNote(note);
     setIsDeleteDialogOpen(true);
-    logOperation('EntradaNotas', `Iniciou exclusão da nota fiscal ${note.id}`, false);
+    logOperation('EntradaNotas', `Iniciou exclusão da nota fiscal ${note.id}`, 'false');
   };
 
-  // Função para confirmar exclusão
   const confirmDelete = () => {
     if (selectedNote) {
       const updatedNotes = notesData.filter(note => note.id !== selectedNote.id);
       setNotesData(updatedNotes);
       
-      // Salvar no localStorage após a exclusão
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
-      
-      // Disparar evento para atualizar o componente LatestInvoicesTable
       window.dispatchEvent(new Event('storage'));
       
       toast.success(`Nota fiscal ${selectedNote.id} excluída com sucesso`);
-      logOperation('EntradaNotas', `Excluiu nota fiscal ${selectedNote.id}`, true);
+      logOperation('EntradaNotas', `Excluiu nota fiscal ${selectedNote.id}`, 'true');
       setIsDeleteDialogOpen(false);
       setSelectedNote(null);
     }
   };
 
-  // Função para editar nota
   const handleEditClick = (note: NotaFiscal) => {
-    logOperation('EntradaNotas', `Iniciou edição da nota fiscal ${note.id}`, false);
+    logOperation('EntradaNotas', `Iniciou edição da nota fiscal ${note.id}`, 'false');
     toast.info(`Iniciando edição da nota fiscal ${note.id}`);
     navigate(`/entrada-notas/editar/${note.id}`, { state: { noteData: note } });
   };
 
-  // Função para ver detalhes
   const handleDetailsClick = (note: NotaFiscal) => {
     setSelectedNote(note);
     setIsDetailsDialogOpen(true);
-    logOperation('EntradaNotas', `Visualizou detalhes da nota fiscal ${note.id}`, false);
+    logOperation('EntradaNotas', `Visualizou detalhes da nota fiscal ${note.id}`, 'false');
   };
 
-  // Função para salvar alterações inline (edição rápida)
   const handleQuickSave = (updatedNote: NotaFiscal) => {
     setNotesData(current => {
       const updated = current.map(note => 
         note.id === updatedNote.id ? updatedNote : note
       );
       
-      // Salvar no localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      
-      // Disparar evento para atualizar o componente LatestInvoicesTable
       window.dispatchEvent(new Event('storage'));
       
       return updated;
     });
     
     toast.success(`Nota fiscal ${updatedNote.id} atualizada com sucesso`);
-    logOperation('EntradaNotas', `Atualizou rápida de nota fiscal ${updatedNote.id}`, true);
+    logOperation('EntradaNotas', `Atualizou rápida de nota fiscal ${updatedNote.id}`, 'true');
   };
 
-  // Função para limpar todas as notas e restaurar os dados iniciais
   const resetToInitialData = () => {
     setNotesData(dadosIniciaisNotas);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dadosIniciaisNotas));
     
-    // Disparar evento para atualizar o componente LatestInvoicesTable
     window.dispatchEvent(new Event('storage'));
     
     toast.success('Dados das notas fiscais foram restaurados para o padrão inicial');
-    logOperation('EntradaNotas', 'Restaurou dados iniciais das notas fiscais', true);
+    logOperation('EntradaNotas', 'Restaurou dados iniciais das notas fiscais', 'true');
   };
 
-  // Gerar array de números de página para exibição
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxPagesToShow = 3;
     
-    // Se temos poucas páginas, mostramos todas
     if (totalPages <= maxPagesToShow) {
       for (let i = 1; i <= totalPages; i++) {
         pageNumbers.push(i);
       }
     } else {
-      // Caso contrário, mostramos um número limitado
-      // Sempre mostramos a primeira página
       pageNumbers.push(1);
       
-      // Mostramos as páginas próximas da atual
       for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
         if (pageNumbers.indexOf(i) === -1) {
           pageNumbers.push(i);
         }
       }
       
-      // Sempre mostramos a última página
       if (pageNumbers.indexOf(totalPages) === -1) {
         pageNumbers.push(totalPages);
       }
@@ -307,7 +250,6 @@ const EntradaNotas = () => {
     return pageNumbers;
   };
 
-  // Obter as notas da página atual
   const currentPageNotes = getCurrentPageNotes();
 
   return (
@@ -484,7 +426,6 @@ const EntradaNotas = () => {
         </div>
       </div>
 
-      {/* Diálogo de confirmação para exclusão */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -504,7 +445,6 @@ const EntradaNotas = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Diálogo para exibição de detalhes */}
       <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -594,7 +534,6 @@ const EntradaNotas = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo de alerta para nota fiscal duplicada */}
       <AlertDialog open={isDuplicateWarningOpen} onOpenChange={setIsDuplicateWarningOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

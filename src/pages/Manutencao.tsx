@@ -17,11 +17,12 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { TipoManutencao } from '@/utils/constants';
 
 interface ManutencaoItem {
   id: number;
   placa_veiculo: string;
-  tipo_manutencao: 'preventiva' | 'corretiva';
+  tipo_manutencao: TipoManutencao;
   local_realizacao: 'patio' | 'externa';
   pecas_servicos: string;
   valor_total: number;
@@ -65,7 +66,13 @@ const Manutencao = () => {
         return;
       }
       
-      setManutencoes(data || []);
+      // Convertendo os dados para o tipo correto
+      const manutencoesConvertidas = data?.map(item => ({
+        ...item,
+        tipo_manutencao: item.tipo_manutencao as TipoManutencao
+      })) || [];
+      
+      setManutencoes(manutencoesConvertidas);
     } catch (error) {
       console.error('Erro:', error);
       toast.error('Ocorreu um erro ao processar a solicitação');
