@@ -81,26 +81,7 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
       if (error) {
         console.error('Erro ao carregar proprietários:', error);
         
-        // Fallback: usar mock data para desenvolvimento
-        setProprietarios([
-          { nome: 'Transportadora Silva' },
-          { nome: 'Logística Expressa' },
-          { nome: 'Transportes Rápidos' }
-        ]);
-      } else if (data) {
-        // Garantir que os dados estão no formato esperado
-        const proprietariosFormatados = (data as any[]).map((item: any) => {
-          // Verificar se o item tem a propriedade 'nome'
-          if (typeof item === 'object' && item.nome) {
-            return { nome: item.nome };
-          }
-          // Caso contrário, tentar extrair a informação do JSON
-          return { nome: typeof item === 'object' ? JSON.stringify(item) : String(item) };
-        });
-        
-        setProprietarios(proprietariosFormatados);
-      } else {
-        // Se a função RPC falhar ou não retornar dados, tentar consulta direta
+        // Fallback: usar consulta direta à tabela
         try {
           const { data: directData, error: directError } = await supabase
             .from('Proprietarios')
@@ -126,6 +107,18 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
             { nome: 'Transportes Rápidos' }
           ]);
         }
+      } else if (data) {
+        // Garantir que os dados estão no formato esperado
+        const proprietariosFormatados = (data as any[]).map((item: any) => {
+          // Verificar se o item tem a propriedade 'nome'
+          if (typeof item === 'object' && item.nome) {
+            return { nome: item.nome };
+          }
+          // Caso contrário, tentar extrair a informação do JSON
+          return { nome: typeof item === 'string' ? item : JSON.stringify(item) };
+        });
+        
+        setProprietarios(proprietariosFormatados);
       }
     } catch (error) {
       console.error('Erro ao processar proprietários:', error);
@@ -236,6 +229,31 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
     }
   };
 
+  // Formatação de CPF
+  const formatarCPF = (cpf: string) => {
+    // Remove caracteres não numéricos
+    const numerosApenas = cpf.replace(/\D/g, '');
+    
+    if (numerosApenas.length <= 3) {
+      return numerosApenas;
+    } else if (numerosApenas.length <= 6) {
+      return `${numerosApenas.slice(0, 3)}.${numerosApenas.slice(3)}`;
+    } else if (numerosApenas.length <= 9) {
+      return `${numerosApenas.slice(0, 3)}.${numerosApenas.slice(3, 6)}.${numerosApenas.slice(6)}`;
+    } else {
+      return `${numerosApenas.slice(0, 3)}.${numerosApenas.slice(3, 6)}.${numerosApenas.slice(6, 9)}-${numerosApenas.slice(9, 11)}`;
+    }
+  };
+
+  // Handler para formatar o CPF quando o usuário digitar
+  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedCPF = formatarCPF(e.target.value);
+    setFormData(prev => ({
+      ...prev,
+      cpf: formattedCPF
+    }));
+  };
+
   return (
     <div className="space-y-4">
       <Tabs 
@@ -269,7 +287,7 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
                   id="cpf"
                   name="cpf"
                   value={formData.cpf}
-                  onChange={handleChange}
+                  onChange={handleCPFChange}
                   placeholder="000.000.000-00"
                   required
                 />
@@ -343,7 +361,7 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
                   id="cpf"
                   name="cpf"
                   value={formData.cpf}
-                  onChange={handleChange}
+                  onChange={handleCPFChange}
                   placeholder="000.000.000-00"
                   required
                 />

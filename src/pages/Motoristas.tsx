@@ -147,8 +147,28 @@ const Motoristas = () => {
   // Filtrar por termo de busca
   const filteredDrivers = drivers.filter(driver => 
     driver.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    driver.cpf.includes(searchTerm)
+    (driver.cpf && driver.cpf.includes(searchTerm))
   );
+
+  // Formatar CPF para exibição
+  const formatarCPF = (cpf: string | null) => {
+    if (!cpf) return '-';
+    
+    // Se já estiver formatado, não refazer
+    if (cpf.includes('.') || cpf.includes('-')) return cpf;
+    
+    // Remove caracteres não numéricos
+    const numerosApenas = cpf.replace(/\D/g, '');
+    
+    // Verifica se é um CPF válido (11 dígitos)
+    if (numerosApenas.length !== 11) return cpf;
+    
+    // Formata CPF: 000.000.000-00
+    return numerosApenas
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  };
 
   return (
     <PageLayout>
@@ -266,7 +286,7 @@ const Motoristas = () => {
                     <tr key={driver.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{driver.id}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{driver.nome}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{driver.cpf}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{formatarCPF(driver.cpf)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{driver.cnh || '-'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                         {driver.vencimento_cnh ? (

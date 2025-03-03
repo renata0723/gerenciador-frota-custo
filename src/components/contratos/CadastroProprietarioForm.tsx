@@ -15,6 +15,7 @@ export interface ProprietarioData {
     agencia: string;
     conta: string;
     tipoConta: 'corrente' | 'poupanca';
+    chavePix: string;
   };
 }
 
@@ -30,6 +31,7 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
   const [agencia, setAgencia] = useState('');
   const [conta, setConta] = useState('');
   const [tipoConta, setTipoConta] = useState<'corrente' | 'poupanca'>('corrente');
+  const [chavePix, setChavePix] = useState('');
   const [carregando, setCarregando] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,7 +50,8 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
         banco,
         agencia,
         conta,
-        tipoConta
+        tipoConta,
+        chavePix
       };
       
       // Verificar se o proprietário já existe
@@ -91,7 +94,8 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
           banco,
           agencia,
           conta,
-          tipoConta
+          tipoConta,
+          chavePix
         }
       };
       
@@ -104,6 +108,33 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
     } finally {
       setCarregando(false);
     }
+  };
+
+  const formatarDocumento = (value: string) => {
+    // Remove caracteres não numéricos
+    const numerosApenas = value.replace(/\D/g, '');
+    
+    // CPF: formato 000.000.000-00
+    if (numerosApenas.length <= 11) {
+      return numerosApenas
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+        .replace(/(-\d{2})\d+?$/, '$1');
+    } 
+    // CNPJ: formato 00.000.000/0001-00
+    else {
+      return numerosApenas
+        .replace(/(\d{2})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1/$2')
+        .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
+        .replace(/(-\d{2})\d+?$/, '$1');
+    }
+  };
+
+  const handleDocumentoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDocumento(formatarDocumento(e.target.value));
   };
 
   return (
@@ -124,7 +155,7 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
         <Input
           id="documento"
           value={documento}
-          onChange={(e) => setDocumento(e.target.value)}
+          onChange={handleDocumentoChange}
           placeholder="CPF ou CNPJ do proprietário"
         />
       </div>
@@ -179,6 +210,16 @@ const CadastroProprietarioForm: React.FC<CadastroProprietarioFormProps> = ({ onS
                 <SelectItem value="poupanca">Conta Poupança</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="chavePix">Chave PIX</Label>
+            <Input
+              id="chavePix"
+              value={chavePix}
+              onChange={(e) => setChavePix(e.target.value)}
+              placeholder="CPF, CNPJ, E-mail, Telefone ou Chave aleatória"
+            />
           </div>
         </div>
       </div>
