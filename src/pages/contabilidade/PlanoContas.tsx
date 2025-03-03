@@ -13,8 +13,8 @@ import { Plus, FileSpreadsheet } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 
-import { getPlanoContas, criarConta } from '@/services/contabilidadeService';
-import { ContaContabil, TipoConta, NaturezaConta } from '@/types/contabilidade';
+import { buscarPlanoContas, criarContaContabil } from '@/services/contabilidadeService';
+import { ContaContabil } from '@/types/contabilidade';
 
 const PlanoContas = () => {
   const navigate = useNavigate();
@@ -24,9 +24,10 @@ const PlanoContas = () => {
   // Estado para a nova conta
   const [novaConta, setNovaConta] = useState<ContaContabil>({
     codigo: '',
+    codigo_reduzido: '',
     nome: '',
-    tipo: 'Ativo',
-    natureza: 'Devedora',
+    tipo: 'ativo',
+    natureza: 'devedora',
     nivel: 1,
     status: 'ativo'
   });
@@ -35,7 +36,7 @@ const PlanoContas = () => {
     const carregarContas = async () => {
       try {
         setLoading(true);
-        const data = await getPlanoContas();
+        const data = await buscarPlanoContas();
         setContas(data);
       } catch (error) {
         console.error('Erro ao carregar plano de contas:', error);
@@ -70,7 +71,7 @@ const PlanoContas = () => {
   
   const calcularContaPai = (codigo: string) => {
     const partes = codigo.split('.');
-    if (partes.length <= 1) return null;
+    if (partes.length <= 1) return undefined;
     return partes.slice(0, -1).join('.');
   };
   
@@ -78,23 +79,23 @@ const PlanoContas = () => {
     e.preventDefault();
     
     // Validação básica
-    if (!novaConta.codigo || !novaConta.nome) {
+    if (!novaConta.codigo || !novaConta.codigo_reduzido || !novaConta.nome) {
       toast.error('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
     
     // Calcular o nível com base no código (número de pontos + 1)
     const nivel = calcularNivel(novaConta.codigo);
-    const contaPai = calcularContaPai(novaConta.codigo);
+    const conta_pai = calcularContaPai(novaConta.codigo);
     
     const contaAtualizada = {
       ...novaConta,
       nivel,
-      conta_pai: contaPai
+      conta_pai
     };
     
     try {
-      const response = await criarConta(contaAtualizada);
+      const response = await criarContaContabil(contaAtualizada);
       
       if (response) {
         toast.success('Conta contábil registrada com sucesso.');
@@ -105,9 +106,10 @@ const PlanoContas = () => {
         // Limpa o formulário
         setNovaConta({
           codigo: '',
+          codigo_reduzido: '',
           nome: '',
-          tipo: 'Ativo',
-          natureza: 'Devedora',
+          tipo: 'ativo',
+          natureza: 'devedora',
           nivel: 1,
           status: 'ativo'
         });
@@ -166,6 +168,7 @@ const PlanoContas = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Código</TableHead>
+                      <TableHead>Código Reduzido</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Natureza</TableHead>
@@ -176,6 +179,9 @@ const PlanoContas = () => {
                       <TableRow key={conta.codigo}>
                         <TableCell className={getIndentClass(conta.nivel)}>
                           {conta.codigo}
+                        </TableCell>
+                        <TableCell>
+                          {conta.codigo_reduzido}
                         </TableCell>
                         <TableCell className={getIndentClass(conta.nivel)}>
                           {conta.nome}
@@ -194,7 +200,7 @@ const PlanoContas = () => {
         <TabsContent value="nova">
           <Card className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="codigo">Código da Conta</Label>
                   <Input
@@ -207,6 +213,21 @@ const PlanoContas = () => {
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Use formato hierárquico (ex: 1.1.2.01)
+                  </p>
+                </div>
+                
+                <div>
+                  <Label htmlFor="codigo_reduzido">Código Reduzido</Label>
+                  <Input
+                    id="codigo_reduzido"
+                    name="codigo_reduzido"
+                    value={novaConta.codigo_reduzido}
+                    onChange={handleInputChange}
+                    placeholder="Ex: 11201"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Código simplificado para lançamentos
                   </p>
                 </div>
                 
@@ -227,17 +248,17 @@ const PlanoContas = () => {
                   <Label htmlFor="tipo">Tipo da Conta</Label>
                   <Select 
                     value={novaConta.tipo}
-                    onValueChange={(value) => handleSelectChange('tipo', value as TipoConta)}
+                    onValueChange={(value) => handleSelectChange('tipo', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Ativo">Ativo</SelectItem>
-                      <SelectItem value="Passivo">Passivo</SelectItem>
-                      <SelectItem value="Patrimônio Líquido">Patrimônio Líquido</SelectItem>
-                      <SelectItem value="Receita">Receita</SelectItem>
-                      <SelectItem value="Despesa">Despesa</SelectItem>
+                      <SelectItem value="ativo">Ativo</SelectItem>
+                      <SelectItem value="passivo">Passivo</SelectItem>
+                      <SelectItem value="patrimonio">Patrimônio Líquido</SelectItem>
+                      <SelectItem value="receita">Receita</SelectItem>
+                      <SelectItem value="despesa">Despesa</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -246,14 +267,14 @@ const PlanoContas = () => {
                   <Label htmlFor="natureza">Natureza da Conta</Label>
                   <Select 
                     value={novaConta.natureza}
-                    onValueChange={(value) => handleSelectChange('natureza', value as NaturezaConta)}
+                    onValueChange={(value) => handleSelectChange('natureza', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a natureza" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Devedora">Devedora</SelectItem>
-                      <SelectItem value="Credora">Credora</SelectItem>
+                      <SelectItem value="devedora">Devedora</SelectItem>
+                      <SelectItem value="credora">Credora</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
