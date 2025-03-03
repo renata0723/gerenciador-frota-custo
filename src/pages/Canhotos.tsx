@@ -12,7 +12,10 @@ import { format } from 'date-fns';
 import PageHeader from '@/components/ui/PageHeader';
 import { Canhoto, CanhotoPendente } from '@/types/canhoto';
 import { CanhotoStatus } from '@/utils/constants';
-import { Search, FileDown, FileUp } from 'lucide-react';
+import { Search, FileDown, FileUp, Download } from 'lucide-react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const Canhotos: React.FC = () => {
   const [activeTab, setActiveTab] = useState('pendentes');
@@ -142,6 +145,60 @@ const Canhotos: React.FC = () => {
     }
   };
 
+  const exportarParaPDF = () => {
+    try {
+      const doc = new jsPDF();
+      
+      // Adicionar cabeçalho com logo e dados da empresa
+      doc.setFontSize(20);
+      doc.text('SSLOG Transportes LTDA', 105, 20, { align: 'center' });
+      doc.setFontSize(12);
+      doc.text('CNPJ: 44.712.877/0001-80', 105, 30, { align: 'center' });
+      doc.text('Rua Vagner Luis Boscardin, 7015 - Aguas Claras - Piraquara/PR', 105, 35, { align: 'center' });
+      
+      doc.setFontSize(16);
+      doc.text('Relatório de Canhotos Recebidos', 105, 50, { align: 'center' });
+      doc.setFontSize(10);
+      doc.text(`Data de geração: ${new Date().toLocaleDateString('pt-BR')}`, 105, 55, { align: 'center' });
+      
+      // Converter os dados para o formato esperado pelo autoTable
+      const tableData = canhotos.map(canhoto => [
+        canhoto.contrato_id,
+        canhoto.cliente,
+        canhoto.motorista,
+        canhoto.numero_nota_fiscal || '-',
+        formatarData(canhoto.data_entrega_cliente),
+        formatarData(canhoto.data_recebimento_canhoto),
+        canhoto.responsavel_recebimento || '-'
+      ]);
+      
+      // @ts-ignore - jsPDF-AutoTable é adicionado ao objeto jsPDF
+      doc.autoTable({
+        startY: 65,
+        head: [['Contrato', 'Cliente', 'Motorista', 'Nota Fiscal', 'Data Entrega', 'Data Recebimento', 'Responsável']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [41, 80, 149], textColor: 255 }
+      });
+      
+      // Adicionar rodapé
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(`Página ${i} de ${pageCount}`, 105, doc.internal.pageSize.height - 10, { align: 'center' });
+        doc.text(`SSLOG Transportes LTDA - Sistema de Controle de Frotas e Logística`, 105, doc.internal.pageSize.height - 5, { align: 'center' });
+      }
+      
+      // Salvar o PDF
+      doc.save('canhotos-recebidos.pdf');
+      toast.success('Relatório exportado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      toast.error('Erro ao gerar o relatório em PDF');
+    }
+  };
+
   return (
     <PageLayout>
       <PageHeader 
@@ -150,7 +207,7 @@ const Canhotos: React.FC = () => {
       />
       
       <div className="flex justify-between items-center mb-6">
-        <div></div>
+        <div className="flex-1"></div>
         <Button 
           onClick={() => setIsPesquisaDialogOpen(true)}
           className="flex items-center gap-2"
@@ -219,7 +276,11 @@ const Canhotos: React.FC = () => {
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Canhotos Recebidos</h2>
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2"
+                onClick={exportarParaPDF}
+              >
                 <FileDown size={16} />
                 Exportar Relatório
               </Button>
@@ -292,6 +353,7 @@ const Canhotos: React.FC = () => {
           <div className="p-1">
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
               Informe os dados do documento para registrar o recebimento do canhoto.
+              Você só precisa preencher um dos campos para localizar o documento.
             </p>
             <PesquisaDocumentos onResultadoEncontrado={handlePesquisaResult} />
           </div>

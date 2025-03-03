@@ -1,109 +1,155 @@
 
-import React, { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Search } from 'lucide-react';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { CanhotoPendente } from '@/types/canhoto';
+import { CanhotoPendente } from "@/types/canhoto";
 
-interface PesquisaDocumentosProps {
-  onResultadoEncontrado: (canhoto: CanhotoPendente) => void;
+export interface PesquisaDocumentosProps {
+  onResultadoEncontrado: (resultado: CanhotoPendente) => void;
 }
 
-const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({ 
-  onResultadoEncontrado 
-}) => {
-  const [numeroContrato, setNumeroContrato] = useState('');
-  const [numeroCte, setNumeroCte] = useState('');
-  const [numeroManifesto, setNumeroManifesto] = useState('');
-  const [numeroNotaFiscal, setNumeroNotaFiscal] = useState('');
-  const [carregando, setCarregando] = useState(false);
-
-  const handleBuscar = async (e: React.FormEvent) => {
-    e.preventDefault();
+const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({ onResultadoEncontrado }) => {
+  const [numeroContrato, setNumeroContrato] = useState("");
+  const [numeroManifesto, setNumeroManifesto] = useState("");
+  const [numeroCTe, setNumeroCTe] = useState("");
+  const [numeroNotaFiscal, setNumeroNotaFiscal] = useState("");
+  const [loading, setLoading] = useState(false);
+  
+  const handleSearch = async () => {
+    setLoading(true);
     
-    if (!numeroContrato && !numeroCte && !numeroManifesto && !numeroNotaFiscal) {
-      toast.error('Informe pelo menos um critério de busca');
+    // Verificar se pelo menos um campo foi preenchido
+    if (!numeroContrato && !numeroManifesto && !numeroCTe && !numeroNotaFiscal) {
+      toast.error("Preencha pelo menos um dos campos de pesquisa");
+      setLoading(false);
       return;
     }
     
-    setCarregando(true);
-    
     try {
-      // Converter numeroContrato para número se preenchido
-      const contratoId = numeroContrato ? parseInt(numeroContrato) : null;
+      let query = supabase
+        .from('Contratos')
+        .select('id, cliente_destino, motorista_id');
       
-      let query = supabase.from('Contratos').select('*');
+      if (numeroContrato) {
+        query = query.eq('id', numeroContrato);
+      }
+
+      // Buscar pelo contrato primeiro
+      const { data: contratoData, error: contratoError } = await query;
       
-      if (contratoId) {
-        query = query.eq('id', contratoId);
+      if (contratoError) {
+        throw contratoError;
       }
       
-      if (numeroManifesto) {
-        query = query.eq('numero_manifesto', numeroManifesto);
-      }
-      
-      if (numeroCte) {
-        query = query.eq('numero_cte', numeroCte);
-      }
-      
-      if (numeroNotaFiscal) {
-        // Buscar por nota fiscal relacionada ao contrato
-        query = query.ilike('notas_relacionadas', `%${numeroNotaFiscal}%`);
-      }
-      
-      const { data, error } = await query.limit(1);
-      
-      if (error) {
-        console.error('Erro ao buscar documentos:', error);
-        toast.error('Erro ao buscar documentos');
-        return;
-      }
-      
-      if (!data || data.length === 0) {
-        toast.error('Nenhum documento encontrado com os critérios informados');
-        return;
-      }
-      
-      const contrato = data[0];
-      
-      // Buscar informações de motorista
-      const { data: motoristaDado, error: motoristaError } = await supabase
-        .from('Motoristas')
-        .select('nome')
-        .eq('id', contrato.motorista_id)
-        .single();
+      if (contratoData && contratoData.length > 0) {
+        // Buscar nome do motorista
+        const { data: motoristasData } = await supabase
+          .from('Motoristas')
+          .select('nome')
+          .eq('id', contratoData[0].motorista_id)
+          .single();
+          
+        const resultado: CanhotoPendente = {
+          contrato_id: contratoData[0].id.toString(),
+          cliente: contratoData[0].cliente_destino,
+          motorista: motoristasData?.nome || 'Não identificado'
+        };
         
-      let nomeMotorista = 'Motorista não informado';
-      if (!motoristaError && motoristaDado) {
-        nomeMotorista = motoristaDado.nome;
+        onResultadoEncontrado(resultado);
+        return;
       }
       
-      // Criar objeto de canhoto pendente
-      const canhotoPendente: CanhotoPendente = {
-        contrato_id: contrato.id.toString(),
-        cliente: contrato.cliente_destino || 'Cliente não informado',
-        motorista: nomeMotorista,
-        data_entrega: contrato.data_saida // Usar data de saída como referência
-      };
-      
-      onResultadoEncontrado(canhotoPendente);
-      toast.success('Documento encontrado!');
-      
+      // Se não encontrou por contrato, tentar pelos outros campos
+      if (numeroManifesto || numeroCTe || numeroNotaFiscal) {
+        let queryCanhotos = supabase.from('Canhoto').select('*');
+        
+        if (numeroManifesto) {
+          queryCanhotos = queryCanhotos.eq('numero_manifesto', numeroManifesto);
+        }
+        
+        if (numeroCTe) {
+          queryCanhotos = queryCanhotos.eq('numero_cte', numeroCTe);
+        }
+        
+        if (numeroNotaFiscal) {
+          queryCanhotos = queryCanhotos.eq('numero_nota_fiscal', numeroNotaFiscal);
+        }
+        
+        const { data: canhotosData, error: canhotosError } = await queryCanhotos;
+        
+        if (canhotosError) {
+          throw canhotosError;
+        }
+        
+        if (canhotosData && canhotosData.length > 0) {
+          // Verifique se algum documento já teve o canhoto recebido
+          const canhotosRecebidos = canhotosData.filter(c => c.status === 'Recebido');
+          
+          if (canhotosRecebidos.length > 0) {
+            toast.warning("Este documento já teve seu canhoto registrado");
+            setLoading(false);
+            return;
+          }
+          
+          // Pegar o primeiro canhoto pendente
+          const canhotoPendente = canhotosData[0];
+          
+          const resultado: CanhotoPendente = {
+            contrato_id: canhotoPendente.contrato_id,
+            cliente: canhotoPendente.cliente,
+            motorista: canhotoPendente.motorista,
+            data_entrega: canhotoPendente.data_entrega_cliente,
+            numero_nota_fiscal: canhotoPendente.numero_nota_fiscal
+          };
+          
+          onResultadoEncontrado(resultado);
+          return;
+        }
+
+        // Tentar buscar pelos documentos nas Notas Fiscais
+        if (numeroNotaFiscal) {
+          const { data: notasData, error: notasError } = await supabase
+            .from('Notas Fiscais')
+            .select('*')
+            .eq('numero_nota_fiscal', numeroNotaFiscal);
+            
+          if (notasError) {
+            throw notasError;
+          }
+          
+          if (notasData && notasData.length > 0) {
+            const nota = notasData[0];
+            
+            const resultado: CanhotoPendente = {
+              cliente: nota.cliente_destinatario,
+              contrato_id: '',  // Será preenchido posteriormente
+              motorista: 'A ser associado',
+              data_entrega: nota.data_prevista_entrega,
+              numero_nota_fiscal: nota.numero_nota_fiscal.toString()
+            };
+            
+            onResultadoEncontrado(resultado);
+            return;
+          }
+        }
+        
+        toast.error("Nenhum documento encontrado com os critérios informados");
+      }
     } catch (error) {
-      console.error('Erro:', error);
-      toast.error('Ocorreu um erro ao processar a solicitação');
+      console.error('Erro ao pesquisar documento:', error);
+      toast.error("Ocorreu um erro ao pesquisar o documento");
     } finally {
-      setCarregando(false);
+      setLoading(false);
     }
   };
-
+  
   return (
-    <form onSubmit={handleBuscar} className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
           <Label htmlFor="numeroContrato">Número do Contrato</Label>
           <Input
             id="numeroContrato"
@@ -113,7 +159,7 @@ const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({
           />
         </div>
         
-        <div className="space-y-2">
+        <div>
           <Label htmlFor="numeroManifesto">Número do Manifesto</Label>
           <Input
             id="numeroManifesto"
@@ -122,18 +168,20 @@ const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({
             onChange={(e) => setNumeroManifesto(e.target.value)}
           />
         </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="numeroCte">Número do CT-e</Label>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="numeroCTe">Número do CT-e</Label>
           <Input
-            id="numeroCte"
+            id="numeroCTe"
             placeholder="Digite o número do CT-e"
-            value={numeroCte}
-            onChange={(e) => setNumeroCte(e.target.value)}
+            value={numeroCTe}
+            onChange={(e) => setNumeroCTe(e.target.value)}
           />
         </div>
         
-        <div className="space-y-2">
+        <div>
           <Label htmlFor="numeroNotaFiscal">Número da Nota Fiscal</Label>
           <Input
             id="numeroNotaFiscal"
@@ -144,17 +192,23 @@ const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({
         </div>
       </div>
       
-      <div className="flex justify-end">
+      <div className="flex justify-center">
         <Button 
-          type="submit" 
-          className="flex gap-2 items-center" 
-          disabled={carregando}
+          type="button" 
+          onClick={handleSearch} 
+          disabled={loading}
+          className="w-full sm:w-auto"
         >
-          <Search size={16} />
-          {carregando ? 'Buscando...' : 'Buscar Documento'}
+          {loading ? "Pesquisando..." : "Buscar Documento"}
         </Button>
       </div>
-    </form>
+      
+      <div className="bg-blue-50 p-4 rounded-lg">
+        <p className="text-sm text-blue-800">
+          <strong>Dica:</strong> Preencha apenas um dos campos para realizar a pesquisa. O sistema irá encontrar o documento relacionado.
+        </p>
+      </div>
+    </div>
   );
 };
 

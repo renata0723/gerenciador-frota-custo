@@ -10,7 +10,7 @@ export interface LancamentoContabil {
   documento_referencia?: string;
   tipo_documento?: string;
   centro_custo?: string;
-  status: string;
+  status: StatusItem;
   periodo_fiscal_fechado?: boolean;
   created_at?: string;
 }

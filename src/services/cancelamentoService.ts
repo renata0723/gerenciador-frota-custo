@@ -111,11 +111,17 @@ const atualizarStatusDocumento = async (tipoDocumento: string, numeroDocumento: 
     
     if (tabela && campoNumero) {
       // Verificar se o documento existe
-      const { data: docExistente, error: errorVerificacao } = await supabase
-        .from(tabela)
-        .select('*')
-        .eq(campoNumero, numeroDocumento)
-        .maybeSingle();
+      let query = supabase.from(tabela).select('*');
+      
+      // Para Contratos, que é numérico
+      if (tipoDocumento === 'Contrato') {
+        const id = numeroDocumento;
+        query = query.eq(campoNumero, id);
+      } else {
+        query = query.eq(campoNumero, numeroDocumento);
+      }
+      
+      const { data: docExistente, error: errorVerificacao } = await query.maybeSingle();
       
       if (errorVerificacao) {
         console.error(`Erro ao verificar existência do documento ${tipoDocumento}:`, errorVerificacao);
@@ -220,11 +226,10 @@ export const verificarSeDocumentoExiste = async (tipoDocumento: string, numeroDo
       
       return data !== null;
     } else {
-      const { data, error } = await supabase
-        .from(tabela)
-        .select('*')
-        .eq(campoNumero, numeroDocumento)
-        .maybeSingle();
+      let query = supabase.from(tabela).select('*');
+      query = query.eq(campoNumero, numeroDocumento);
+      
+      const { data, error } = await query.maybeSingle();
       
       if (error) {
         throw error;

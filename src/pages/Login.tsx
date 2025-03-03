@@ -59,7 +59,7 @@ const Login = () => {
               className="h-32 mx-auto"
             />
           </div>
-          <CardTitle className="text-2xl font-bold text-sistema-primary">CONTROLADORIA</CardTitle>
+          <CardTitle className="text-2xl font-bold text-sistema-primary">SSLOG TRANSPORTES LTDA</CardTitle>
           <CardDescription>
             Sistema de Controle de Frotas e Logística
           </CardDescription>
@@ -97,7 +97,7 @@ const Login = () => {
           </form>
         </CardContent>
         <CardFooter className="flex justify-center text-sm text-gray-500">
-          © {new Date().getFullYear()} Sslog Transportes - Todos os direitos reservados
+          © {new Date().getFullYear()} Sslog Transportes LTDA - CNPJ: 44.712.877/0001-80 - Todos os direitos reservados
         </CardFooter>
       </Card>
     </div>

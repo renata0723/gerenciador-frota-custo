@@ -3,8 +3,16 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, Key, UserX } from 'lucide-react';
+import { Edit, Key, UserX, UserCheck, MoreHorizontal } from 'lucide-react';
 import { Usuario } from '@/types/usuario';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface UsuariosTableProps {
   usuarios: Usuario[];
@@ -57,34 +65,38 @@ const UsuariosTable: React.FC<UsuariosTableProps> = ({
                   : 'Nunca acessou'}
               </TableCell>
               <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => onEditar(usuario)}
-                    title="Editar Usuário"
-                  >
-                    <Edit size={16} />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => onGerenciarPermissoes(usuario)}
-                    title="Gerenciar Permissões"
-                  >
-                    <Key size={16} />
-                  </Button>
-                  {onDesativar && usuario.status !== 'inativo' && (
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => onDesativar(usuario)}
-                      title="Desativar Usuário"
-                    >
-                      <UserX size={16} />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal size={16} />
+                      <span className="sr-only">Abrir menu</span>
                     </Button>
-                  )}
-                </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Ações do Usuário</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onEditar(usuario)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      <span>Editar Usuário</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onGerenciarPermissoes(usuario)}>
+                      <Key className="mr-2 h-4 w-4" />
+                      <span>Gerenciar Permissões</span>
+                    </DropdownMenuItem>
+                    {onDesativar && usuario.status !== 'inativo' && (
+                      <DropdownMenuItem onClick={() => onDesativar(usuario)}>
+                        <UserX className="mr-2 h-4 w-4" />
+                        <span>Desativar Usuário</span>
+                      </DropdownMenuItem>
+                    )}
+                    {onDesativar && usuario.status === 'inativo' && (
+                      <DropdownMenuItem onClick={() => onDesativar(usuario)}>
+                        <UserCheck className="mr-2 h-4 w-4" />
+                        <span>Ativar Usuário</span>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))
