@@ -1,80 +1,58 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { Button } from './button';
-
-export interface BreadcrumbItem {
-  label: string;
-  href?: string;
-}
+import { Button } from '@/components/ui/button';
+import { ChevronLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export interface PageHeaderProps {
   title: string;
   description?: string;
-  icon?: React.ReactNode;
-  breadcrumbs?: BreadcrumbItem[];
-  actions?: React.ReactNode;
   backButton?: boolean;
-  onBackClick?: () => void;
+  backLink?: string;
+  children?: React.ReactNode;
 }
 
-const PageHeader = ({ 
-  title, 
-  description, 
-  icon, 
-  breadcrumbs, 
-  actions,
-  backButton,
-  onBackClick
-}: PageHeaderProps) => {
+const PageHeader: React.FC<PageHeaderProps> = ({
+  title,
+  description,
+  backButton = false,
+  backLink,
+  children
+}) => {
+  const navigate = useNavigate();
+  
+  const handleBack = () => {
+    if (backLink) {
+      navigate(backLink);
+    } else {
+      navigate(-1);
+    }
+  };
+  
   return (
-    <div className="mb-8">
-      {breadcrumbs && breadcrumbs.length > 0 && (
-        <div className="flex items-center text-sm text-muted-foreground mb-3">
-          {breadcrumbs.map((item, index) => (
-            <React.Fragment key={index}>
-              {index > 0 && <ChevronRight className="mx-2" size={14} />}
-              {item.href ? (
-                <Link 
-                  to={item.href} 
-                  className="hover:text-foreground transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ) : (
-                <span>{item.label}</span>
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-      )}
-      
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 mb-2">
-          {backButton && (
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={onBackClick}
-              className="mr-1"
-            >
-              <ChevronLeft size={20} />
-            </Button>
-          )}
-          {icon && <div className="flex-shrink-0">{icon}</div>}
-          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        </div>
-        {actions && (
-          <div className="flex items-center gap-2">
-            {actions}
-          </div>
+    <div className="flex flex-col space-y-2 mb-6">
+      <div className="flex items-center space-x-4">
+        {backButton && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 p-0 mr-2 hover:bg-transparent"
+            onClick={handleBack}
+          >
+            <ChevronLeft className="h-5 w-5" />
+            Voltar
+          </Button>
         )}
+        
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+          {description && (
+            <p className="text-muted-foreground">{description}</p>
+          )}
+        </div>
       </div>
       
-      {description && (
-        <p className="text-muted-foreground">{description}</p>
-      )}
+      {children && <div className="flex items-center justify-between">{children}</div>}
     </div>
   );
 };

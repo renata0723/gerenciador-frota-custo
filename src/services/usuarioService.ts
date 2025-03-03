@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Usuario, Permissao, PermissaoUsuario } from '@/types/usuario';
+import { Usuario, Permissao, PermissaoUsuario, StatusUsuario } from '@/types/usuario';
 import { logOperation } from '@/utils/logOperations';
 
 // Serviço para Usuários
@@ -17,7 +17,13 @@ export const getUsuarios = async (): Promise<Usuario[]> => {
       return [];
     }
     
-    return data || [];
+    // Converter o tipo status para StatusUsuario
+    const usuariosConvertidos: Usuario[] = data.map(usuario => ({
+      ...usuario,
+      status: usuario.status as StatusUsuario
+    }));
+    
+    return usuariosConvertidos;
   } catch (error) {
     console.error('Erro ao buscar usuários:', error);
     logOperation('Usuários', 'Buscar usuários', 'false');
@@ -31,9 +37,18 @@ export const criarUsuario = async (usuario: Usuario): Promise<Usuario | null> =>
     const usuarioLog = { ...usuario };
     delete usuarioLog.senha;
     
+    // Garante que o senha esteja presente no objeto (exigido pelo Supabase)
+    const dadosInsercao = {
+      nome: usuario.nome,
+      email: usuario.email,
+      senha: usuario.senha || '', // Garante que tenha uma string
+      cargo: usuario.cargo,
+      status: usuario.status
+    };
+    
     const { data, error } = await supabase
       .from('Usuarios')
-      .insert(usuario)
+      .insert(dadosInsercao)
       .select()
       .maybeSingle();
     
@@ -44,7 +59,12 @@ export const criarUsuario = async (usuario: Usuario): Promise<Usuario | null> =>
     }
     
     logOperation('Usuários', 'Criar usuário', 'true');
-    return data;
+    
+    // Converter o tipo status para StatusUsuario
+    return {
+      ...data,
+      status: data.status as StatusUsuario
+    };
   } catch (error) {
     console.error('Erro ao criar usuário:', error);
     logOperation('Usuários', 'Criar usuário', 'false');
@@ -72,7 +92,12 @@ export const atualizarUsuario = async (id: number, usuario: Partial<Usuario>): P
     }
     
     logOperation('Usuários', 'Atualizar usuário', 'true');
-    return data;
+    
+    // Converter o tipo status para StatusUsuario
+    return {
+      ...data,
+      status: data.status as StatusUsuario
+    };
   } catch (error) {
     console.error('Erro ao atualizar usuário:', error);
     logOperation('Usuários', 'Atualizar usuário', 'false');
@@ -214,11 +239,16 @@ export const autenticarUsuario = async (email: string, senha: string): Promise<U
       }
       
       logOperation('Usuários', 'Login', 'true');
+      
+      // Converter o tipo status para StatusUsuario
+      return {
+        ...data,
+        status: data.status as StatusUsuario
+      };
     } else {
       console.log('Usuário ou senha incorretos');
+      return null;
     }
-    
-    return data;
   } catch (error) {
     console.error('Erro ao autenticar usuário:', error);
     logOperation('Usuários', 'Login', 'false');

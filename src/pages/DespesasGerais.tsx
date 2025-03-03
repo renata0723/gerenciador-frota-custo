@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/ui/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import NovaDespesaForm from '@/components/despesas/NovaDespesaForm';
-import { DespesaFormData, Despesa } from '@/types/despesa';
+import { DespesaFormData, Despesa, TipoDespesa } from '@/types/despesa';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -45,7 +45,14 @@ const DespesasGerais = () => {
         return;
       }
       
-      setDespesas(data || []);
+      const despesasConvertidas: Despesa[] = (data || []).map(item => ({
+        ...item,
+        tipo_despesa: item.tipo_despesa as TipoDespesa,
+        categoria: item.categoria as "viagem" | "administrativa" | undefined,
+        rateio: Boolean(item.rateio)
+      }));
+      
+      setDespesas(despesasConvertidas);
     } catch (error) {
       console.error('Erro ao processar dados de despesas:', error);
     } finally {
