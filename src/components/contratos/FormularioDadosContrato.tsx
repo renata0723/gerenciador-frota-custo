@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Plus, Search, Truck, User } from 'lucide-react';
 import CadastroPlacaForm from './CadastroPlacaForm';
 import CadastroProprietarioForm from './CadastroProprietarioForm';
+import CadastroMotoristaForm from './CadastroMotoristaForm';
 import { ProprietarioData } from './CadastroProprietarioForm';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,11 +59,14 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
   const [dialogPlaca, setDialogPlaca] = useState(false);
   const [dialogCarreta, setDialogCarreta] = useState(false);
   const [dialogProprietario, setDialogProprietario] = useState(false);
+  const [dialogMotorista, setDialogMotorista] = useState(false);
   const [proprietarios, setProprietarios] = useState<{nome: string, dados_bancarios: string}[]>([]);
   const [placasDisponiveis, setPlacasDisponiveis] = useState<{placa_cavalo: string, placa_carreta: string | null, tipo_frota: string}[]>([]);
   const [placasCarreta, setPlacasCarreta] = useState<string[]>([]);
   const [carregandoPlacas, setCarregandoPlacas] = useState(false);
   const [carregandoProprietarios, setCarregandoProprietarios] = useState(false);
+  const [motoristas, setMotoristas] = useState<{nome: string, cpf: string}[]>([]);
+  const [carregandoMotoristas, setCarregandoMotoristas] = useState(false);
 
   // Lista de estados brasileiros
   const estados = [
@@ -72,11 +75,12 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
     'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
   ];
 
-  // Carregar placas e proprietários ao iniciar
+  // Carregar placas, proprietários e motoristas ao iniciar
   useEffect(() => {
     carregarPlacas();
     carregarPlacasCarreta();
     carregarProprietarios();
+    carregarMotoristas();
   }, []);
 
   // Quando o tipo de frota mudar, limpar proprietário se for frota própria
@@ -163,6 +167,28 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
     }
   };
 
+  const carregarMotoristas = async () => {
+    setCarregandoMotoristas(true);
+    try {
+      const { data, error } = await supabase
+        .from('Motoristas')
+        .select('nome, cpf')
+        .eq('status', 'active');
+
+      if (error) {
+        console.error('Erro ao carregar motoristas:', error);
+        toast.error('Erro ao carregar motoristas disponíveis');
+        return;
+      }
+
+      setMotoristas(data || []);
+    } catch (error) {
+      console.error('Erro ao processar motoristas:', error);
+    } finally {
+      setCarregandoMotoristas(false);
+    }
+  };
+
   const buscarProprietarioPorPlaca = async (placa: string) => {
     try {
       // Primeiro, verificar se a placa é de terceiro
@@ -223,7 +249,7 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
         proprietario: proprietario.nome,
         proprietarioInfo: {
           nome: proprietario.nome,
-          documento: proprietario.documento,
+          documento: '',
           dadosBancarios: {
             banco: dadosBancarios.banco,
             agencia: dadosBancarios.agencia,
@@ -342,6 +368,16 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
         console.error('Erro ao processar vínculo:', error);
       }
     }
+  };
+
+  const handleSaveMotorista = async (data: { nome: string; cpf: string }) => {
+    setDialogMotorista(false);
+    setFormData(prev => ({
+      ...prev,
+      motorista: data.nome
+    }));
+    await carregarMotoristas();
+    toast.success(`Motorista ${data.nome} cadastrado com sucesso!`);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -579,52 +615,74 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
           </div>
           
           <div>
-            <Label htmlFor="motorista">Motorista *</Label>
-            <Input
-              id="motorista"
-              name="motorista"
-              value={formData.motorista}
-              onChange={handleChange}
-              required
-            />
+            <Label htmlFor="motorista" className="flex justify-between">
+              <span>Motorista *</span>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs"
+                onClick={() => setDialogMotorista(true)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Cadastrar
+              </Button>
+            </Label>
+            <div className="flex space-x-2">
+              <Select 
+                value={formData.motorista} 
+                onValueChange={(value) => handleSelectChange('motorista', value)}
+                disabled={carregandoMotoristas}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder={carregandoMotoristas ? "Carregando..." : "Selecione o motorista"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {motoristas.map(m => (
+                    <SelectItem key={m.nome} value={m.nome}>{m.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" size="icon" onClick={carregarMotoristas}>
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           
-          {formData.tipo === 'terceiro' && (
-            <div>
-              <Label htmlFor="proprietario" className="flex justify-between">
-                <span>Proprietário *</span>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-6 px-2 text-xs"
-                  onClick={() => setDialogProprietario(true)}
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  Cadastrar
-                </Button>
-              </Label>
-              <div className="flex space-x-2">
-                <Select 
-                  value={formData.proprietario} 
-                  onValueChange={(value) => handleSelectChange('proprietario', value)}
-                  disabled={carregandoProprietarios}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder={carregandoProprietarios ? "Carregando..." : "Selecione o proprietário"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {proprietarios.map(prop => (
-                      <SelectItem key={prop.nome} value={prop.nome}>{prop.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" size="icon" onClick={carregarProprietarios}>
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
+          <div>
+            <Label htmlFor="proprietario" className="flex justify-between">
+              <span>Proprietário *</span>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs"
+                onClick={() => setDialogProprietario(true)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Cadastrar
+              </Button>
+            </Label>
+            <div className="flex space-x-2">
+              <Select 
+                value={formData.proprietario} 
+                onValueChange={(value) => handleSelectChange('proprietario', value)}
+                disabled={carregandoProprietarios}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder={carregandoProprietarios ? "Carregando..." : "Selecione o proprietário"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {proprietarios.map(prop => (
+                    <SelectItem key={prop.nome} value={prop.nome}>{prop.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" size="icon" onClick={carregarProprietarios}>
+                <Search className="h-4 w-4" />
+              </Button>
             </div>
-          )}
+          </div>
         </div>
         
         <div className="flex justify-end space-x-2 pt-4">
@@ -634,7 +692,6 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
         </div>
       </form>
 
-      {/* Dialog para cadastrar nova placa de cavalo */}
       <Dialog open={dialogPlaca} onOpenChange={setDialogPlaca}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -650,7 +707,6 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Dialog para cadastrar nova placa de carreta */}
       <Dialog open={dialogCarreta} onOpenChange={setDialogCarreta}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -667,7 +723,6 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Dialog para cadastrar novo proprietário */}
       <Dialog open={dialogProprietario} onOpenChange={setDialogProprietario}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -679,6 +734,21 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
           <CadastroProprietarioForm
             onSave={handleSaveProprietario}
             onCancel={() => setDialogProprietario(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={dialogMotorista} onOpenChange={setDialogMotorista}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <User className="mr-2 h-5 w-5" />
+              Cadastrar Novo Motorista
+            </DialogTitle>
+          </DialogHeader>
+          <CadastroMotoristaForm
+            onSave={handleSaveMotorista}
+            onCancel={() => setDialogMotorista(false)}
           />
         </DialogContent>
       </Dialog>
