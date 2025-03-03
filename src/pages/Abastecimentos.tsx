@@ -14,8 +14,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logOperation } from '@/utils/logOperations';
+import { useNavigate } from 'react-router-dom';
 
 const Abastecimentos: React.FC = () => {
+  const navigate = useNavigate();
+  
   // Estados para gerenciar tipos de combustível
   const [tiposCombustivel, setTiposCombustivel] = useState<TipoCombustivel[]>([]);
   const [isNewTypeDialogOpen, setIsNewTypeDialogOpen] = useState(false);
@@ -47,6 +50,11 @@ const Abastecimentos: React.FC = () => {
     loadPlacas();
     loadMotoristas();
   }, []);
+
+  // Função para voltar ao menu principal
+  const handleVoltarMenu = () => {
+    navigate('/');
+  };
 
   // Carregar tipos de combustível
   const loadTiposCombustivel = async () => {
@@ -256,6 +264,12 @@ const Abastecimentos: React.FC = () => {
       
       // Log de operação
       logOperation('Abastecimentos', `Registrado abastecimento para veículo: ${formData.placa}`);
+      
+      // Opção para retornar ao menu principal
+      const deveVoltar = window.confirm('Abastecimento registrado com sucesso! Deseja voltar ao menu principal?');
+      if (deveVoltar) {
+        navigate('/');
+      }
     } catch (error) {
       console.error('Erro ao processar:', error);
       toast.error('Ocorreu um erro ao registrar o abastecimento');
@@ -274,7 +288,10 @@ const Abastecimentos: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Gerenciamento de Abastecimentos</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Gerenciamento de Abastecimentos</h1>
+        <Button variant="outline" onClick={handleVoltarMenu}>Voltar ao Menu Principal</Button>
+      </div>
       
       <Tabs defaultValue="abastecimentos" className="w-full">
         <TabsList className="mb-4">
