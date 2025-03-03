@@ -9,6 +9,7 @@ import { DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export interface MotoristaData {
   nome: string;
@@ -76,49 +77,21 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
     setCarregandoProprietarios(true);
     try {
       // Usando função SQL personalizada para evitar erros de tipo
-      const { data, error } = await supabase.rpc('listar_proprietarios');
+      const { data, error } = await supabase
+        .from('Proprietarios')
+        .select('nome');
       
       if (error) {
         console.error('Erro ao carregar proprietários:', error);
         
-        // Fallback: usar consulta direta à tabela
-        try {
-          const { data: directData, error: directError } = await supabase
-            .from('Proprietarios')
-            .select('nome');
-            
-          if (directError) {
-            console.error('Erro consulta direta:', directError);
-            // Mock data para desenvolvimento
-            setProprietarios([
-              { nome: 'Transportadora Silva' },
-              { nome: 'Logística Expressa' },
-              { nome: 'Transportes Rápidos' }
-            ]);
-          } else {
-            setProprietarios(directData || []);
-          }
-        } catch (err) {
-          console.error('Erro ao processar consulta direta:', err);
-          // Mock data como último recurso
-          setProprietarios([
-            { nome: 'Transportadora Silva' },
-            { nome: 'Logística Expressa' },
-            { nome: 'Transportes Rápidos' }
-          ]);
-        }
+        // Mock data para desenvolvimento
+        setProprietarios([
+          { nome: 'Transportadora Silva' },
+          { nome: 'Logística Expressa' },
+          { nome: 'Transportes Rápidos' }
+        ]);
       } else if (data) {
-        // Garantir que os dados estão no formato esperado
-        const proprietariosFormatados = (data as any[]).map((item: any) => {
-          // Verificar se o item tem a propriedade 'nome'
-          if (typeof item === 'object' && item.nome) {
-            return { nome: item.nome };
-          }
-          // Caso contrário, tentar extrair a informação do JSON
-          return { nome: typeof item === 'string' ? item : JSON.stringify(item) };
-        });
-        
-        setProprietarios(proprietariosFormatados);
+        setProprietarios(data);
       }
     } catch (error) {
       console.error('Erro ao processar proprietários:', error);
@@ -304,20 +277,22 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
                 />
               </div>
               
-              <div>
-                <Label htmlFor="tipo">Tipo de Motorista *</Label>
-                <Select 
+              <div className="space-y-2">
+                <Label>Tipo de Motorista *</Label>
+                <RadioGroup 
                   value={formData.tipo} 
-                  onValueChange={(value) => handleSelectChange('tipo', value as 'frota' | 'parceiro')}
+                  onValueChange={(value) => handleSelectChange('tipo', value)}
+                  className="flex space-x-4"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="frota">Frota Própria</SelectItem>
-                    <SelectItem value="parceiro">Parceiro/Terceirizado</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="frota" id="tipo-frota" />
+                    <Label htmlFor="tipo-frota" className="cursor-pointer">Frota Própria</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="parceiro" id="tipo-parceiro" />
+                    <Label htmlFor="tipo-parceiro" className="cursor-pointer">Terceirizado</Label>
+                  </div>
+                </RadioGroup>
               </div>
               
               {formData.tipo === 'parceiro' && (
@@ -453,20 +428,22 @@ const MotoristaForm: React.FC<MotoristaFormProps> = ({
                 />
               </div>
               
-              <div>
-                <Label htmlFor="tipo">Tipo de Motorista *</Label>
-                <Select 
+              <div className="space-y-2">
+                <Label>Tipo de Motorista *</Label>
+                <RadioGroup 
                   value={formData.tipo} 
-                  onValueChange={(value) => handleSelectChange('tipo', value as 'frota' | 'parceiro')}
+                  onValueChange={(value) => handleSelectChange('tipo', value)}
+                  className="flex space-x-4"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="frota">Frota Própria</SelectItem>
-                    <SelectItem value="parceiro">Parceiro/Terceirizado</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="frota" id="tipo-frota-completo" />
+                    <Label htmlFor="tipo-frota-completo" className="cursor-pointer">Frota Própria</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="parceiro" id="tipo-parceiro-completo" />
+                    <Label htmlFor="tipo-parceiro-completo" className="cursor-pointer">Terceirizado</Label>
+                  </div>
+                </RadioGroup>
               </div>
               
               {formData.tipo === 'parceiro' && (

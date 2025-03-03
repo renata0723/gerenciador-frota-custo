@@ -13,14 +13,17 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export interface FreteContratadoData {
   valorFreteContratado: number;
   valorAdiantamento: number;
+  dataAdiantamento?: Date | null;
   valorPedagio: number;
   saldoPagar: number;
   observacoes: string;
   gerarSaldoPagar: boolean;
+  gerarObrigacao: boolean;
   proprietarioInfo: ProprietarioData | null;
   dataVencimento?: Date | null;
 }
@@ -44,10 +47,12 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
     initialData || {
       valorFreteContratado: 0,
       valorAdiantamento: 0,
+      dataAdiantamento: null,
       valorPedagio: 0,
       saldoPagar: 0,
       observacoes: '',
       gerarSaldoPagar: false,
+      gerarObrigacao: false,
       proprietarioInfo: null,
       dataVencimento: null
     }
@@ -72,7 +77,8 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
             banco: 'Banco do proprietário',
             agencia: '1234',
             conta: '56789-0',
-            tipoConta: 'corrente'
+            tipoConta: 'corrente',
+            chavePix: ''
           }
         };
         
@@ -112,18 +118,17 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
     }
   };
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
+  const handleCheckboxChange = (name: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
       [name]: checked
     }));
   };
 
-  const handleDateSelect = (date: Date | undefined) => {
+  const handleDateSelect = (field: 'dataVencimento' | 'dataAdiantamento', date: Date | undefined) => {
     setFormData(prev => ({
       ...prev,
-      dataVencimento: date || null
+      [field]: date || null
     }));
   };
 
@@ -132,6 +137,12 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
     
     if (formData.valorFreteContratado <= 0) {
       toast.error('O valor do frete contratado deve ser maior que zero');
+      return;
+    }
+    
+    // Se foi informado valor de adiantamento mas não data
+    if (formData.valorAdiantamento > 0 && !formData.dataAdiantamento) {
+      toast.error('Por favor, informe a data do adiantamento');
       return;
     }
     
@@ -146,12 +157,21 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
         toast.error('Por favor, defina uma data de vencimento para o saldo a pagar');
         return;
       }
+    }
+    
+    // Se estiver marcado para gerar obrigação
+    if (formData.gerarObrigacao) {
+      if (!formData.dataVencimento) {
+        toast.error('É necessário informar a data de vencimento para gerar obrigação de pagamento');
+        return;
+      }
       
-      // Aqui você poderia adicionar lógica para gerar o saldo a pagar
-      // Esta lógica seria implementada no componente pai ou em um serviço
-      console.log('Gerando saldo a pagar para o proprietário:', formData.proprietarioInfo.nome);
-      console.log('Data de vencimento:', formData.dataVencimento);
-      toast.success(`Saldo a pagar será gerado para ${formData.proprietarioInfo.nome} com vencimento em ${format(formData.dataVencimento, 'dd/MM/yyyy')}`);
+      if (!formData.proprietarioInfo) {
+        toast.error('Informações do proprietário são necessárias para gerar obrigação de pagamento');
+        return;
+      }
+      
+      toast.success(`Obrigação de pagamento será gerada com vencimento em ${format(formData.dataVencimento, 'dd/MM/yyyy')}`);
     }
     
     onSubmit(formData);
@@ -202,6 +222,40 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
             />
           </div>
           
+          {formData.valorAdiantamento > 0 && (
+            <div>
+              <Label htmlFor="dataAdiantamento">Data do Adiantamento *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="dataAdiantamento"
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.dataAdiantamento && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.dataAdiantamento ? (
+                      format(formData.dataAdiantamento, "PPP", { locale: ptBR })
+                    ) : (
+                      <span>Selecione a data do adiantamento</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formData.dataAdiantamento || undefined}
+                    onSelect={(date) => handleDateSelect('dataAdiantamento', date)}
+                    locale={ptBR}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+          
           <div>
             <Label htmlFor="valorPedagio">Valor do Pedágio (R$)</Label>
             <Input
@@ -232,12 +286,11 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
         {dadosContrato?.tipo === 'terceiro' && (
           <Card className="p-4 mt-4">
             <div className="flex items-center mb-4">
-              <input
-                type="checkbox"
+              <Checkbox
                 id="gerarSaldoPagar"
-                name="gerarSaldoPagar"
                 checked={formData.gerarSaldoPagar}
-                onChange={handleCheckboxChange}
+                onCheckedChange={(checked) => 
+                  handleCheckboxChange('gerarSaldoPagar', checked === true)}
                 className="mr-2 h-4 w-4"
               />
               <Label htmlFor="gerarSaldoPagar" className="cursor-pointer">
@@ -245,7 +298,20 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
               </Label>
             </div>
             
-            {formData.gerarSaldoPagar && (
+            <div className="flex items-center mb-4">
+              <Checkbox
+                id="gerarObrigacao"
+                checked={formData.gerarObrigacao}
+                onCheckedChange={(checked) => 
+                  handleCheckboxChange('gerarObrigacao', checked === true)}
+                className="mr-2 h-4 w-4"
+              />
+              <Label htmlFor="gerarObrigacao" className="cursor-pointer">
+                Gerar obrigação no Saldo a Pagar
+              </Label>
+            </div>
+            
+            {(formData.gerarSaldoPagar || formData.gerarObrigacao) && (
               <div className="space-y-4">
                 {formData.proprietarioInfo && (
                   <div className="space-y-3">
@@ -254,10 +320,11 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
                     <p className="text-sm"><strong>Documento:</strong> {formData.proprietarioInfo.documento}</p>
                     
                     <h3 className="font-medium text-sm mt-3">Dados Bancários</h3>
-                    <p className="text-sm"><strong>Banco:</strong> {formData.proprietarioInfo.dadosBancarios.banco}</p>
-                    <p className="text-sm"><strong>Agência:</strong> {formData.proprietarioInfo.dadosBancarios.agencia}</p>
-                    <p className="text-sm"><strong>Conta:</strong> {formData.proprietarioInfo.dadosBancarios.conta}</p>
-                    <p className="text-sm"><strong>Tipo de Conta:</strong> {formData.proprietarioInfo.dadosBancarios.tipoConta === 'corrente' ? 'Conta Corrente' : 'Conta Poupança'}</p>
+                    <p className="text-sm"><strong>Banco:</strong> {formData.proprietarioInfo.dadosBancarios?.banco}</p>
+                    <p className="text-sm"><strong>Agência:</strong> {formData.proprietarioInfo.dadosBancarios?.agencia}</p>
+                    <p className="text-sm"><strong>Conta:</strong> {formData.proprietarioInfo.dadosBancarios?.conta}</p>
+                    <p className="text-sm"><strong>Tipo de Conta:</strong> {formData.proprietarioInfo.dadosBancarios?.tipoConta === 'corrente' ? 'Conta Corrente' : 'Conta Poupança'}</p>
+                    <p className="text-sm"><strong>Chave PIX:</strong> {formData.proprietarioInfo.dadosBancarios?.chavePix || 'Não informada'}</p>
                   </div>
                 )}
                 
@@ -285,7 +352,7 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
                       <Calendar
                         mode="single"
                         selected={formData.dataVencimento || undefined}
-                        onSelect={handleDateSelect}
+                        onSelect={(date) => handleDateSelect('dataVencimento', date)}
                         locale={ptBR}
                         initialFocus
                       />

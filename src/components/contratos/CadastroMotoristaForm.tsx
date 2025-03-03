@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface CadastroMotoristaFormProps {
-  onSave: (data: { nome: string; cpf: string }) => void;
+  onSave: (data: { nome: string; cpf: string; tipo: 'frota' | 'terceiro' }) => void;
   onCancel: () => void;
 }
 
@@ -17,6 +18,7 @@ const CadastroMotoristaForm: React.FC<CadastroMotoristaFormProps> = ({
 }) => {
   const [nome, setNome] = useState('');
   const [cpf, setCpf] = useState('');
+  const [tipo, setTipo] = useState<'frota' | 'terceiro'>('frota');
   const [carregando, setCarregando] = useState(false);
 
   const validarCPF = (cpf: string) => {
@@ -64,7 +66,7 @@ const CadastroMotoristaForm: React.FC<CadastroMotoristaFormProps> = ({
         return;
       }
 
-      if (cpf && !validarCPF(cpf)) {
+      if (!cpf || !validarCPF(cpf)) {
         toast.error('CPF inválido. Formato esperado: 000.000.000-00');
         setCarregando(false);
         return;
@@ -94,8 +96,9 @@ const CadastroMotoristaForm: React.FC<CadastroMotoristaFormProps> = ({
         .from('Motoristas')
         .insert({
           nome: nome,
-          cpf: cpf || null,
+          cpf: cpf,
           tipo_cadastro: 'simples',
+          tipo: tipo,
           status: 'active'
         });
 
@@ -107,7 +110,7 @@ const CadastroMotoristaForm: React.FC<CadastroMotoristaFormProps> = ({
       }
 
       toast.success('Motorista cadastrado com sucesso!');
-      onSave({ nome, cpf });
+      onSave({ nome, cpf, tipo });
     } catch (error) {
       console.error('Erro:', error);
       toast.error('Ocorreu um erro ao processar a solicitação');
@@ -130,13 +133,32 @@ const CadastroMotoristaForm: React.FC<CadastroMotoristaFormProps> = ({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="cpf">CPF (opcional)</Label>
+        <Label htmlFor="cpf">CPF *</Label>
         <Input
           id="cpf"
           value={cpf}
           onChange={handleCPFChange}
           placeholder="000.000.000-00"
+          required
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Tipo de Motorista *</Label>
+        <RadioGroup 
+          value={tipo} 
+          onValueChange={(value) => setTipo(value as 'frota' | 'terceiro')}
+          className="flex space-x-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="frota" id="tipo-frota" />
+            <Label htmlFor="tipo-frota" className="cursor-pointer">Frota Própria</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="terceiro" id="tipo-terceiro" />
+            <Label htmlFor="tipo-terceiro" className="cursor-pointer">Terceirizado</Label>
+          </div>
+        </RadioGroup>
       </div>
       
       <div className="flex justify-end space-x-2 pt-2">

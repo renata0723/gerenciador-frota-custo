@@ -1,15 +1,32 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { logOperation } from '@/utils/logOperations';
 
+interface Proprietario {
+  nome: string;
+  documento: string;
+  dados_bancarios?: string;
+}
+
 interface CadastroPlacaFormProps {
-  onSave: (data: { placaCavalo?: string; placaCarreta?: string; tipoFrota: 'frota' | 'terceiro' }) => void;
+  onSave: (data: { 
+    placaCavalo?: string; 
+    placaCarreta?: string; 
+    tipoFrota: 'frota' | 'terceiro'; 
+    proprietario?: string;
+    proprietarioInfo?: {
+      nome: string;
+      documento: string;
+      dadosBancarios?: any;
+    }
+  }) => void;
   onCancel: () => void;
   isCarreta?: boolean;
 }
@@ -22,7 +39,38 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
   const [placaCavalo, setPlacaCavalo] = useState('');
   const [placaCarreta, setPlacaCarreta] = useState('');
   const [tipoFrota, setTipoFrota] = useState<'frota' | 'terceiro'>('frota');
+  const [proprietario, setProprietario] = useState('');
+  const [proprietarios, setProprietarios] = useState<Proprietario[]>([]);
+  const [carregandoProprietarios, setCarregandoProprietarios] = useState(false);
   const [carregando, setCarregando] = useState(false);
+  const [proprietarioSelecionado, setProprietarioSelecionado] = useState<Proprietario | null>(null);
+
+  useEffect(() => {
+    if (tipoFrota === 'terceiro') {
+      carregarProprietarios();
+    }
+  }, [tipoFrota]);
+
+  const carregarProprietarios = async () => {
+    setCarregandoProprietarios(true);
+    try {
+      const { data, error } = await supabase
+        .from('Proprietarios')
+        .select('*');
+
+      if (error) {
+        console.error('Erro ao carregar proprietários:', error);
+        toast.error('Erro ao carregar proprietários');
+      } else if (data) {
+        setProprietarios(data);
+      }
+    } catch (error) {
+      console.error('Erro:', error);
+      toast.error('Erro ao processar dados dos proprietários');
+    } finally {
+      setCarregandoProprietarios(false);
+    }
+  };
 
   const validarPlaca = (placa: string) => {
     // Validação básica de placa (formato antigo: ABC-1234 ou novo: ABC1D23)
@@ -47,6 +95,31 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
     }
     
     return placaLimpa;
+  };
+
+  const handleProprietarioChange = async (novoProprietario: string) => {
+    setProprietario(novoProprietario);
+    
+    // Buscar dados completos do proprietário
+    try {
+      const { data, error } = await supabase
+        .from('Proprietarios')
+        .select('*')
+        .eq('nome', novoProprietario)
+        .single();
+        
+      if (error) {
+        console.error('Erro ao buscar dados do proprietário:', error);
+      } else if (data) {
+        setProprietarioSelecionado({
+          nome: data.nome,
+          documento: data.documento,
+          dados_bancarios: data.dados_bancarios
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao processar dados do proprietário:', error);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,7 +175,25 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
 
         logOperation('Veículos', 'Cadastro de carreta', `Placa: ${placaFormatada}`);
         toast.success('Placa de carreta cadastrada com sucesso!');
-        onSave({ placaCarreta: placaFormatada, tipoFrota });
+        
+        const resultData = { 
+          placaCarreta: placaFormatada, 
+          tipoFrota 
+        };
+        
+        // Adicionar proprietário se for terceirizado
+        if (tipoFrota === 'terceiro' && proprietario) {
+          Object.assign(resultData, { 
+            proprietario,
+            proprietarioInfo: proprietarioSelecionado ? {
+              nome: proprietarioSelecionado.nome,
+              documento: proprietarioSelecionado.documento,
+              dadosBancarios: proprietarioSelecionado.dados_bancarios ? JSON.parse(proprietarioSelecionado.dados_bancarios) : null
+            } : undefined
+          });
+        }
+        
+        onSave(resultData);
       } else {
         // Formatar e validar a placa do cavalo
         const placaFormatada = formatarPlaca(placaCavalo);
@@ -159,13 +250,44 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
           return;
         }
 
+        // Se for veículo terceirizado e tiver proprietário selecionado, associar
+        if (tipoFrota === 'terceiro' && proprietario) {
+          // Associar proprietário ao veículo
+          const { error: errorAssociacao } = await supabase
+            .from('VeiculoProprietarios')
+            .insert({
+              placa_cavalo: placaFormatada,
+              proprietario_nome: proprietario
+            });
+            
+          if (errorAssociacao) {
+            console.error('Erro ao associar proprietário:', errorAssociacao);
+            toast.error('Veículo cadastrado, mas houve erro ao associar proprietário');
+          }
+        }
+
         logOperation('Veículos', 'Cadastro de cavalo', `Placa: ${placaFormatada}`);
         toast.success('Veículo cadastrado com sucesso!');
-        onSave({ 
+        
+        const resultData = { 
           placaCavalo: placaFormatada, 
           placaCarreta: placaCarretaFormatada || undefined, 
           tipoFrota 
-        });
+        };
+        
+        // Adicionar proprietário se for terceirizado
+        if (tipoFrota === 'terceiro' && proprietario) {
+          Object.assign(resultData, { 
+            proprietario,
+            proprietarioInfo: proprietarioSelecionado ? {
+              nome: proprietarioSelecionado.nome,
+              documento: proprietarioSelecionado.documento,
+              dadosBancarios: proprietarioSelecionado.dados_bancarios ? JSON.parse(proprietarioSelecionado.dados_bancarios) : null
+            } : undefined
+          });
+        }
+        
+        onSave(resultData);
       }
     } catch (error) {
       console.error('Erro:', error);
@@ -230,6 +352,26 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
           </div>
         </RadioGroup>
       </div>
+      
+      {tipoFrota === 'terceiro' && (
+        <div className="space-y-2">
+          <Label htmlFor="proprietario">Proprietário *</Label>
+          <Select 
+            value={proprietario} 
+            onValueChange={handleProprietarioChange}
+            disabled={carregandoProprietarios}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={carregandoProprietarios ? "Carregando..." : "Selecione o proprietário"} />
+            </SelectTrigger>
+            <SelectContent>
+              {proprietarios.map((prop) => (
+                <SelectItem key={prop.nome} value={prop.nome}>{prop.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       
       <div className="flex justify-end space-x-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>
