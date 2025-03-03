@@ -1,11 +1,10 @@
-
 import React from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/ui/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NovoAbastecimentoForm } from '@/components/abastecimentos/NovoAbastecimentoForm';
-import { TipoCombustivelForm } from '@/components/abastecimentos/TipoCombustivelForm';
+import NovoAbastecimentoForm from '@/components/abastecimentos/NovoAbastecimentoForm';
+import TipoCombustivelForm from '@/components/abastecimentos/TipoCombustivelForm';
 
 const Abastecimentos = () => {
   return (

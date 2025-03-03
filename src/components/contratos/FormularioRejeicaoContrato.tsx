@@ -1,128 +1,97 @@
 
 import React, { useState } from 'react';
-import { toast } from 'sonner';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { ThumbsDown } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
-interface RejeicaoData {
-  motivo: string;
-  data: string;
-}
-
-interface FormularioRejeicaoContratoProps {
-  idContrato?: string;
-  onRejeicaoRegistrada?: () => void;
-  initialData?: RejeicaoData;
-  onSave?: (data: RejeicaoData) => void;
-}
-
-const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({ 
-  idContrato, 
-  onRejeicaoRegistrada,
-  initialData,
-  onSave
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [dataRejeicao, setDataRejeicao] = useState(
-    initialData?.data || new Date().toISOString().slice(0, 10)
-  );
-  const [motivoRejeicao, setMotivoRejeicao] = useState(initialData?.motivo || '');
+const FormularioRejeicaoContrato = () => {
+  const [motivoRejeicao, setMotivoRejeicao] = useState('');
+  const [observacoes, setObservacoes] = useState('');
+  const [responsavel, setResponsavel] = useState('');
+  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validações básicas
-    if (!dataRejeicao || !motivoRejeicao) {
-      toast.error('Por favor, preencha todos os campos obrigatórios');
+    if (!motivoRejeicao) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione um motivo de rejeição",
+        variant: "destructive",
+      });
       return;
     }
-
-    const rejeicaoData = {
-      motivo: motivoRejeicao,
-      data: dataRejeicao
-    };
-
-    // Salvar a rejeição (simulado)
-    console.log('Rejeição registrada:', {
-      idContrato,
-      ...rejeicaoData
+    
+    // Aqui seria implementada a lógica para salvar a rejeição do contrato
+    toast({
+      title: "Contrato rejeitado",
+      description: "O contrato foi rejeitado e devolvido para correção",
     });
-
-    // Notificar o usuário
-    toast.success('Rejeição de contrato registrada com sucesso');
     
-    // Chamar o callback onSave se disponível
-    if (onSave) {
-      onSave(rejeicaoData);
-    }
-    
-    // Resetar o formulário e fechar o diálogo
+    // Limpar formulário
     setMotivoRejeicao('');
-    setIsOpen(false);
-    
-    // Chamar o callback (se fornecido)
-    if (onRejeicaoRegistrada) {
-      onRejeicaoRegistrada();
-    }
+    setObservacoes('');
+    setResponsavel('');
   };
 
-  // Botão de rejeição separado do formulário
-  const BotaoRejeicao = () => (
-    <Button variant="destructive" onClick={() => setIsOpen(true)}>
-      Rejeitar Contrato
-    </Button>
-  );
-
   return (
-    <>
-      {/* Botão de rejeição fora do Dialog */}
-      <BotaoRejeicao />
+    <div className="bg-white p-6 rounded-lg shadow">
+      <div className="flex items-center gap-2 mb-6">
+        <ThumbsDown className="h-6 w-6 text-red-500" />
+        <h2 className="text-xl font-semibold">Rejeição de Contrato</h2>
+      </div>
       
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Rejeição de Contrato</DialogTitle>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="dataRejeicao">Data da Rejeição</Label>
-                <Input
-                  id="dataRejeicao"
-                  type="date"
-                  value={dataRejeicao}
-                  onChange={(e) => setDataRejeicao(e.target.value)}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="motivoRejeicao">Motivo da Rejeição</Label>
-                <Textarea
-                  id="motivoRejeicao"
-                  value={motivoRejeicao}
-                  onChange={(e) => setMotivoRejeicao(e.target.value)}
-                  placeholder="Descreva o motivo da rejeição do contrato"
-                  className="min-h-[120px]"
-                  required
-                />
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline" type="button">Cancelar</Button>
-              </DialogClose>
-              <Button type="submit" variant="destructive">Confirmar Rejeição</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="motivo">Motivo da Rejeição</Label>
+          <Select value={motivoRejeicao} onValueChange={setMotivoRejeicao}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o motivo da rejeição" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="dados_incompletos">Dados incompletos</SelectItem>
+              <SelectItem value="erro_documentacao">Erro na documentação</SelectItem>
+              <SelectItem value="valores_incorretos">Valores incorretos</SelectItem>
+              <SelectItem value="inconsistencia_dados">Inconsistência nos dados</SelectItem>
+              <SelectItem value="documentos_faltantes">Documentos faltantes</SelectItem>
+              <SelectItem value="outro">Outro motivo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="observacoes">Observações</Label>
+          <Textarea 
+            id="observacoes" 
+            value={observacoes}
+            onChange={(e) => setObservacoes(e.target.value)}
+            placeholder="Descreva detalhadamente o motivo da rejeição e as correções necessárias"
+            rows={4}
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="responsavel">Responsável pela Rejeição</Label>
+          <Input 
+            id="responsavel" 
+            value={responsavel}
+            onChange={(e) => setResponsavel(e.target.value)}
+            placeholder="Nome do responsável"
+          />
+        </div>
+        
+        <div className="flex justify-end gap-3 pt-4">
+          <Button type="submit" variant="rejected">
+            <ThumbsDown className="h-5 w-5" />
+            Rejeitar e Devolver Contrato
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 };
 

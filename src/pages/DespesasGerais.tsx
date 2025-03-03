@@ -4,7 +4,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/ui/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NovaDespesaForm } from '@/components/despesas/NovaDespesaForm';
+import NovaDespesaForm from '@/components/despesas/NovaDespesaForm';
 
 const DespesasGerais = () => {
   return (
