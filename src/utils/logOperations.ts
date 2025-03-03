@@ -4,7 +4,7 @@
  */
 
 // Função para registrar operações
-export const logOperation = (module: string, action: string, success: boolean = true) => {
+export const logOperation = (module: string, action: string, details?: string) => {
   // Obter timestamp atual
   const timestamp = new Date().toISOString();
   
@@ -13,7 +13,8 @@ export const logOperation = (module: string, action: string, success: boolean = 
     timestamp,
     module,
     action,
-    success,
+    details,
+    success: true
   };
   
   // Recuperar logs anteriores
@@ -27,7 +28,7 @@ export const logOperation = (module: string, action: string, success: boolean = 
   
   // Log no console apenas em ambiente de desenvolvimento
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`[LOG ${timestamp}] ${module}: ${action} - ${success ? 'Sucesso' : 'Pendente'}`);
+    console.log(`[LOG ${timestamp}] ${module}: ${action} - ${details || 'OK'}`);
   }
   
   return logEntry;

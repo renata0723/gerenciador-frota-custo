@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { logOperation } from '@/utils/logOperations';
+import { validarPlaca, formatarPlaca } from '@/utils/veiculoUtils';
 
 interface Proprietario {
   nome: string;
@@ -70,31 +71,6 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
     } finally {
       setCarregandoProprietarios(false);
     }
-  };
-
-  const validarPlaca = (placa: string) => {
-    // Validação básica de placa (formato antigo: ABC-1234 ou novo: ABC1D23)
-    const regexAntigoMercosul = /^[A-Z]{3}-\d{4}$/;
-    const regexNovoMercosul = /^[A-Z]{3}\d[A-Z]\d{2}$/;
-    
-    // Formato sem hífen também é válido para placas antigas
-    const regexAntigoSemHifen = /^[A-Z]{3}\d{4}$/;
-    
-    return regexAntigoMercosul.test(placa) || 
-           regexNovoMercosul.test(placa) || 
-           regexAntigoSemHifen.test(placa);
-  };
-
-  const formatarPlaca = (placa: string) => {
-    // Remover espaços e caracteres especiais
-    const placaLimpa = placa.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
-    
-    // Formatar placa no padrão antigo (ABC1234 -> ABC-1234)
-    if (/^[A-Z]{3}\d{4}$/.test(placaLimpa)) {
-      return `${placaLimpa.substring(0, 3)}-${placaLimpa.substring(3)}`;
-    }
-    
-    return placaLimpa;
   };
 
   const handleProprietarioChange = async (novoProprietario: string) => {
