@@ -54,12 +54,12 @@ const Login = () => {
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
             <img 
-              src="/lovable-uploads/75203c5e-30d1-4ee0-ad01-02f3fb13db92.png" 
+              src="/lovable-uploads/cf1b83fb-7af9-44bc-922d-994d72b4d84d.png" 
               alt="Sslog Transportes" 
-              className="h-24 mx-auto"
+              className="h-32 mx-auto"
             />
           </div>
-          <CardTitle className="text-2xl font-bold text-sistema-primary">Controladoria</CardTitle>
+          <CardTitle className="text-2xl font-bold text-sistema-primary">CONTROLADORIA</CardTitle>
           <CardDescription>
             Sistema de Controle de Frotas e Logística
           </CardDescription>

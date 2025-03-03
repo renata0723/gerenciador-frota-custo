@@ -1,22 +1,21 @@
 
-export type TipoManutencao = "preventiva" | "corretiva";
-export type LocalRealizacao = "patio" | "externa";
+export type TipoManutencao = 'preventiva' | 'corretiva';
 
 export interface ManutencaoItem {
   id?: number;
-  placa_veiculo: string;
   data_manutencao: string;
+  placa_veiculo: string;
   tipo_manutencao: TipoManutencao;
-  local_realizacao: LocalRealizacao;
+  local_realizacao: "patio" | "externa";
   pecas_servicos: string;
   valor_total: number;
 }
 
 export interface ManutencaoFormData {
-  placa: string;
   data: string;
+  placa: string;
   tipo: TipoManutencao;
-  local: LocalRealizacao;
+  local: "patio" | "externa";
   pecasServicos: string;
-  valor: number;
+  valorTotal: number;
 }
