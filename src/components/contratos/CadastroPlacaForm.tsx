@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { logOperation } from '@/utils/logOperations';
 
 interface CadastroPlacaFormProps {
   onSave: (data: { placaCavalo?: string; placaCarreta?: string; tipoFrota: 'frota' | 'terceiro' }) => void;
@@ -94,10 +95,12 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         if (error) {
           console.error('Erro ao cadastrar placa:', error);
           toast.error('Erro ao cadastrar placa de carreta');
+          logOperation('Veículos', 'Erro ao cadastrar carreta', error.message);
           setCarregando(false);
           return;
         }
 
+        logOperation('Veículos', 'Cadastro de carreta', `Placa: ${placaFormatada}`);
         toast.success('Placa de carreta cadastrada com sucesso!');
         onSave({ placaCarreta: placaFormatada, tipoFrota });
       } else {
@@ -151,10 +154,12 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({
         if (error) {
           console.error('Erro ao cadastrar veículo:', error);
           toast.error('Erro ao cadastrar veículo. Por favor, verifique as permissões ou tente novamente.');
+          logOperation('Veículos', 'Erro ao cadastrar cavalo', error.message);
           setCarregando(false);
           return;
         }
 
+        logOperation('Veículos', 'Cadastro de cavalo', `Placa: ${placaFormatada}`);
         toast.success('Veículo cadastrado com sucesso!');
         onSave({ 
           placaCavalo: placaFormatada, 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/layout/PageLayout';
@@ -16,13 +15,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { validarPlaca, formatarPlaca } from "@/utils/veiculoUtils";
+import { logOperation } from "@/utils/logOperations";
 
 const NovoVeiculoForm = () => {
   const { id } = useParams();
@@ -88,26 +90,67 @@ const NovoVeiculoForm = () => {
     }
   }, [isEditMode, id]);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (name, value) => {
+  const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Aqui seria a chamada para a API para salvar o veículo
-    toast({
-      title: isEditMode ? "Veículo atualizado" : "Veículo cadastrado",
-      description: `O veículo ${formData.placa} foi ${isEditMode ? 'atualizado' : 'cadastrado'} com sucesso!`,
-    });
+    // Validar a placa
+    if (!validarPlaca(formData.placa)) {
+      toast.error("A placa informada é inválida. Use o formato ABC-1234 ou ABC1D23.");
+      return;
+    }
     
-    // Redirecionar para a lista de veículos
-    navigate('/veiculos');
+    const placaFormatada = formatarPlaca(formData.placa);
+    
+    try {
+      // Verificar se a placa já existe (no caso de novo cadastro)
+      if (!isEditMode) {
+        const campoPlaca = formData.tipo === 'cavalo' ? 'placa_cavalo' : 'placa_carreta';
+        
+        const { data: placaExistente } = await supabase
+          .from('Veiculos')
+          .select('*')
+          .eq(campoPlaca, placaFormatada);
+        
+        if (placaExistente && placaExistente.length > 0) {
+          toast.error("Esta placa já está cadastrada no sistema.");
+          return;
+        }
+      }
+      
+      // Aqui seria a chamada para a API para salvar o veículo
+      // Por enquanto apenas simulamos o sucesso
+      
+      // Em um sistema real, faríamos algo como:
+      // const { error } = await supabase
+      //   .from('Veiculos')
+      //   .upsert({
+      //     placa_cavalo: formData.tipo === 'cavalo' ? placaFormatada : null,
+      //     placa_carreta: formData.tipo === 'carreta' ? placaFormatada : null,
+      //     tipo_frota: formData.frota,
+      //     ...outros campos
+      //   });
+      
+      logOperation('Veículos', isEditMode ? 'Veículo atualizado' : 'Veículo cadastrado', `Placa: ${placaFormatada}`);
+      
+      toast.success(
+        isEditMode ? "Veículo atualizado com sucesso!" : "Veículo cadastrado com sucesso!"
+      );
+      
+      // Redirecionar para a lista de veículos
+      navigate('/veiculos');
+    } catch (error) {
+      console.error('Erro ao processar veículo:', error);
+      toast.error("Ocorreu um erro ao processar o veículo. Tente novamente.");
+    }
   };
 
   return (
