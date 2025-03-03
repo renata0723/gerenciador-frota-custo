@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus, Search, FileText, Edit, Trash2, UserCheck, UserX, Filter } from 'lucide-react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
@@ -17,7 +17,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from '@/components/ui/dialog';
+import MotoristaForm, { MotoristaData } from '@/components/motoristas/MotoristaForm';
+import { toast } from 'sonner';
 
 // Interface para tipagem dos dados de motoristas
 interface Driver {
@@ -33,6 +36,8 @@ interface Driver {
 }
 
 const Motoristas = () => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
   // Dados simulados para a tabela de motoristas
   const drivers: Driver[] = [
     {
@@ -92,6 +97,12 @@ const Motoristas = () => {
     },
   ];
 
+  const handleSaveMotorista = (data: MotoristaData) => {
+    console.log('Motorista salvo:', data);
+    toast.success('Motorista cadastrado com sucesso!');
+    setIsDialogOpen(false);
+  };
+
   return (
     <PageLayout>
       <PageHeader 
@@ -135,14 +146,14 @@ const Motoristas = () => {
             </DropdownMenu>
           </div>
 
-          <Dialog>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex gap-2 w-full md:w-auto">
                 <Plus size={16} />
                 <span>Novo Motorista</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                 <DialogTitle>Cadastrar Novo Motorista</DialogTitle>
               </DialogHeader>
@@ -150,11 +161,10 @@ const Motoristas = () => {
                 <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
                   Preencha os dados do novo motorista a ser cadastrado no sistema.
                 </p>
-                <div className="grid gap-4">
-                  <p className="text-gray-600 dark:text-gray-300 text-xs font-semibold">
-                    Formulário não implementado nesta versão
-                  </p>
-                </div>
+                <MotoristaForm 
+                  onSave={handleSaveMotorista} 
+                  onCancel={() => setIsDialogOpen(false)} 
+                />
               </div>
             </DialogContent>
           </Dialog>
