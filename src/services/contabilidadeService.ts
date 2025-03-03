@@ -22,7 +22,7 @@ export const buscarLancamentosContabeis = async (): Promise<LancamentoContabil[]
       return [];
     }
 
-    return data as unknown as LancamentoContabil[];
+    return data as LancamentoContabil[];
   } catch (error) {
     console.error('Erro ao processar lançamentos contábeis:', error);
     return [];
@@ -43,7 +43,7 @@ export const buscarLancamentoContabilPorId = async (id: number): Promise<Lancame
       return null;
     }
 
-    return data as unknown as LancamentoContabil;
+    return data as LancamentoContabil;
   } catch (error) {
     console.error('Erro ao processar lançamento contábil:', error);
     return null;
@@ -63,7 +63,7 @@ export const buscarPlanoContas = async (): Promise<ContaContabil[]> => {
       return [];
     }
 
-    return data as unknown as ContaContabil[];
+    return data as ContaContabil[];
   } catch (error) {
     console.error('Erro ao processar plano de contas:', error);
     return [];
@@ -84,7 +84,7 @@ export const buscarContaContabilPorCodigo = async (codigo: string): Promise<Cont
       return null;
     }
 
-    return data as unknown as ContaContabil;
+    return data as ContaContabil;
   } catch (error) {
     console.error('Erro ao processar conta contábil:', error);
     return null;
@@ -104,7 +104,7 @@ export const buscarCentrosCusto = async (): Promise<CentroCusto[]> => {
       return [];
     }
 
-    return data as unknown as CentroCusto[];
+    return data as CentroCusto[];
   } catch (error) {
     console.error('Erro ao processar centros de custo:', error);
     return [];
@@ -130,7 +130,7 @@ export const buscarDREs = async (): Promise<DREData[]> => {
       status: dre.status as any
     }));
 
-    return dres as unknown as DREData[];
+    return dres as DREData[];
   } catch (error) {
     console.error('Erro ao processar DREs:', error);
     return [];
@@ -151,7 +151,7 @@ export const buscarDREPorId = async (id: number): Promise<DREData | null> => {
       return null;
     }
 
-    return { ...data, status: data.status as any } as unknown as DREData;
+    return { ...data, status: data.status as any } as DREData;
   } catch (error) {
     console.error('Erro ao processar DRE:', error);
     return null;
@@ -171,7 +171,7 @@ export const buscarBalancosPatrimoniais = async (): Promise<BalancoPatrimonialDa
       return [];
     }
 
-    return data as unknown as BalancoPatrimonialData[];
+    return data as BalancoPatrimonialData[];
   } catch (error) {
     console.error('Erro ao processar balanços patrimoniais:', error);
     return [];
@@ -192,7 +192,7 @@ export const buscarBalancoPatrimonialPorId = async (id: number): Promise<Balanco
       return null;
     }
 
-    return data as unknown as BalancoPatrimonialData;
+    return data as BalancoPatrimonialData;
   } catch (error) {
     console.error('Erro ao processar balanço patrimonial:', error);
     return null;
@@ -212,7 +212,7 @@ export const buscarLivroCaixa = async (): Promise<LivroCaixaItem[]> => {
       return [];
     }
 
-    return data as unknown as LivroCaixaItem[];
+    return data as LivroCaixaItem[];
   } catch (error) {
     console.error('Erro ao processar livro caixa:', error);
     return [];
@@ -233,7 +233,7 @@ export const buscarLivroCaixaPorId = async (id: number): Promise<LivroCaixaItem 
       return null;
     }
 
-    return data as unknown as LivroCaixaItem;
+    return data as LivroCaixaItem;
   } catch (error) {
     console.error('Erro ao processar lançamento do livro caixa:', error);
     return null;
@@ -254,7 +254,7 @@ export const criarLancamentoContabil = async (lancamento: LancamentoContabil): P
       return null;
     }
 
-    return data as unknown as LancamentoContabil;
+    return data as LancamentoContabil;
   } catch (error) {
     console.error('Erro ao processar criação de lançamento contábil:', error);
     return null;
@@ -267,7 +267,8 @@ export const fecharPeriodoDRE = async (dreId: number): Promise<boolean> => {
     const { error } = await supabase
       .from('DRE')
       .update({ 
-        periodo_fechado: true 
+        periodo_fechado: true,
+        status: 'fechado'
       })
       .eq('id', dreId);
 
@@ -286,9 +287,21 @@ export const fecharPeriodoDRE = async (dreId: number): Promise<boolean> => {
 // Função para criar uma conta no plano de contas
 export const criarContaContabil = async (conta: ContaContabil): Promise<ContaContabil | null> => {
   try {
+    // Converter para o formato correto antes de enviar
+    const contaParaEnviar = {
+      codigo: conta.codigo,
+      codigo_reduzido: conta.codigo_reduzido,
+      nome: conta.nome,
+      tipo: conta.tipo,
+      natureza: conta.natureza,
+      conta_pai: conta.conta_pai || null,
+      nivel: conta.nivel,
+      status: conta.status
+    };
+
     const { data, error } = await supabase
       .from('Plano_Contas')
-      .insert(conta)
+      .insert(contaParaEnviar)
       .select()
       .single();
 
@@ -297,7 +310,7 @@ export const criarContaContabil = async (conta: ContaContabil): Promise<ContaCon
       return null;
     }
 
-    return data as unknown as ContaContabil;
+    return data as ContaContabil;
   } catch (error) {
     console.error('Erro ao processar criação de conta contábil:', error);
     return null;
@@ -318,7 +331,7 @@ export const buscarContaPorCodigoReduzido = async (codigoReduzido: string): Prom
       return null;
     }
 
-    return data as unknown as ContaContabil;
+    return data as ContaContabil;
   } catch (error) {
     console.error('Erro ao processar busca de conta por código reduzido:', error);
     return null;
@@ -328,9 +341,18 @@ export const buscarContaPorCodigoReduzido = async (codigoReduzido: string): Prom
 // Função para criar uma DRE
 export const criarDRE = async (dre: DREData): Promise<DREData | null> => {
   try {
+    // Converter datas para string se forem objetos Date
+    const dreParaEnviar = {
+      ...dre,
+      periodo_inicio: typeof dre.periodo_inicio === 'object' ? 
+        (dre.periodo_inicio as Date).toISOString().split('T')[0] : dre.periodo_inicio,
+      periodo_fim: typeof dre.periodo_fim === 'object' ? 
+        (dre.periodo_fim as Date).toISOString().split('T')[0] : dre.periodo_fim
+    };
+
     const { data, error } = await supabase
       .from('DRE')
-      .insert(dre)
+      .insert(dreParaEnviar)
       .select()
       .single();
 
@@ -339,7 +361,7 @@ export const criarDRE = async (dre: DREData): Promise<DREData | null> => {
       return null;
     }
 
-    return data as unknown as DREData;
+    return data as DREData;
   } catch (error) {
     console.error('Erro ao processar criação de DRE:', error);
     return null;
@@ -349,9 +371,16 @@ export const criarDRE = async (dre: DREData): Promise<DREData | null> => {
 // Função para criar um balanço patrimonial
 export const criarBalancoPatrimonial = async (balanco: BalancoPatrimonialData): Promise<BalancoPatrimonialData | null> => {
   try {
+    // Converter datas para string se forem objetos Date
+    const balancoParaEnviar = {
+      ...balanco,
+      data_fechamento: typeof balanco.data_fechamento === 'object' ? 
+        (balanco.data_fechamento as Date).toISOString().split('T')[0] : balanco.data_fechamento
+    };
+
     const { data, error } = await supabase
       .from('Balanco_Patrimonial')
-      .insert(balanco)
+      .insert(balancoParaEnviar)
       .select()
       .single();
 
@@ -360,7 +389,7 @@ export const criarBalancoPatrimonial = async (balanco: BalancoPatrimonialData): 
       return null;
     }
 
-    return data as unknown as BalancoPatrimonialData;
+    return data as BalancoPatrimonialData;
   } catch (error) {
     console.error('Erro ao processar criação de balanço patrimonial:', error);
     return null;
@@ -370,9 +399,16 @@ export const criarBalancoPatrimonial = async (balanco: BalancoPatrimonialData): 
 // Função para criar um lançamento no livro caixa
 export const criarLivroCaixaItem = async (item: LivroCaixaItem): Promise<LivroCaixaItem | null> => {
   try {
+    // Converter datas para string se forem objetos Date
+    const itemParaEnviar = {
+      ...item,
+      data_movimento: typeof item.data_movimento === 'object' ? 
+        (item.data_movimento as Date).toISOString().split('T')[0] : item.data_movimento
+    };
+
     const { data, error } = await supabase
       .from('Livro_Caixa')
-      .insert(item)
+      .insert(itemParaEnviar)
       .select()
       .single();
 
@@ -381,7 +417,7 @@ export const criarLivroCaixaItem = async (item: LivroCaixaItem): Promise<LivroCa
       return null;
     }
 
-    return data as unknown as LivroCaixaItem;
+    return data as LivroCaixaItem;
   } catch (error) {
     console.error('Erro ao processar criação de lançamento no livro caixa:', error);
     return null;
@@ -389,11 +425,11 @@ export const criarLivroCaixaItem = async (item: LivroCaixaItem): Promise<LivroCa
 };
 
 // Função para atualizar uma nota fiscal com status
-export const atualizarStatusNota = async (notaId: number, status: string): Promise<boolean> => {
+export const atualizarStatusNota = async (notaId: number, statusNota: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('Notas Fiscais')
-      .update({ status_nota: status })
+      .update({ status_nota: statusNota })
       .eq('id', notaId);
 
     if (error) {
@@ -404,6 +440,89 @@ export const atualizarStatusNota = async (notaId: number, status: string): Promi
     return true;
   } catch (error) {
     console.error('Erro ao processar atualização de status da nota fiscal:', error);
+    return false;
+  }
+};
+
+// Função para criar um centro de custo
+export const criarCentroCusto = async (centroCusto: CentroCusto): Promise<CentroCusto | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('Centros_Custo')
+      .insert(centroCusto)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao criar centro de custo:', error);
+      return null;
+    }
+
+    return data as CentroCusto;
+  } catch (error) {
+    console.error('Erro ao processar criação de centro de custo:', error);
+    return null;
+  }
+};
+
+// Função para contabilizar despesa
+export const contabilizarDespesa = async (
+  despesaId: number, 
+  contaContabil: string, 
+  contraPartida: string = '1.1.1.1'
+): Promise<boolean> => {
+  try {
+    // 1. Buscar dados da despesa
+    const { data: despesa, error: despesaError } = await supabase
+      .from('Despesas Gerais')
+      .select('*')
+      .eq('id', despesaId)
+      .single();
+    
+    if (despesaError || !despesa) {
+      console.error('Erro ao buscar despesa:', despesaError);
+      return false;
+    }
+    
+    // 2. Criar o lançamento contábil
+    const lancamento: LancamentoContabil = {
+      data_lancamento: new Date().toISOString().split('T')[0],
+      data_competencia: despesa.data_despesa,
+      conta_debito: contaContabil, // Conta de despesa
+      conta_credito: contraPartida, // Conta de caixa ou banco
+      valor: despesa.valor_despesa,
+      historico: `Despesa: ${despesa.descricao_detalhada}`,
+      documento_referencia: `DESP-${despesaId}`,
+      tipo_documento: 'Despesa',
+      status: 'ativo'
+    };
+    
+    const { error: lancamentoError } = await supabase
+      .from('Lancamentos_Contabeis')
+      .insert(lancamento);
+    
+    if (lancamentoError) {
+      console.error('Erro ao criar lançamento contábil:', lancamentoError);
+      return false;
+    }
+    
+    // 3. Atualizar a despesa marcando como contabilizada
+    const { error: atualizacaoError } = await supabase
+      .from('Despesas Gerais')
+      .update({ 
+        contabilizado: true,
+        conta_contabil: contaContabil
+      })
+      .eq('id', despesaId);
+    
+    if (atualizacaoError) {
+      console.error('Erro ao atualizar despesa:', atualizacaoError);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Erro ao contabilizar despesa:', error);
     return false;
   }
 };

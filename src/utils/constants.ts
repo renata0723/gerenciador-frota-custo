@@ -51,6 +51,14 @@ export const statusNotas = {
   CANCELADA: 'Cancelada'
 };
 
+// Status do canhoto
+export const canhotoStatus = {
+  PENDENTE: 'Pendente',
+  RECEBIDO: 'Recebido',
+  PROCESSADO: 'Processado',
+  CANCELADO: 'Cancelado'
+};
+
 // Tipos de documento para cancelamento
 export const tiposDocumento = [
   'Nota Fiscal',

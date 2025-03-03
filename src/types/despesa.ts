@@ -1,5 +1,5 @@
 
-export type TipoDespesa = "descarga" | "reentrega" | "no-show" | "outros" | "administrativa";
+export type TipoDespesa = "descarga" | "reentrega" | "no-show" | "outros" | "administrativa" | "diaria" | "pedagio" | "alimentacao" | "hospedagem" | "multa" | "equipamentos";
 
 export interface Despesa {
   id?: number;
@@ -10,6 +10,8 @@ export interface Despesa {
   contrato_id?: string | null;
   categoria?: "viagem" | "administrativa";
   rateio?: boolean;
+  contabilizado?: boolean;
+  conta_contabil?: string;
 }
 
 export interface DespesaFormData {
@@ -20,4 +22,6 @@ export interface DespesaFormData {
   contrato?: string;
   categoria: "viagem" | "administrativa";
   rateio: boolean;
+  contabilizar?: boolean;
+  conta_contabil?: string;
 }

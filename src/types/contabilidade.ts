@@ -15,7 +15,7 @@ export interface LancamentoContabil {
   created_at?: string;
 }
 
-export type StatusItem = 'ativo' | 'inativo' | 'pendente' | 'concluido' | 'aberto' | 'fechado';
+export type StatusItem = 'ativo' | 'inativo' | 'pendente' | 'concluido' | 'aberto' | 'fechado' | 'aguardando_saida' | 'saida_concluida';
 
 export interface ContaContabil {
   codigo: string;
@@ -42,15 +42,13 @@ export interface DREData {
   receita_bruta: number;
   deducoes?: number;
   receita_liquida: number;
-  custos?: number;
-  lucro_bruto?: number;
-  despesas_operacionais?: number;
+  custos_operacionais?: number;
   despesas_administrativas: number;
-  resultado_operacional?: number;
-  resultado_financeiro?: number;
+  resultado_periodo: number;
+  receita_financeira?: number;
+  despesa_financeira?: number;
   resultado_antes_ir_csll?: number;
   provisao_ir_csll?: number;
-  resultado_periodo: number;
   resultado_liquido?: number;
   status: StatusItem;
   periodo_fechado?: boolean;
@@ -81,4 +79,19 @@ export interface LivroCaixaItem {
   lancamento_contabil_id?: number;
   status: StatusItem;
   created_at?: string;
+}
+
+export interface SaldoPagarItem {
+  id?: string | number;
+  parceiro: string;
+  contratos_associados: string;
+  valor_total: number;
+  valor_pago?: number;
+  saldo_restante?: number;
+  data_pagamento?: string;
+  status: 'Pendente' | 'Parcial' | 'Pago';
+  vencimento?: string;
+  banco_pagamento?: string;
+  documento?: string;
+  dados_bancarios?: string;
 }

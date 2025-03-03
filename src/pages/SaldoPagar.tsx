@@ -8,34 +8,37 @@ import {
   Dialog, 
   DialogContent, 
   DialogHeader, 
-  DialogTitle 
+  DialogTitle,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { formatCurrency } from '@/utils/formatters';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Download, FileDown, Plus, Filter } from 'lucide-react';
+import { Download, FileDown, Plus, Filter, Calendar, DollarSign, User, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-
-interface SaldoPagarItem {
-  id: string;
-  parceiro: string;
-  contratos_associados: string;
-  valor_total: number;
-  valor_pago?: number;
-  saldo_restante?: number;
-  data_pagamento?: string;
-  status: 'Pendente' | 'Parcial' | 'Pago';
-  vencimento?: string;
-  banco_pagamento?: string;
-  documento?: string;
-}
+import { SaldoPagarItem } from '@/types/contabilidade';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const SaldoPagar = () => {
   const [saldos, setSaldos] = useState<SaldoPagarItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Estado para novo saldo
+  const [novoSaldo, setNovoSaldo] = useState({
+    parceiro: '',
+    contratos_associados: '',
+    valor_total: 0,
+    valor_pago: 0,
+    vencimento: '',
+    banco_pagamento: '',
+    dados_bancarios: ''
+  });
   
   useEffect(() => {
     carregarSaldos();
@@ -63,13 +66,15 @@ const SaldoPagar = () => {
           saldo_restante: (item.valor_total || 0) - (item.valor_pago || 0),
           data_pagamento: item.data_pagamento,
           status: 
-            item.data_pagamento && item.valor_pago === item.valor_total 
+            item.data_pagamento && item.valor_pago >= item.valor_total
               ? 'Pago' 
               : item.data_pagamento 
                 ? 'Parcial' 
                 : 'Pendente',
           banco_pagamento: item.banco_pagamento,
-          documento: item.contratos_associados
+          documento: item.contratos_associados,
+          vencimento: item.vencimento,
+          dados_bancarios: item.dados_bancarios
         }));
         
         setSaldos(formattedData);
@@ -90,13 +95,72 @@ const SaldoPagar = () => {
   
   const formatarData = (dataString?: string) => {
     if (!dataString) return '-';
-    const data = new Date(dataString);
-    return data.toLocaleDateString('pt-BR');
+    try {
+      return format(new Date(dataString), 'dd/MM/yyyy', { locale: ptBR });
+    } catch (error) {
+      return dataString;
+    }
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNovoSaldo(prev => ({
+      ...prev,
+      [name]: name === 'valor_total' || name === 'valor_pago' ? parseFloat(value) || 0 : value
+    }));
+  };
+  
+  const handleSelectChange = (name: string, value: string) => {
+    setNovoSaldo(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
   
   const handleNovoSaldo = () => {
+    setNovoSaldo({
+      parceiro: '',
+      contratos_associados: '',
+      valor_total: 0,
+      valor_pago: 0,
+      vencimento: '',
+      banco_pagamento: '',
+      dados_bancarios: ''
+    });
     setIsDialogOpen(true);
-    // Implementar lógica de criação de novo saldo
+  };
+  
+  const handleSalvarSaldo = async () => {
+    try {
+      // Validação básica
+      if (!novoSaldo.parceiro || !novoSaldo.valor_total) {
+        toast.error('Por favor, preencha todos os campos obrigatórios');
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('Saldo a pagar')
+        .insert({
+          parceiro: novoSaldo.parceiro,
+          contratos_associados: novoSaldo.contratos_associados,
+          valor_total: novoSaldo.valor_total,
+          valor_pago: novoSaldo.valor_pago,
+          vencimento: novoSaldo.vencimento,
+          banco_pagamento: novoSaldo.banco_pagamento,
+          dados_bancarios: novoSaldo.dados_bancarios
+        });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('Saldo a pagar registrado com sucesso!');
+      setIsDialogOpen(false);
+      carregarSaldos();
+    } catch (error) {
+      console.error('Erro ao salvar saldo:', error);
+      toast.error('Erro ao registrar saldo a pagar');
+    }
   };
   
   const exportarRelatorio = () => {
@@ -113,7 +177,7 @@ const SaldoPagar = () => {
       doc.setFontSize(16);
       doc.text('Relatório de Saldo a Pagar', 105, 50, { align: 'center' });
       doc.setFontSize(10);
-      doc.text(`Data de geração: ${new Date().toLocaleDateString('pt-BR')}`, 105, 55, { align: 'center' });
+      doc.text(`Data de geração: ${format(new Date(), 'dd/MM/yyyy', { locale: ptBR })}`, 105, 55, { align: 'center' });
       
       // Converter os dados para o formato esperado pelo autoTable
       const tableData = filteredSaldos.map(item => [
@@ -138,7 +202,7 @@ const SaldoPagar = () => {
       });
       
       // Adicionar rodapé
-      const pageCount = doc.internal.getNumberOfPages();
+      const pageCount = (doc as any).internal.pages.length;
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
@@ -159,9 +223,12 @@ const SaldoPagar = () => {
     <PageLayout>
       <div className="bg-white py-6 px-8 border-b shadow-sm w-full mb-6">
         <div className="flex justify-between items-center max-w-screen-xl mx-auto">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Saldo a Pagar</h1>
-            <p className="text-gray-500 mt-1">Controle de valores a pagar aos parceiros</p>
+          <div className="flex items-center gap-4">
+            <DollarSign size={32} className="text-blue-600" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Saldo a Pagar</h1>
+              <p className="text-gray-500 mt-1">Controle de valores a pagar aos parceiros</p>
+            </div>
           </div>
           
           <Button 
@@ -301,12 +368,98 @@ const SaldoPagar = () => {
           <DialogHeader>
             <DialogTitle>Registrar Novo Saldo a Pagar</DialogTitle>
           </DialogHeader>
-          {/* Aqui será implementado o formulário de novo saldo */}
-          <div className="py-6 text-center">
-            <p className="text-gray-500">
-              Formulário de registro de novo saldo a pagar em desenvolvimento.
-            </p>
+          
+          <div className="grid grid-cols-1 gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="parceiro">Parceiro</Label>
+              <Input
+                id="parceiro"
+                name="parceiro"
+                value={novoSaldo.parceiro}
+                onChange={handleInputChange}
+                placeholder="Nome do parceiro"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="contratos_associados">Documento/Contrato</Label>
+              <Input
+                id="contratos_associados"
+                name="contratos_associados"
+                value={novoSaldo.contratos_associados}
+                onChange={handleInputChange}
+                placeholder="Número do documento ou contrato"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="valor_total">Valor Total</Label>
+                <Input
+                  id="valor_total"
+                  name="valor_total"
+                  type="number"
+                  step="0.01"
+                  value={novoSaldo.valor_total}
+                  onChange={handleInputChange}
+                  placeholder="0,00"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="valor_pago">Valor Já Pago</Label>
+                <Input
+                  id="valor_pago"
+                  name="valor_pago"
+                  type="number"
+                  step="0.01"
+                  value={novoSaldo.valor_pago}
+                  onChange={handleInputChange}
+                  placeholder="0,00"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="vencimento">Data de Vencimento</Label>
+              <Input
+                id="vencimento"
+                name="vencimento"
+                type="date"
+                value={novoSaldo.vencimento}
+                onChange={handleInputChange}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="banco_pagamento">Banco para Pagamento</Label>
+              <Input
+                id="banco_pagamento"
+                name="banco_pagamento"
+                value={novoSaldo.banco_pagamento}
+                onChange={handleInputChange}
+                placeholder="Banco para realizar o pagamento"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="dados_bancarios">Dados Bancários do Parceiro</Label>
+              <Input
+                id="dados_bancarios"
+                name="dados_bancarios"
+                value={novoSaldo.dados_bancarios}
+                onChange={handleInputChange}
+                placeholder="Agência, conta, etc."
+              />
+            </div>
           </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSalvarSaldo}>Salvar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </PageLayout>

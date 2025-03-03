@@ -1,273 +1,348 @@
 
 import React, { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
-import PageHeader from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Download, Plus, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import NovoAbastecimentoForm from '@/components/abastecimentos/NovoAbastecimentoForm';
 import TipoCombustivelForm from '@/components/abastecimentos/TipoCombustivelForm';
-import { formatCurrency } from '@/utils/formatters';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { TipoCombustivel } from '@/types/abastecimento';
+import { Abastecimento, TipoCombustivel } from '@/types/abastecimento';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Fuel, CalendarDays, Truck, User, DollarSign } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Abastecimentos = () => {
-  const [abastecimentos, setAbastecimentos] = useState<any[]>([]);
+  const [abastecimentos, setAbastecimentos] = useState<Abastecimento[]>([]);
   const [tiposCombustivel, setTiposCombustivel] = useState<TipoCombustivel[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('abastecimentos');
-  
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isNewTypeDialogOpen, setIsNewTypeDialogOpen] = useState(false);
-  
+  const navigate = useNavigate();
+
   useEffect(() => {
     carregarDados();
   }, []);
-  
+
   const carregarDados = async () => {
-    setIsLoading(true);
+    setLoading(true);
+    await Promise.all([
+      carregarAbastecimentos(),
+      carregarTiposCombustivel()
+    ]);
+    setLoading(false);
+  };
+
+  const carregarAbastecimentos = async () => {
     try {
-      // Carregar abastecimentos
-      const { data: abastecimentosData, error: abastecimentosError } = await supabase
+      const { data, error } = await supabase
         .from('Abastecimentos')
         .select('*')
         .order('data_abastecimento', { ascending: false });
+        
+      if (error) {
+        throw error;
+      }
       
-      if (abastecimentosError) throw abastecimentosError;
-      setAbastecimentos(abastecimentosData || []);
+      const abastecimentosFormatados = data?.map((item): Abastecimento => ({
+        id: item.id || 0,
+        placa_veiculo: item.placa_veiculo || '',
+        data_abastecimento: item.data_abastecimento || '',
+        tipo_combustivel: item.tipo_combustivel || '',
+        quilometragem: item.quilometragem || 0,
+        valor_abastecimento: item.valor_abastecimento || 0,
+        valor_total: item.valor_total || 0,
+        itens_abastecidos: item.itens_abastecidos || '',
+        motorista_solicitante: item.motorista_solicitante || '',
+        responsavel_autorizacao: item.responsavel_autorizacao || '',
+        posto: item.posto || ''
+      })) || [];
       
-      // Carregar tipos de combustível
-      const { data: tiposData, error: tiposError } = await supabase
-        .from('TiposCombustivel')
-        .select('*')
-        .order('nome');
-      
-      if (tiposError) throw tiposError;
-      setTiposCombustivel(tiposData || []);
-      
+      setAbastecimentos(abastecimentosFormatados);
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('Erro ao carregar abastecimentos:', error);
       toast.error('Erro ao carregar dados de abastecimentos');
-    } finally {
-      setIsLoading(false);
     }
   };
-  
-  const handleNovoAbastecimento = async (formData: any) => {
+
+  const carregarTiposCombustivel = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('TiposCombustivel')
+        .select('*')
+        .order('nome', { ascending: true });
+        
+      if (error) {
+        throw error;
+      }
+      
+      setTiposCombustivel(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar tipos de combustível:', error);
+      toast.error('Erro ao carregar tipos de combustível');
+    }
+  };
+
+  const handleSalvarAbastecimento = async (dados: Abastecimento) => {
     try {
       const { error } = await supabase
         .from('Abastecimentos')
-        .insert([formData]);
-      
-      if (error) throw error;
+        .insert({
+          placa_veiculo: dados.placa_veiculo,
+          data_abastecimento: dados.data_abastecimento,
+          tipo_combustivel: dados.tipo_combustivel,
+          quilometragem: dados.quilometragem,
+          valor_abastecimento: dados.valor_abastecimento,
+          valor_total: dados.valor_total,
+          itens_abastecidos: dados.itens_abastecidos,
+          motorista_solicitante: dados.motorista_solicitante,
+          responsavel_autorizacao: dados.responsavel_autorizacao,
+          posto: dados.posto
+        });
+        
+      if (error) {
+        throw error;
+      }
       
       toast.success('Abastecimento registrado com sucesso!');
-      setIsDialogOpen(false);
-      carregarDados();
+      await carregarAbastecimentos();
     } catch (error) {
       console.error('Erro ao salvar abastecimento:', error);
       toast.error('Erro ao registrar abastecimento');
     }
   };
-  
-  const handleNovoTipoCombustivel = async (tipo: TipoCombustivel) => {
+
+  const handleSalvarTipoCombustivel = async (tipoCombustivel: TipoCombustivel) => {
     try {
       const { error } = await supabase
         .from('TiposCombustivel')
-        .insert([tipo]);
+        .insert({
+          id: tipoCombustivel.id,
+          nome: tipoCombustivel.nome,
+          descricao: tipoCombustivel.descricao
+        });
+        
+      if (error) {
+        throw error;
+      }
       
-      if (error) throw error;
-      
-      toast.success('Tipo de combustível adicionado com sucesso!');
-      setIsNewTypeDialogOpen(false);
-      carregarDados();
+      toast.success('Tipo de combustível registrado com sucesso!');
+      await carregarTiposCombustivel();
     } catch (error) {
       console.error('Erro ao salvar tipo de combustível:', error);
-      toast.error('Erro ao adicionar tipo de combustível');
+      toast.error('Erro ao registrar tipo de combustível');
     }
   };
-  
-  const filteredAbastecimentos = abastecimentos.filter(item => 
-    item.placa_veiculo?.toLowerCase().includes(search.toLowerCase()) ||
-    item.motorista_solicitante?.toLowerCase().includes(search.toLowerCase()) ||
-    item.tipo_combustivel?.toLowerCase().includes(search.toLowerCase())
-  );
-  
-  const formatarData = (dataString: string) => {
-    if (!dataString) return '-';
-    const data = new Date(dataString);
-    return data.toLocaleDateString('pt-BR');
+
+  const filteredAbastecimentos = abastecimentos.filter(item => {
+    const searchLower = search.toLowerCase();
+    return (
+      (item.placa_veiculo?.toLowerCase().includes(searchLower)) ||
+      (item.motorista_solicitante?.toLowerCase().includes(searchLower)) ||
+      (item.tipo_combustivel?.toLowerCase().includes(searchLower)) ||
+      (item.posto?.toLowerCase().includes(searchLower)) ||
+      (item.data_abastecimento?.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const formatarData = (dataString: string | null) => {
+    if (!dataString) return 'N/A';
+    try {
+      return format(new Date(dataString), 'dd/MM/yyyy', { locale: ptBR });
+    } catch (error) {
+      return dataString;
+    }
   };
-  
-  const exportarRelatorio = () => {
-    // Esta função seria implementada para exportar os dados em PDF
-    toast.info("Funcionalidade de exportação em desenvolvimento");
+
+  const formatarValor = (valor: number | null) => {
+    if (valor === null || valor === undefined) return 'R$ 0,00';
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
-  
+
+  const handleVoltarMenu = () => {
+    navigate('/');
+  };
+
+  // Calcular estatísticas
+  const totalAbastecimentos = abastecimentos.length;
+  const valorTotalAbastecimentos = abastecimentos.reduce((acc, item) => acc + (item.valor_total || 0), 0);
+  const mediaValorAbastecimento = totalAbastecimentos > 0 
+    ? valorTotalAbastecimentos / totalAbastecimentos 
+    : 0;
+
   return (
     <PageLayout>
-      <PageHeader 
-        title="Abastecimentos" 
-        description="Registro e controle de abastecimentos da frota"
-      />
-      
-      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input 
-            placeholder="Buscar por placa, motorista ou tipo..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <div className="flex gap-3">
-          <Button 
-            onClick={() => setIsNewTypeDialogOpen(true)}
-            variant="outline"
-            className="whitespace-nowrap"
-          >
-            Novo Tipo de Combustível
-          </Button>
+      <div className="bg-white py-6 px-8 border-b shadow-sm w-full mb-6">
+        <div className="flex justify-between items-center max-w-screen-xl mx-auto">
+          <div className="flex items-center gap-4">
+            <Fuel size={32} className="text-blue-600" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Abastecimentos</h1>
+              <p className="text-gray-500 mt-1">Registro e controle de abastecimentos da frota</p>
+            </div>
+          </div>
           
-          <Button 
-            onClick={() => setIsDialogOpen(true)}
-            className="whitespace-nowrap"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Abastecimento
+          <Button variant="outline" onClick={handleVoltarMenu}>
+            Voltar ao Menu Principal
           </Button>
         </div>
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="abastecimentos">Abastecimentos</TabsTrigger>
-          <TabsTrigger value="tiposCombustivel">Tipos de Combustível</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="abastecimentos">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Abastecimentos Registrados</CardTitle>
-                <CardDescription>
-                  {filteredAbastecimentos.length} registros encontrados
-                </CardDescription>
+      <div className="max-w-screen-xl mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="rounded-full bg-blue-100 p-3 mr-4">
+                <Fuel className="h-6 w-6 text-blue-600" />
               </div>
-              <Button 
-                variant="outline" 
-                onClick={exportarRelatorio}
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Exportar
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="text-center py-10">Carregando dados...</div>
+              <div>
+                <p className="text-gray-500 text-sm">Total Abastecimentos</p>
+                <h3 className="text-2xl font-bold">{totalAbastecimentos}</h3>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="rounded-full bg-green-100 p-3 mr-4">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Valor Total</p>
+                <h3 className="text-2xl font-bold">{formatarValor(valorTotalAbastecimentos)}</h3>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="rounded-full bg-purple-100 p-3 mr-4">
+                <CalendarDays className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Valor Médio</p>
+                <h3 className="text-2xl font-bold">{formatarValor(mediaValorAbastecimento)}</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <Tabs defaultValue="registros" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsTrigger value="registros">Abastecimentos</TabsTrigger>
+            <TabsTrigger value="novo">Novo Abastecimento</TabsTrigger>
+            <TabsTrigger value="tipos">Tipos de Combustível</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="registros" className="space-y-4">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">Abastecimentos Registrados</h2>
+                <div className="w-1/3">
+                  <Input
+                    placeholder="Buscar por placa, motorista ou data..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              {loading ? (
+                <div className="text-center py-8">
+                  <p>Carregando abastecimentos...</p>
+                </div>
               ) : filteredAbastecimentos.length === 0 ? (
-                <div className="text-center py-10">
-                  {search ? "Nenhum resultado encontrado para a pesquisa." : "Nenhum abastecimento registrado."}
+                <div className="text-center py-8">
+                  <h3 className="text-lg font-medium">Nenhum abastecimento encontrado</h3>
+                  <p className="text-gray-500 mt-2">
+                    {search 
+                      ? "Nenhum resultado para a sua busca."
+                      : "Registre um novo abastecimento na aba 'Novo Abastecimento'"
+                    }
+                  </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3">Data</th>
-                        <th className="text-left p-3">Placa</th>
-                        <th className="text-left p-3">Motorista</th>
-                        <th className="text-left p-3">Combustível</th>
-                        <th className="text-left p-3">Posto</th>
-                        <th className="text-left p-3">Quilometragem</th>
-                        <th className="text-right p-3">Valor</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Placa</TableHead>
+                        <TableHead>Motorista</TableHead>
+                        <TableHead>Combustível</TableHead>
+                        <TableHead>KM</TableHead>
+                        <TableHead>Posto</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {filteredAbastecimentos.map((item) => (
-                        <tr key={item.id} className="border-b hover:bg-gray-50">
-                          <td className="p-3">{formatarData(item.data_abastecimento)}</td>
-                          <td className="p-3">{item.placa_veiculo}</td>
-                          <td className="p-3">{item.motorista_solicitante}</td>
-                          <td className="p-3">{item.tipo_combustivel}</td>
-                          <td className="p-3">{item.posto}</td>
-                          <td className="p-3">{item.quilometragem} km</td>
-                          <td className="p-3 text-right">{formatCurrency(item.valor_total)}</td>
-                        </tr>
+                        <TableRow key={item.id} className="hover:bg-gray-50">
+                          <TableCell>{formatarData(item.data_abastecimento)}</TableCell>
+                          <TableCell>{item.placa_veiculo}</TableCell>
+                          <TableCell>{item.motorista_solicitante}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{item.tipo_combustivel}</Badge>
+                          </TableCell>
+                          <TableCell>{item.quilometragem}</TableCell>
+                          <TableCell>{item.posto}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatarValor(item.valor_total)}
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="tiposCombustivel">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tipos de Combustível Cadastrados</CardTitle>
-              <CardDescription>
-                Lista de tipos de combustível disponíveis para abastecimento
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="text-center py-10">Carregando tipos de combustível...</div>
-              ) : tiposCombustivel.length === 0 ? (
-                <div className="text-center py-10">
-                  Nenhum tipo de combustível cadastrado.
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="novo">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-semibold mb-6">Registrar Novo Abastecimento</h2>
+              <NovoAbastecimentoForm 
+                tiposCombustivel={tiposCombustivel}
+                onSave={handleSalvarAbastecimento}
+              />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="tipos">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-semibold mb-6">Gerenciar Tipos de Combustível</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Cadastrar Novo</h3>
+                  <TipoCombustivelForm onSave={handleSalvarTipoCombustivel} />
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {tiposCombustivel.map((tipo) => (
-                    <div 
-                      key={tipo.id} 
-                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                    >
-                      <h3 className="font-medium text-lg">{tipo.nome}</h3>
-                      <p className="text-gray-500 text-sm mt-1">{tipo.descricao}</p>
+                
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Tipos Cadastrados</h3>
+                  {tiposCombustivel.length === 0 ? (
+                    <p className="text-gray-500">Nenhum tipo de combustível cadastrado.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {tiposCombustivel.map((tipo) => (
+                        <div key={tipo.id} className="p-3 border rounded-md">
+                          <div className="font-medium">{tipo.nome}</div>
+                          {tipo.descricao && (
+                            <div className="text-sm text-gray-500">{tipo.descricao}</div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-      
-      {/* Modal de Novo Abastecimento */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Registrar Novo Abastecimento</DialogTitle>
-          </DialogHeader>
-          <NovoAbastecimentoForm 
-            tiposCombustivel={tiposCombustivel}
-            onSave={handleNovoAbastecimento}
-          />
-        </DialogContent>
-      </Dialog>
-      
-      {/* Modal de Novo Tipo de Combustível */}
-      <Dialog open={isNewTypeDialogOpen} onOpenChange={setIsNewTypeDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Cadastrar Novo Tipo de Combustível</DialogTitle>
-          </DialogHeader>
-          <TipoCombustivelForm 
-            onSave={handleNovoTipoCombustivel}
-          />
-        </DialogContent>
-      </Dialog>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </PageLayout>
   );
 };
