@@ -22,7 +22,7 @@ export interface CanhotoPendente {
   cliente: string;
   motorista: string;
   data_entrega_cliente: string | null;
-  data_entrega: string | null;
+  data_entrega: string | null; // Adicionado para compatibilidade com PesquisaDocumentos
   status: string;
 }
 

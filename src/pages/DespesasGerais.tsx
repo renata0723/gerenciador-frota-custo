@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import PageLayout from '../components/layout/PageLayout';
+import NewPageLayout from '../components/layout/NewPageLayout';
 import PageHeader from '../components/ui/PageHeader';
-import { DollarSign, Plus, Search, Filter, Download, BarChart2 } from 'lucide-react';
+import { DollarSign, Plus, Search, Filter, Download, BarChart2, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,11 +19,16 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { formataMoeda } from '@/utils/constants';
 import Placeholder, { LoadingPlaceholder } from '@/components/ui/Placeholder';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 const DespesasGerais = () => {
   const [despesas, setDespesas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [contabilizarDialogOpen, setContabilizarDialogOpen] = useState(false);
+  const [despesaSelecionada, setDespesaSelecionada] = useState<any>(null);
+  const [contaContabil, setContaContabil] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,7 +41,8 @@ const DespesasGerais = () => {
       console.log("Buscando despesas do banco...");
       const { data, error } = await supabase
         .from('Despesas Gerais')
-        .select('*');
+        .select('*')
+        .order('data_despesa', { ascending: false });
 
       if (error) {
         console.error("Erro ao carregar despesas:", error);
@@ -54,16 +60,82 @@ const DespesasGerais = () => {
     }
   };
 
+  const handleContabilizar = async () => {
+    if (!despesaSelecionada) return;
+    
+    if (!contaContabil) {
+      toast.error("Por favor, informe a conta contábil para débito");
+      return;
+    }
+
+    try {
+      // Criar lançamento contábil
+      const { error: contabilError } = await supabase
+        .from('Lancamentos_Contabeis')
+        .insert({
+          data_lancamento: despesaSelecionada.data_despesa,
+          data_competencia: despesaSelecionada.data_despesa,
+          conta_debito: contaContabil,
+          conta_credito: '11201', // Conta padrão de caixa/banco
+          valor: despesaSelecionada.valor_despesa,
+          historico: `Despesa ${despesaSelecionada.tipo_despesa} - ${despesaSelecionada.descricao_detalhada.substring(0, 50)}`,
+          documento_referencia: despesaSelecionada.contrato_id || `Despesa ${despesaSelecionada.tipo_despesa}`,
+          tipo_documento: 'DESPESA',
+          status: 'ativo'
+        });
+
+      if (contabilError) {
+        console.error('Erro ao criar lançamento contábil:', contabilError);
+        toast.error('Erro ao contabilizar despesa');
+        return;
+      }
+
+      // Atualizar status da despesa
+      const { error: updateError } = await supabase
+        .from('Despesas Gerais')
+        .update({ 
+          contabilizado: true,
+          conta_contabil: contaContabil
+        })
+        .eq('id', despesaSelecionada.id);
+
+      if (updateError) {
+        console.error('Erro ao atualizar status da despesa:', updateError);
+        toast.error('Erro ao atualizar status da despesa');
+        return;
+      }
+
+      toast.success('Despesa contabilizada com sucesso!');
+      setContabilizarDialogOpen(false);
+      setContaContabil('');
+      carregarDespesas();
+    } catch (error) {
+      console.error('Erro ao contabilizar despesa:', error);
+      toast.error('Ocorreu um erro ao contabilizar a despesa');
+    }
+  };
+
+  const abrirDialogContabilizacao = (despesa: any) => {
+    setDespesaSelecionada(despesa);
+    setContabilizarDialogOpen(true);
+  };
+
   const filteredDespesas = despesas.filter(despesa => 
-    despesa.tipo_despesa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    despesa.descricao_detalhada?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    despesa.categoria?.toLowerCase().includes(searchTerm.toLowerCase())
+    (despesa.tipo_despesa?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (despesa.descricao_detalhada?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (despesa.categoria?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
   const totalDespesas = filteredDespesas.reduce((sum, despesa) => sum + (despesa.valor_despesa || 0), 0);
+  const totalDespesasContabilizadas = filteredDespesas
+    .filter(d => d.contabilizado)
+    .reduce((sum, despesa) => sum + (despesa.valor_despesa || 0), 0);
+  const totalDespesasPendentes = filteredDespesas
+    .filter(d => !d.contabilizado)
+    .reduce((sum, despesa) => sum + (despesa.valor_despesa || 0), 0);
 
   return (
-    <PageLayout>
+    <NewPageLayout>
       <PageHeader 
         title="Despesas Gerais" 
         description="Gerencie as despesas da empresa"
@@ -89,6 +161,30 @@ const DespesasGerais = () => {
             </div>
             <div className="p-3 rounded-full bg-red-100">
               <DollarSign size={20} className="text-red-600" />
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4 shadow-sm border">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Despesas Contabilizadas</p>
+              <h3 className="text-2xl font-bold text-green-600">{formataMoeda(totalDespesasContabilizadas)}</h3>
+            </div>
+            <div className="p-3 rounded-full bg-green-100">
+              <FileText size={20} className="text-green-600" />
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4 shadow-sm border">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Despesas Pendentes</p>
+              <h3 className="text-2xl font-bold text-yellow-600">{formataMoeda(totalDespesasPendentes)}</h3>
+            </div>
+            <div className="p-3 rounded-full bg-yellow-100">
+              <DollarSign size={20} className="text-yellow-600" />
             </div>
           </div>
         </Card>
@@ -150,11 +246,12 @@ const DespesasGerais = () => {
                   <TableHead>Conta Contábil</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredDespesas.map((despesa) => (
-                  <TableRow key={despesa.id} className="cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/despesas/editar/${despesa.id}`)}>
+                  <TableRow key={despesa.id} className="cursor-pointer hover:bg-gray-50">
                     <TableCell>{despesa.data_despesa}</TableCell>
                     <TableCell>{despesa.tipo_despesa}</TableCell>
                     <TableCell>{despesa.categoria || 'N/A'}</TableCell>
@@ -169,6 +266,28 @@ const DespesasGerais = () => {
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
                         {despesa.contabilizado ? 'Contabilizado' : 'Pendente'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate(`/despesas/editar/${despesa.id}`)}
+                        >
+                          Editar
+                        </Button>
+                        
+                        {!despesa.contabilizado && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => abrirDialogContabilizacao(despesa)}
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            Contabilizar
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -195,7 +314,62 @@ const DespesasGerais = () => {
           </div>
         </div>
       </Card>
-    </PageLayout>
+
+      {/* Dialog para contabilização */}
+      <Dialog open={contabilizarDialogOpen} onOpenChange={setContabilizarDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Contabilizar Despesa</DialogTitle>
+          </DialogHeader>
+          
+          {despesaSelecionada && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm text-gray-500">Despesa</Label>
+                  <p className="font-medium">{despesaSelecionada.tipo_despesa}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500">Valor</Label>
+                  <p className="font-medium">{formataMoeda(despesaSelecionada.valor_despesa)}</p>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-sm text-gray-500">Descrição</Label>
+                <p className="font-medium">{despesaSelecionada.descricao_detalhada}</p>
+              </div>
+              
+              <div>
+                <Label htmlFor="contaContabil">Conta Contábil para Débito</Label>
+                <Input 
+                  id="contaContabil"
+                  value={contaContabil}
+                  onChange={(e) => setContaContabil(e.target.value)}
+                  placeholder="Digite o código da conta (Ex: 31101)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  A conta de crédito será a conta de caixa/banco padrão (11201)
+                </p>
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setContabilizarDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleContabilizar}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Confirmar Contabilização
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </NewPageLayout>
   );
 };
 

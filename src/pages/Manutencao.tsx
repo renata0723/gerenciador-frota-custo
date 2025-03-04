@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import PageLayout from '@/components/layout/PageLayout';
+import NewPageLayout from '@/components/layout/NewPageLayout';
 import PageHeader from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -11,22 +11,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Wrench, Plus, Trash2, Calendar, CheckCircle2, Filter, Search } from 'lucide-react';
+import { Wrench, Plus, Calendar, CheckCircle2, Search, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { TipoManutencao } from '@/utils/constants';
+import { Switch } from '@/components/ui/switch';
 
 interface ManutencaoItem {
   id: number;
   placa_veiculo: string;
-  tipo_manutencao: TipoManutencao;
-  local_realizacao: 'patio' | 'externa';
+  tipo_manutencao: "preventiva" | "corretiva";
+  local_realizacao: "patio" | "externa";
   pecas_servicos: string;
   valor_total: number;
   data_manutencao: string;
+  contabilizado?: boolean;
+  conta_contabil?: string;
 }
 
 const Manutencao = () => {
@@ -38,12 +40,13 @@ const Manutencao = () => {
   
   // Estado para novo registro de manutenção
   const [novaManutencao, setNovaManutencao] = useState<Partial<ManutencaoItem>>({
-    tipo_manutencao: 'preventiva',
-    local_realizacao: 'patio',
+    tipo_manutencao: "preventiva",
+    local_realizacao: "patio",
     placa_veiculo: '',
     pecas_servicos: '',
     valor_total: 0,
-    data_manutencao: format(new Date(), 'yyyy-MM-dd')
+    data_manutencao: format(new Date(), 'yyyy-MM-dd'),
+    contabilizado: false
   });
   
   // Carregar dados do Supabase
@@ -69,7 +72,8 @@ const Manutencao = () => {
       // Convertendo os dados para o tipo correto
       const manutencoesConvertidas = data?.map(item => ({
         ...item,
-        tipo_manutencao: item.tipo_manutencao as TipoManutencao
+        tipo_manutencao: item.tipo_manutencao as "preventiva" | "corretiva",
+        local_realizacao: item.local_realizacao as "patio" | "externa"
       })) || [];
       
       setManutencoes(manutencoesConvertidas);
@@ -102,6 +106,11 @@ const Manutencao = () => {
       toast.error('Por favor, informe um valor válido para a manutenção');
       return;
     }
+
+    if (novaManutencao.contabilizado && !novaManutencao.conta_contabil) {
+      toast.error('Por favor, informe a conta contábil para contabilização');
+      return;
+    }
     
     try {
       const { error } = await supabase
@@ -112,7 +121,9 @@ const Manutencao = () => {
           local_realizacao: novaManutencao.local_realizacao,
           pecas_servicos: novaManutencao.pecas_servicos,
           valor_total: novaManutencao.valor_total,
-          data_manutencao: novaManutencao.data_manutencao
+          data_manutencao: novaManutencao.data_manutencao,
+          contabilizado: novaManutencao.contabilizado,
+          conta_contabil: novaManutencao.contabilizado ? novaManutencao.conta_contabil : null
         });
       
       if (error) {
@@ -120,21 +131,91 @@ const Manutencao = () => {
         toast.error('Erro ao salvar registro de manutenção');
         return;
       }
+
+      // Se for para contabilizar, criar lançamento contábil
+      if (novaManutencao.contabilizado && novaManutencao.conta_contabil) {
+        const { error: contabilError } = await supabase
+          .from('Lancamentos_Contabeis')
+          .insert({
+            data_lancamento: novaManutencao.data_manutencao,
+            data_competencia: novaManutencao.data_manutencao,
+            conta_debito: novaManutencao.conta_contabil,
+            conta_credito: '11201', // Conta padrão de caixa/banco
+            valor: novaManutencao.valor_total,
+            historico: `Manutenção ${novaManutencao.tipo_manutencao} - Veículo ${novaManutencao.placa_veiculo}`,
+            documento_referencia: `Manutenção ${novaManutencao.tipo_manutencao} ${novaManutencao.local_realizacao}`,
+            tipo_documento: 'MANUTENCAO',
+            status: 'ativo'
+          });
+
+        if (contabilError) {
+          console.error('Erro ao contabilizar manutenção:', contabilError);
+          toast.error('Manutenção salva, mas houve erro na contabilização');
+        } else {
+          toast.success('Manutenção registrada e contabilizada com sucesso!');
+        }
+      } else {
+        toast.success('Manutenção registrada com sucesso!');
+      }
       
-      toast.success('Manutenção registrada com sucesso!');
       setDialogOpen(false);
       
       // Resetar formulário
       setNovaManutencao({
-        tipo_manutencao: 'preventiva',
-        local_realizacao: 'patio',
+        tipo_manutencao: "preventiva",
+        local_realizacao: "patio",
         placa_veiculo: '',
         pecas_servicos: '',
         valor_total: 0,
-        data_manutencao: format(new Date(), 'yyyy-MM-dd')
+        data_manutencao: format(new Date(), 'yyyy-MM-dd'),
+        contabilizado: false,
+        conta_contabil: ''
       });
       
       // Recarregar dados
+      carregarManutencoes();
+    } catch (error) {
+      console.error('Erro:', error);
+      toast.error('Ocorreu um erro ao processar a solicitação');
+    }
+  };
+
+  // Função para contabilizar uma manutenção existente
+  const handleContabilizar = async (manutencao: ManutencaoItem) => {
+    try {
+      const { error } = await supabase
+        .from('Lancamentos_Contabeis')
+        .insert({
+          data_lancamento: manutencao.data_manutencao,
+          data_competencia: manutencao.data_manutencao,
+          conta_debito: manutencao.conta_contabil || '31101', // Despesa de manutenção (exemplo)
+          conta_credito: '11201', // Conta padrão de caixa/banco
+          valor: manutencao.valor_total,
+          historico: `Manutenção ${manutencao.tipo_manutencao} - Veículo ${manutencao.placa_veiculo}`,
+          documento_referencia: `Manutenção ID: ${manutencao.id}`,
+          tipo_documento: 'MANUTENCAO',
+          status: 'ativo'
+        });
+
+      if (error) {
+        console.error('Erro ao contabilizar manutenção:', error);
+        toast.error('Erro ao contabilizar manutenção');
+        return;
+      }
+
+      // Atualizar status de contabilização
+      const { error: updateError } = await supabase
+        .from('Manutenção')
+        .update({ contabilizado: true })
+        .eq('id', manutencao.id);
+
+      if (updateError) {
+        console.error('Erro ao atualizar status da manutenção:', updateError);
+        toast.error('Erro ao atualizar status da manutenção');
+        return;
+      }
+
+      toast.success('Manutenção contabilizada com sucesso!');
       carregarManutencoes();
     } catch (error) {
       console.error('Erro:', error);
@@ -168,7 +249,7 @@ const Manutencao = () => {
   };
 
   return (
-    <PageLayout>
+    <NewPageLayout>
       <PageHeader
         title="Manutenção de Veículos"
         description="Registro e acompanhamento de manutenções preventivas e corretivas"
@@ -218,16 +299,18 @@ const Manutencao = () => {
                           <th className="h-10 px-4 text-left font-medium">Local</th>
                           <th className="h-10 px-4 text-left font-medium">Descrição</th>
                           <th className="h-10 px-4 text-right font-medium">Valor</th>
+                          <th className="h-10 px-4 text-center font-medium">Contabilizado</th>
+                          <th className="h-10 px-4 text-center font-medium">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
                         {isLoading ? (
                           <tr>
-                            <td colSpan={6} className="h-10 px-4 text-center">Carregando...</td>
+                            <td colSpan={8} className="h-10 px-4 text-center">Carregando...</td>
                           </tr>
                         ) : manutencoesExibidas.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="h-10 px-4 text-center">Nenhum registro encontrado</td>
+                            <td colSpan={8} className="h-10 px-4 text-center">Nenhum registro encontrado</td>
                           </tr>
                         ) : (
                           manutencoesExibidas.map((item) => (
@@ -252,6 +335,28 @@ const Manutencao = () => {
                                 </div>
                               </td>
                               <td className="p-2 px-4 text-right">{formatarValor(item.valor_total)}</td>
+                              <td className="p-2 px-4 text-center">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  item.contabilizado 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {item.contabilizado ? 'Sim' : 'Não'}
+                                </span>
+                              </td>
+                              <td className="p-2 px-4 text-center">
+                                {!item.contabilizado && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => handleContabilizar(item)}
+                                    className="text-xs"
+                                  >
+                                    <FileText className="h-3 w-3 mr-1" />
+                                    Contabilizar
+                                  </Button>
+                                )}
+                              </td>
                             </tr>
                           ))
                         )}
@@ -274,16 +379,18 @@ const Manutencao = () => {
                           <th className="h-10 px-4 text-left font-medium">Local</th>
                           <th className="h-10 px-4 text-left font-medium">Descrição</th>
                           <th className="h-10 px-4 text-right font-medium">Valor</th>
+                          <th className="h-10 px-4 text-center font-medium">Contabilizado</th>
+                          <th className="h-10 px-4 text-center font-medium">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
                         {isLoading ? (
                           <tr>
-                            <td colSpan={5} className="h-10 px-4 text-center">Carregando...</td>
+                            <td colSpan={7} className="h-10 px-4 text-center">Carregando...</td>
                           </tr>
                         ) : manutencoesExibidas.length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="h-10 px-4 text-center">Nenhum registro encontrado</td>
+                            <td colSpan={7} className="h-10 px-4 text-center">Nenhum registro encontrado</td>
                           </tr>
                         ) : (
                           manutencoesExibidas.map((item) => (
@@ -299,6 +406,28 @@ const Manutencao = () => {
                                 </div>
                               </td>
                               <td className="p-2 px-4 text-right">{formatarValor(item.valor_total)}</td>
+                              <td className="p-2 px-4 text-center">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  item.contabilizado 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {item.contabilizado ? 'Sim' : 'Não'}
+                                </span>
+                              </td>
+                              <td className="p-2 px-4 text-center">
+                                {!item.contabilizado && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => handleContabilizar(item)}
+                                    className="text-xs"
+                                  >
+                                    <FileText className="h-3 w-3 mr-1" />
+                                    Contabilizar
+                                  </Button>
+                                )}
+                              </td>
                             </tr>
                           ))
                         )}
@@ -321,16 +450,18 @@ const Manutencao = () => {
                           <th className="h-10 px-4 text-left font-medium">Local</th>
                           <th className="h-10 px-4 text-left font-medium">Descrição</th>
                           <th className="h-10 px-4 text-right font-medium">Valor</th>
+                          <th className="h-10 px-4 text-center font-medium">Contabilizado</th>
+                          <th className="h-10 px-4 text-center font-medium">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
                         {isLoading ? (
                           <tr>
-                            <td colSpan={5} className="h-10 px-4 text-center">Carregando...</td>
+                            <td colSpan={7} className="h-10 px-4 text-center">Carregando...</td>
                           </tr>
                         ) : manutencoesExibidas.length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="h-10 px-4 text-center">Nenhum registro encontrado</td>
+                            <td colSpan={7} className="h-10 px-4 text-center">Nenhum registro encontrado</td>
                           </tr>
                         ) : (
                           manutencoesExibidas.map((item) => (
@@ -346,6 +477,28 @@ const Manutencao = () => {
                                 </div>
                               </td>
                               <td className="p-2 px-4 text-right">{formatarValor(item.valor_total)}</td>
+                              <td className="p-2 px-4 text-center">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  item.contabilizado 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {item.contabilizado ? 'Sim' : 'Não'}
+                                </span>
+                              </td>
+                              <td className="p-2 px-4 text-center">
+                                {!item.contabilizado && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => handleContabilizar(item)}
+                                    className="text-xs"
+                                  >
+                                    <FileText className="h-3 w-3 mr-1" />
+                                    Contabilizar
+                                  </Button>
+                                )}
+                              </td>
                             </tr>
                           ))
                         )}
@@ -414,9 +567,9 @@ const Manutencao = () => {
                 <Label htmlFor="tipo_manutencao">Tipo de Manutenção</Label>
                 <Select 
                   value={novaManutencao.tipo_manutencao} 
-                  onValueChange={(value: 'preventiva' | 'corretiva') => setNovaManutencao({
+                  onValueChange={(value) => setNovaManutencao({
                     ...novaManutencao, 
-                    tipo_manutencao: value
+                    tipo_manutencao: value as "preventiva" | "corretiva"
                   })}
                 >
                   <SelectTrigger>
@@ -433,9 +586,9 @@ const Manutencao = () => {
                 <Label htmlFor="local_realizacao">Local da Manutenção</Label>
                 <Select 
                   value={novaManutencao.local_realizacao} 
-                  onValueChange={(value: 'patio' | 'externa') => setNovaManutencao({
+                  onValueChange={(value) => setNovaManutencao({
                     ...novaManutencao, 
-                    local_realizacao: value
+                    local_realizacao: value as "patio" | "externa"
                   })}
                 >
                   <SelectTrigger>
@@ -474,6 +627,36 @@ const Manutencao = () => {
                 })}
               />
             </div>
+
+            <div className="flex items-center space-x-2 pt-2">
+              <Switch
+                id="contabilizar"
+                checked={novaManutencao.contabilizado}
+                onCheckedChange={(checked) => setNovaManutencao({
+                  ...novaManutencao,
+                  contabilizado: checked
+                })}
+              />
+              <Label htmlFor="contabilizar">Contabilizar automaticamente</Label>
+            </div>
+
+            {novaManutencao.contabilizado && (
+              <div className="space-y-2">
+                <Label htmlFor="conta_contabil">Conta Contábil para Débito</Label>
+                <Input
+                  id="conta_contabil"
+                  placeholder="Código da conta contábil (Ex: 31101)"
+                  value={novaManutencao.conta_contabil || ''}
+                  onChange={(e) => setNovaManutencao({
+                    ...novaManutencao,
+                    conta_contabil: e.target.value
+                  })}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  A conta de crédito será a conta de caixa/banco padrão (11201)
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="flex justify-between">
@@ -487,7 +670,7 @@ const Manutencao = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </PageLayout>
+    </NewPageLayout>
   );
 };
 

@@ -1,165 +1,156 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { ChevronLeft, ChevronRight, FileText, DollarSign, TrendingUp, Package, Activity, Truck, User, Settings, BarChart2, Calendar, Database, Warehouse } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Truck, 
-  Users, 
-  ClipboardList, 
-  Receipt, 
-  DollarSign, 
-  Fuel, 
-  Wrench, 
-  BarChart3,
-  FileDown,
-  Settings,
-  BellRing,
-  Calculator,
-  ChevronLeft,
-  ChevronRight,
-  BarChart2
-} from 'lucide-react';
+import { useMobile } from '@/hooks/use-mobile';
 
-interface CollapsibleSidebarProps {
-  children?: React.ReactNode;
+interface SidebarItem {
+  label: string;
+  icon: React.ReactNode;
+  href: string;
+  active?: boolean;
+  children?: SidebarItem[];
 }
 
-const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({ children }) => {
+interface CollapsibleSidebarProps {
+  children: React.ReactNode;
+  defaultCollapsed?: boolean;
+}
+
+const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({ children, defaultCollapsed = false }) => {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  const [showMenu, setShowMenu] = useState(false);
+  const isMobile = useMobile();
+  const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useIsMobile();
-  const [collapsed, setCollapsed] = useState(false);
-  
-  // Ao iniciar, definir como colapsado em telas não-móveis se não houver preferência salva
+
   useEffect(() => {
-    const savedCollapsed = localStorage.getItem('sidebar-collapsed');
-    if (savedCollapsed !== null) {
-      setCollapsed(savedCollapsed === 'true');
-    } else if (!isMobile) {
+    // Em dispositivos móveis, sempre começar colapsado
+    if (isMobile) {
       setCollapsed(true);
     }
   }, [isMobile]);
-  
-  // Salvar preferência
+
+  // Fechar o menu quando a rota mudar em dispositivos móveis
   useEffect(() => {
-    localStorage.setItem('sidebar-collapsed', String(collapsed));
-  }, [collapsed]);
-  
-  // Determine what page is active
-  const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(`${path}/`);
-  };
+    if (isMobile) {
+      setShowMenu(false);
+    }
+  }, [location.pathname, isMobile]);
 
-  // Toggle sidebar
-  const toggleSidebar = () => {
+  const toggleCollapsed = () => {
     setCollapsed(!collapsed);
+    if (isMobile) {
+      setShowMenu(!showMenu);
+    }
   };
 
-  const menuItems = [
-    { path: '/', icon: <LayoutDashboard className="h-5 w-5" />, text: 'Painel' },
-    { path: '/entrada-notas', icon: <FileText className="h-5 w-5" />, text: 'Entrada de Notas' },
-    { path: '/veiculos', icon: <Truck className="h-5 w-5" />, text: 'Veículos' },
-    { path: '/motoristas', icon: <Users className="h-5 w-5" />, text: 'Motoristas' },
-    { path: '/contratos', icon: <ClipboardList className="h-5 w-5" />, text: 'Contratos' },
-    { path: '/canhotos', icon: <Receipt className="h-5 w-5" />, text: 'Canhotos' },
-    { path: '/saldo-pagar', icon: <DollarSign className="h-5 w-5" />, text: 'Saldo a Pagar' },
-    { path: '/abastecimentos', icon: <Fuel className="h-5 w-5" />, text: 'Abastecimentos' },
-    { path: '/manutencao', icon: <Wrench className="h-5 w-5" />, text: 'Manutenção' },
-    { path: '/despesas', icon: <BarChart3 className="h-5 w-5" />, text: 'Despesas Gerais' },
-    { path: '/relatorios', icon: <BarChart2 className="h-5 w-5" />, text: 'Relatórios' },
-    { path: '/contabilidade', icon: <Calculator className="h-5 w-5" />, text: 'Contabilidade' },
-    { path: '/configuracoes', icon: <Settings className="h-5 w-5" />, text: 'Configurações' },
-    { path: '/usuarios', icon: <Users className="h-5 w-5" />, text: 'Usuários' },
+  const sidebarItems: SidebarItem[] = [
+    { label: 'Dashboard', icon: <BarChart2 size={20} />, href: '/' },
+    { label: 'Contratos', icon: <FileText size={20} />, href: '/contratos' },
+    { label: 'Entrada de Notas', icon: <Package size={20} />, href: '/notas/entrada' },
+    { label: 'Veículos', icon: <Truck size={20} />, href: '/veiculos' },
+    { label: 'Motoristas', icon: <User size={20} />, href: '/motoristas' },
+    { label: 'Manutenção', icon: <Activity size={20} />, href: '/manutencao' },
+    { label: 'Abastecimentos', icon: <TrendingUp size={20} />, href: '/abastecimentos' },
+    { label: 'Despesas Gerais', icon: <DollarSign size={20} />, href: '/despesas' },
+    { label: 'Canhotos', icon: <Calendar size={20} />, href: '/canhotos' },
+    { label: 'Saldo a Pagar', icon: <DollarSign size={20} />, href: '/saldo-pagar' },
+    { label: 'Contabilidade', icon: <Database size={20} />, href: '/contabilidade' },
+    { label: 'Relatórios', icon: <BarChart2 size={20} />, href: '/relatorios' },
+    { label: 'Estoque', icon: <Warehouse size={20} />, href: '/estoque' },
+    { label: 'Configurações', icon: <Settings size={20} />, href: '/configuracoes' },
+    { label: 'Usuários', icon: <User size={20} />, href: '/usuarios' },
   ];
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Overlay para dispositivos móveis */}
+      {isMobile && showMenu && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={() => setShowMenu(false)}
+        />
+      )}
+
+      {/* Sidebar */}
       <aside 
         className={cn(
-          "bg-slate-900 text-white fixed left-0 top-0 z-20 h-screen pt-16 transition-all duration-300 flex flex-col",
-          {
-            "w-16": collapsed && !isMobile,
-            "w-60": !collapsed && !isMobile,
-            "w-60": !collapsed && isMobile,
-            "-translate-x-full": collapsed && isMobile,
-          }
+          "bg-white border-r border-border transition-all duration-300 z-50",
+          collapsed ? "w-[70px]" : "w-[250px]",
+          isMobile && "fixed h-full",
+          isMobile && !showMenu && "transform -translate-x-full"
         )}
       >
-        <div className="px-2 py-2 overflow-y-auto h-full flex flex-col">
-          <nav className="space-y-1 mt-4 flex-1">
-            {menuItems.map((item) => (
-              <TooltipProvider key={item.path} delayDuration={500}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link to={item.path} className="block">
-                      <Button 
-                        variant="ghost" 
-                        className={cn(
-                          "w-full justify-start text-white hover:bg-slate-800 hover:text-white",
-                          isActive(item.path) && "bg-slate-800 text-white",
-                          collapsed && !isMobile ? "px-3" : "px-3"
-                        )}
-                      >
-                        {item.icon}
-                        {(!collapsed || isMobile) && <span className="ml-2">{item.text}</span>}
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  {collapsed && !isMobile && (
-                    <TooltipContent side="right">
-                      {item.text}
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            ))}
-          </nav>
-          
-          <div className={cn("px-3 py-2", collapsed && !isMobile && "hidden")}>
-            <div className="bg-slate-800 p-3 rounded-md text-sm">
-              <h3 className="font-medium flex items-center">
-                <BellRing className="h-4 w-4 mr-2" /> Versão
-              </h3>
-              <p className="text-slate-400 mt-1">1.0.0</p>
-            </div>
+        <div className="flex flex-col h-full">
+          <div className="flex justify-end p-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={toggleCollapsed}
+              className="h-8 w-8"
+            >
+              {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </Button>
           </div>
+
+          <nav className="flex-1 overflow-y-auto py-4">
+            <ul className="space-y-1 px-2">
+              {sidebarItems.map((item, index) => (
+                <li key={index}>
+                  {collapsed ? (
+                    <TooltipProvider>
+                      <Tooltip delayDuration={0}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={location.pathname === item.href ? "default" : "ghost"}
+                            className="w-full justify-center h-10"
+                            onClick={() => navigate(item.href)}
+                          >
+                            {item.icon}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          {item.label}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <Button
+                      variant={location.pathname === item.href ? "default" : "ghost"}
+                      className="w-full justify-start h-10"
+                      onClick={() => navigate(item.href)}
+                    >
+                      <span className="mr-2">{item.icon}</span>
+                      {item.label}
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
       </aside>
-      
-      <div 
-        className={cn(
-          "fixed top-1/2 -translate-y-1/2 z-30 transition-all duration-300",
-          {
-            "left-16": collapsed && !isMobile,
-            "left-60": !collapsed && !isMobile,
-            "left-0": isMobile,
-          }
+
+      {/* Conteúdo principal */}
+      <main className={cn(
+        "flex-1 overflow-y-auto transition-all duration-300",
+        isMobile && "w-full"
+      )}>
+        {/* Botão de menu para dispositivos móveis quando colapsado */}
+        {isMobile && collapsed && !showMenu && (
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={toggleCollapsed} 
+            className="fixed top-4 left-4 z-30 h-10 w-10 rounded-full shadow-lg bg-white"
+          >
+            <ChevronRight size={20} />
+          </Button>
         )}
-      >
-        <Button
-          variant="secondary"
-          size="sm"
-          className="h-8 w-8 p-0 rounded-full shadow-md bg-white text-slate-800 border border-slate-200"
-          onClick={toggleSidebar}
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
-      </div>
-      
-      <main 
-        className={cn(
-          "flex-1 transition-all duration-300 pt-16",
-          {
-            "ml-16": collapsed && !isMobile,
-            "ml-60": !collapsed && !isMobile,
-            "ml-0": isMobile,
-          }
-        )}
-      >
         {children}
       </main>
     </div>
