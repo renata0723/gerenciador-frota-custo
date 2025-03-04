@@ -1,62 +1,63 @@
-import { supabase } from '@/integrations/supabase/client';
-import { Usuario } from '@/types/usuario';
-import { logOperation } from '@/utils/logOperations';
 
-export const autenticarUsuario = async (email: string, senha: string): Promise<Usuario | null> => {
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export const signIn = async ({ email, password }: LoginCredentials) => {
   try {
-    console.log('Tentando autenticar usuário:', email);
-    
-    // Autenticação via Supabase
-    const { data, error } = await supabase
-      .from('Usuarios')
-      .select('*')
-      .eq('email', email)
-      .eq('senha', senha)
-      .maybeSingle();
-    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
     if (error) {
-      console.error('Erro ao autenticar usuário:', error);
-      logOperation('Usuários', 'Login', 'false');
-      return null;
+      throw error;
     }
-    
-    if (data) {
-      // Atualizar último acesso
-      const { error: updateError } = await supabase
-        .from('Usuarios')
-        .update({ ultimo_acesso: new Date().toISOString() })
-        .eq('id', data.id);
-        
-      if (updateError) {
-        console.error('Erro ao atualizar último acesso:', updateError);
-      }
-      
-      logOperation('Usuários', 'Login', 'true');
-      
-      return {
-        ...data,
-        status: data.status as Usuario['status']
-      };
-    } else {
-      console.log('Usuário ou senha incorretos');
-      return null;
+
+    if (data?.user) {
+      // Armazenar dados do usuário
+      localStorage.setItem('userId', data.user.id);
+      localStorage.setItem('userEmail', data.user.email || '');
+      return data;
     }
-  } catch (error) {
-    console.error('Erro ao autenticar usuário:', error);
-    logOperation('Usuários', 'Login', 'false');
-    return null;
+
+    throw new Error('Falha na autenticação');
+  } catch (error: any) {
+    let message = 'Erro ao fazer login';
+    if (error.message === 'Invalid login credentials') {
+      message = 'Email ou senha inválidos';
+    }
+    toast.error(message);
+    throw error;
   }
 };
 
-export const getUsuarioAutenticado = (): Usuario | null => {
+export const signOut = async () => {
   try {
-    const usuarioString = localStorage.getItem('userData');
-    if (!usuarioString) return null;
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
     
-    const usuario = JSON.parse(usuarioString) as Usuario;
-    return usuario;
+    // Limpar dados do usuário
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userEmail');
   } catch (error) {
-    console.error('Erro ao obter usuário autenticado:', error);
+    console.error('Erro ao fazer logout:', error);
+    toast.error('Erro ao fazer logout');
+    throw error;
+  }
+};
+
+export const checkAuthStatus = async () => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return session;
+  } catch (error) {
+    console.error('Erro ao verificar autenticação:', error);
     return null;
   }
 };
