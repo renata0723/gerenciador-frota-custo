@@ -22,7 +22,7 @@ export interface CanhotoPendente {
   cliente: string;
   motorista: string;
   data_entrega_cliente: string | null;
-  data_entrega: string | null; // Adicionado para compatibilidade com PesquisaDocumentos
+  data_entrega: string | null; // Campo adicional para compatibilidade
   status: string;
 }
 
@@ -31,8 +31,8 @@ export interface CancelamentoDocumento {
   documento_id: string;
   tipo_documento: string;
   motivo: string;
-  data_cancelamento: string;
   observacoes?: string;
+  data_cancelamento: string;
   usuario_cancelamento: string;
   numero_documento: string;
   responsavel: string;

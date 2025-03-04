@@ -1,480 +1,772 @@
+
 import React, { useState, useEffect } from 'react';
-import NewPageLayout from '@/components/layout/NewPageLayout';
-import PageHeader from '@/components/ui/PageHeader';
+import PageLayout from '@/components/layout/PageLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Banknote, Calendar, DollarSign, Download, Edit2, Filter, Loader2, Search, Trash, UserCheck } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { SaldoPagarItem } from '@/types/contabilidade';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Table, TableBody, TableCell, TableHead, 
+  TableHeader, TableRow 
+} from '@/components/ui/table';
+import { 
+  Calendar, 
+  CreditCard, 
+  DollarSign, 
+  FileText, 
+  Printer, 
+  Search, 
+  UserCheck, 
+  FileDown 
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { formatCurrency, formatDate } from '@/utils/formatters';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { gerarRelatorioSaldoPagar } from '@/utils/pdfGenerator';
+
+interface SaldoPagarItem {
+  id?: number;
+  parceiro?: string;
+  contratos_associados?: string;
+  valor_total?: number;
+  valor_pago?: number;
+  saldo_restante?: number;
+  vencimento?: string | Date;
+  data_pagamento?: string | Date;
+  banco_pagamento?: string;
+  dados_bancarios?: string;
+}
+
+interface ContratoItem {
+  id: string;
+  cliente_destino: string;
+  valor_frete: number;
+  status_contrato: string;
+  selecionado?: boolean;
+}
 
 const SaldoPagar = () => {
-  const [saldos, setSaldos] = useState<SaldoPagarItem[]>([]);
-  const [filteredSaldos, setFilteredSaldos] = useState<SaldoPagarItem[]>([]);
-  const [selectedContratos, setSelectedContratos] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('todos');
-  const [editingSaldo, setEditingSaldo] = useState<SaldoPagarItem | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [pagandoSaldo, setPagandoSaldo] = useState<SaldoPagarItem | null>(null);
-  const [isPagamentoDialogOpen, setIsPagamentoDialogOpen] = useState(false);
-  const [bancoSelecionado, setBancoSelecionado] = useState('');
-  const [observacoesPagamento, setObservacoesPagamento] = useState('');
-
-  const bancos = [
-    { id: 'banco-brasil', nome: 'Banco do Brasil' },
-    { id: 'caixa', nome: 'Caixa Econômica Federal' },
-    { id: 'bradesco', nome: 'Bradesco' },
-    { id: 'itau', nome: 'Itaú' },
-    { id: 'santander', nome: 'Santander' },
-    { id: 'nubank', nome: 'Nubank' },
-    { id: 'inter', nome: 'Banco Inter' },
-  ];
+  const [saldosPagar, setSaldosPagar] = useState<SaldoPagarItem[]>([]);
+  const [contratosSelecionados, setContratosSelecionados] = useState<ContratoItem[]>([]);
+  const [contratosDisponiveis, setContratosDisponiveis] = useState<ContratoItem[]>([]);
+  const [valorTotalSelecionado, setValorTotalSelecionado] = useState(0);
+  const [carregando, setCarregando] = useState(true);
+  const [dialogAberto, setDialogAberto] = useState(false);
+  const [dialogPagamentoAberto, setDialogPagamentoAberto] = useState(false);
+  const [saldoSelecionado, setSaldoSelecionado] = useState<SaldoPagarItem | null>(null);
+  const [filtro, setFiltro] = useState('');
+  const [proprietarioSelecionado, setProprietarioSelecionado] = useState('');
+  const [proprietarios, setProprietarios] = useState<string[]>([]);
+  const [bancos, setBancos] = useState([
+    'Banco do Brasil',
+    'Itaú',
+    'Bradesco',
+    'Caixa Econômica Federal',
+    'Santander',
+    'Nubank',
+    'Inter',
+    'Sicoob',
+    'C6 Bank',
+    'Original',
+    'PicPay',
+    'Outro'
+  ]);
+  
+  const [novoPagamento, setNovoPagamento] = useState({
+    valor: 0,
+    data: new Date().toISOString().split('T')[0],
+    banco: '',
+    observacao: ''
+  });
 
   useEffect(() => {
-    carregarSaldos();
+    carregarSaldosPagar();
+    carregarProprietarios();
   }, []);
 
-  useEffect(() => {
-    filtrarSaldos();
-  }, [saldos, searchTerm, statusFilter]);
-
-  const carregarSaldos = async () => {
-    setLoading(true);
+  const carregarSaldosPagar = async () => {
+    setCarregando(true);
     try {
-      const dadosExemplo: SaldoPagarItem[] = [
-        {
-          id: 1,
-          parceiro: 'Fornecedor A',
-          valor_total: 1500,
-          valor_pago: 500,
-          saldo_restante: 1000,
-          vencimento: '2024-05-10',
-          status: 'pendente',
-          observacoes: 'Pagamento parcial realizado'
-        },
-        {
-          id: 2,
-          parceiro: 'Fornecedor B',
-          valor_total: 2500,
-          valor_pago: 2500,
-          saldo_restante: 0,
-          vencimento: '2024-05-15',
-          status: 'concluido',
-          data_pagamento: '2024-05-15',
-          banco_pagamento: 'Banco do Brasil',
-          observacoes: 'Pagamento total'
-        },
-        {
-          id: 3,
-          parceiro: 'Fornecedor C',
-          valor_total: 800,
-          valor_pago: 0,
-          saldo_restante: 800,
-          vencimento: '2024-05-20',
-          status: 'pendente'
-        },
-        {
-          id: 4,
-          parceiro: '',
-          valor_total: 0,
-          saldo_restante: 0,
-          vencimento: '',
-          status: 'pendente'
-        },
-        {
-          id: 5,
-          parceiro: '',
-          valor_total: 0,
-          saldo_restante: 0,
-          vencimento: '',
-          status: 'pendente'
-        },
-        {
-          id: 6,
-          parceiro: '',
-          valor_total: 0,
-          saldo_restante: 0,
-          vencimento: '',
-          status: 'pendente'
-        },
-        {
-          id: 7,
-          parceiro: '',
-          valor_total: 0,
-          saldo_restante: 0,
-          vencimento: '',
-          status: 'pendente'
-        }
-      ];
-      
-      setSaldos(dadosExemplo);
+      const { data, error } = await supabase
+        .from('Saldo a pagar')
+        .select('*')
+        .order('vencimento', { ascending: true });
+
+      if (error) throw error;
+
+      // Calcular o saldo restante para cada item
+      const saldosCalculados = data.map(item => ({
+        ...item,
+        saldo_restante: (parseFloat(item.valor_total) || 0) - (parseFloat(item.valor_pago) || 0)
+      }));
+
+      setSaldosPagar(saldosCalculados);
     } catch (error) {
       console.error('Erro ao carregar saldos a pagar:', error);
-      toast.error('Erro ao carregar os saldos a pagar');
+      toast.error('Erro ao carregar dados');
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
   };
 
-  const filtrarSaldos = () => {
-    let filtrados = [...saldos];
+  const carregarProprietarios = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Proprietarios')
+        .select('nome')
+        .order('nome');
+
+      if (error) throw error;
+
+      setProprietarios(data.map(p => p.nome));
+    } catch (error) {
+      console.error('Erro ao carregar proprietários:', error);
+    }
+  };
+
+  const carregarContratosPorProprietario = async (proprietario: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('Contratos')
+        .select('id, cliente_destino, valor_frete, status_contrato')
+        .eq('proprietario', proprietario)
+        .eq('tipo_frota', 'terceiro')
+        .order('id');
+
+      if (error) throw error;
+
+      const contratosComSelecao = data.map(contrato => ({
+        ...contrato,
+        selecionado: false
+      }));
+
+      setContratosDisponiveis(contratosComSelecao);
+    } catch (error) {
+      console.error('Erro ao carregar contratos:', error);
+      toast.error('Erro ao carregar contratos');
+    }
+  };
+
+  const handleNovoSaldo = () => {
+    setProprietarioSelecionado('');
+    setContratosSelecionados([]);
+    setContratosDisponiveis([]);
+    setValorTotalSelecionado(0);
+    setDialogAberto(true);
+  };
+
+  const handleProprietarioChange = (valor: string) => {
+    setProprietarioSelecionado(valor);
+    carregarContratosPorProprietario(valor);
+  };
+
+  const handleSelecionarContrato = (id: string, checked: boolean) => {
+    const novosContratos = contratosDisponiveis.map(contrato => 
+      contrato.id === id 
+        ? { ...contrato, selecionado: checked } 
+        : contrato
+    );
     
-    if (searchTerm) {
-      filtrados = filtrados.filter(saldo => 
-        saldo.parceiro?.toLowerCase().includes(searchTerm.toLowerCase())
+    setContratosDisponiveis(novosContratos);
+    
+    // Atualizar a lista de contratos selecionados
+    const selecionados = novosContratos.filter(c => c.selecionado);
+    setContratosSelecionados(selecionados);
+    
+    // Calcular o total
+    const novoTotal = selecionados.reduce((total, contrato) => total + (contrato.valor_frete || 0), 0);
+    setValorTotalSelecionado(novoTotal);
+  };
+
+  const handleSalvarSaldo = async () => {
+    if (!proprietarioSelecionado) {
+      toast.error('Selecione um proprietário');
+      return;
+    }
+
+    if (contratosSelecionados.length === 0) {
+      toast.error('Selecione pelo menos um contrato');
+      return;
+    }
+
+    try {
+      // IDs dos contratos selecionados
+      const idsContratos = contratosSelecionados.map(c => c.id).join(', ');
+      
+      // Valor total dos contratos selecionados
+      const valorTotal = contratosSelecionados.reduce(
+        (total, contrato) => total + (contrato.valor_frete || 0), 0
       );
-    }
-    
-    if (statusFilter !== 'todos') {
-      filtrados = filtrados.filter(saldo => saldo.status === statusFilter);
-    }
-    
-    setFilteredSaldos(filtrados);
-  };
 
-  const handleEditar = (saldo: SaldoPagarItem) => {
-    setEditingSaldo(saldo);
-    setIsDialogOpen(true);
-  };
+      // Inserir no banco de dados
+      const { data, error } = await supabase
+        .from('Saldo a pagar')
+        .insert({
+          parceiro: proprietarioSelecionado,
+          contratos_associados: idsContratos,
+          valor_total: valorTotal,
+          vencimento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 dias a partir de hoje
+          valor_pago: 0
+        })
+        .select();
 
-  const handleExcluir = (id: number) => {
-    const confirmed = window.confirm('Tem certeza que deseja excluir este saldo a pagar?');
-    if (confirmed) {
-      setSaldos(saldos.filter(s => s.id !== id));
-      toast.success('Saldo a pagar excluído com sucesso!');
+      if (error) throw error;
+
+      toast.success('Saldo a pagar registrado com sucesso!');
+      setDialogAberto(false);
+      carregarSaldosPagar();
+    } catch (error) {
+      console.error('Erro ao salvar saldo a pagar:', error);
+      toast.error('Erro ao registrar saldo a pagar');
     }
   };
 
   const handleRegistrarPagamento = (saldo: SaldoPagarItem) => {
-    setPagandoSaldo(saldo);
-    setBancoSelecionado('');
-    setObservacoesPagamento('');
-    setIsPagamentoDialogOpen(true);
+    setSaldoSelecionado(saldo);
+    setNovoPagamento({
+      valor: parseFloat((saldo.saldo_restante || 0).toFixed(2)),
+      data: new Date().toISOString().split('T')[0],
+      banco: '',
+      observacao: ''
+    });
+    setDialogPagamentoAberto(true);
   };
 
-  const handleConfirmarPagamento = () => {
-    if (!bancoSelecionado) {
+  const handleSalvarPagamento = async () => {
+    if (!saldoSelecionado) return;
+
+    if (!novoPagamento.valor) {
+      toast.error('Informe o valor do pagamento');
+      return;
+    }
+
+    if (!novoPagamento.banco) {
       toast.error('Selecione o banco de pagamento');
       return;
     }
-    
-    const bancoPagamento = bancos.find(b => b.id === bancoSelecionado)?.nome || bancoSelecionado;
-    
-    setSaldos(saldos.map(s => {
-      if (s.id === pagandoSaldo?.id) {
-        return {
-          ...s,
-          status: 'concluido',
-          data_pagamento: format(new Date(), 'yyyy-MM-dd'),
-          banco_pagamento: bancoPagamento,
-          valor_pago: s.valor_total,
-          saldo_restante: 0,
-          observacoes: observacoesPagamento || s.observacoes
-        };
-      }
-      return s;
-    }));
-    
-    setIsPagamentoDialogOpen(false);
-    toast.success('Pagamento registrado com sucesso!');
-  };
 
-  const handleSelectContrato = (contratoId: string) => {
-    setSelectedContratos(prev => {
-      if (prev.includes(contratoId)) {
-        return prev.filter(id => id !== contratoId);
-      }
-      return [...prev, contratoId];
-    });
-  };
-
-  const calcularTotalSelecionado = () => {
-    return selectedContratos.reduce((total, contratoId) => {
-      const saldo = saldos.find(s => s.id?.toString() === contratoId);
-      return total + (saldo?.saldo_restante || 0);
-    }, 0);
-  };
-
-  const handleRegistrarPagamentoMultiplo = () => {
-    if (!selectedContratos.length) {
-      toast.error('Selecione pelo menos um contrato para pagamento');
-      return;
-    }
-
-    setPagandoSaldo({
-      id: 0,
-      parceiro: saldos.find(s => s.id?.toString() === selectedContratos[0])?.parceiro || '',
-      valor_total: calcularTotalSelecionado(),
-      saldo_restante: calcularTotalSelecionado(),
-      vencimento: new Date().toISOString().split('T')[0],
-      contratos_associados: selectedContratos.join(',')
-    });
-    setIsPagamentoDialogOpen(true);
-  };
-
-  const formatarValor = (valor?: number) => {
-    if (valor === undefined || valor === null) return 'R$ 0,00';
-    return `R$ ${valor.toFixed(2).replace('.', ',')}`;
-  };
-
-  const formatarData = (dataString?: string) => {
-    if (!dataString) return '';
     try {
-      return format(parseISO(dataString), 'dd/MM/yyyy', { locale: ptBR });
-    } catch (e) {
-      return dataString;
+      // Calcular o novo valor pago (o que já estava + o valor atual)
+      const valorPagoAnterior = parseFloat(saldoSelecionado.valor_pago?.toString() || '0');
+      const novoValorPago = valorPagoAnterior + novoPagamento.valor;
+      
+      // Atualizar o registro no banco de dados
+      const { error } = await supabase
+        .from('Saldo a pagar')
+        .update({
+          valor_pago: novoValorPago,
+          data_pagamento: novoPagamento.data,
+          banco_pagamento: novoPagamento.banco
+        })
+        .eq('id', saldoSelecionado.id);
+
+      if (error) throw error;
+
+      toast.success('Pagamento registrado com sucesso!');
+      setDialogPagamentoAberto(false);
+      carregarSaldosPagar();
+      
+      // Registrar na contabilidade como saída de caixa
+      try {
+        await supabase
+          .from('Lancamentos_Contabeis')
+          .insert({
+            data_lancamento: novoPagamento.data,
+            data_competencia: novoPagamento.data,
+            conta_debito: '2.1.1.01', // Exemplo: Fornecedores
+            conta_credito: '1.1.1.01', // Exemplo: Caixa
+            valor: novoPagamento.valor,
+            historico: `Pagamento ao parceiro ${saldoSelecionado.parceiro} - Contratos: ${saldoSelecionado.contratos_associados}`,
+            documento_referencia: `Contratos ${saldoSelecionado.contratos_associados}`,
+            tipo_documento: 'PAG'
+          });
+        
+        toast.success('Lançamento contábil de pagamento registrado automaticamente');
+      } catch (error) {
+        console.error('Erro ao registrar lançamento contábil:', error);
+        toast.error('Erro ao registrar lançamento contábil');
+      }
+    } catch (error) {
+      console.error('Erro ao registrar pagamento:', error);
+      toast.error('Erro ao registrar pagamento');
     }
   };
 
-  const getStatusBadge = (status?: string) => {
-    if (!status) return null;
-    
-    switch (status) {
-      case 'pendente':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Pendente</Badge>;
-      case 'concluido':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Pago</Badge>;
-      case 'cancelado':
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Cancelado</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
+  const handleGerarRelatorio = () => {
+    gerarRelatorioSaldoPagar(saldosPagar);
+    toast.success('Relatório de saldos a pagar gerado com sucesso!');
   };
+
+  const saldosFiltrados = saldosPagar.filter(saldo => {
+    const termoBusca = filtro.toLowerCase();
+    return (
+      (saldo.parceiro && saldo.parceiro.toLowerCase().includes(termoBusca)) ||
+      (saldo.contratos_associados && saldo.contratos_associados.toLowerCase().includes(termoBusca)) ||
+      (saldo.banco_pagamento && saldo.banco_pagamento.toLowerCase().includes(termoBusca))
+    );
+  });
 
   return (
-    <NewPageLayout>
-      <PageHeader 
-        title="Saldo a Pagar" 
-        description="Gerencie os saldos a pagar aos parceiros"
-        icon={<DollarSign className="h-6 w-6 text-green-600" />}
-        breadcrumbs={[
-          { label: 'Dashboard', href: '/' },
-          { label: 'Saldo a Pagar' }
-        ]}
-      />
-      
-      <Card className="mt-6">
-        <CardHeader className="pb-0">
-          <CardTitle>Lista de Saldos a Pagar</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-            <div className="relative w-full sm:w-auto flex-1">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Search size={18} className="text-gray-400" />
-              </div>
-              <Input
-                type="text"
-                className="pl-10"
-                placeholder="Buscar por parceiro..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="pendente">Pendentes</SelectItem>
-                  <SelectItem value="concluido">Pagos</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Button variant="outline" className="gap-1 w-full sm:w-auto">
-                <Filter size={16} className="mr-1" />
-                Filtrar
-              </Button>
-              
-              <Button variant="outline" className="gap-1 w-full sm:w-auto">
-                <Download size={16} className="mr-1" />
-                Exportar
-              </Button>
-            </div>
+    <PageLayout>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Saldo a Pagar</h1>
+          <p className="text-gray-500">Gerencie os saldos a pagar aos parceiros</p>
+        </div>
+        <div className="flex space-x-2">
+          <Button onClick={handleGerarRelatorio} className="flex items-center gap-2">
+            <FileDown className="h-4 w-4" />
+            Exportar Relatório
+          </Button>
+          <Button onClick={handleNovoSaldo}>
+            <DollarSign className="mr-2 h-4 w-4" />
+            Novo Saldo a Pagar
+          </Button>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Buscar por parceiro, contrato ou banco..."
+              className="pl-10"
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value)}
+            />
           </div>
-          
-          {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-            </div>
-          ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">
-                      Selecionar
-                    </TableHead>
-                    <TableHead>Parceiro</TableHead>
-                    <TableHead>Valor Total</TableHead>
-                    <TableHead>Valor Pago</TableHead>
-                    <TableHead>Saldo Restante</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSaldos.length === 0 ? (
+        </div>
+      </div>
+
+      <Tabs defaultValue="todos">
+        <TabsList className="mb-6">
+          <TabsTrigger value="todos">Todos</TabsTrigger>
+          <TabsTrigger value="pendentes">Pendentes</TabsTrigger>
+          <TabsTrigger value="pagos">Pagos</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="todos">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <DollarSign className="mr-2 h-5 w-5 text-blue-500" />
+                Todos os Saldos a Pagar
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                        Nenhum saldo a pagar encontrado.
-                      </TableCell>
+                      <TableHead>Parceiro</TableHead>
+                      <TableHead>Contratos</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead className="text-right">Valor Pago</TableHead>
+                      <TableHead className="text-right">Saldo Restante</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Pagamento</TableHead>
+                      <TableHead>Banco</TableHead>
+                      <TableHead className="text-center">Ações</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredSaldos.map((saldo) => (
-                      <TableRow key={saldo.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedContratos.includes(saldo.id?.toString() || '')}
-                            onCheckedChange={() => handleSelectContrato(saldo.id?.toString() || '')}
-                          />
+                  </TableHeader>
+                  <TableBody>
+                    {carregando ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center py-4">
+                          Carregando...
                         </TableCell>
-                        <TableCell className="font-medium">{saldo.parceiro || '-'}</TableCell>
-                        <TableCell>{formatarValor(saldo.valor_total)}</TableCell>
-                        <TableCell>{formatarValor(saldo.valor_pago)}</TableCell>
-                        <TableCell>{formatarValor(saldo.saldo_restante)}</TableCell>
-                        <TableCell>{formatarData(saldo.vencimento)}</TableCell>
-                        <TableCell>{getStatusBadge(saldo.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            {saldo.status === 'pendente' && (
+                      </TableRow>
+                    ) : saldosFiltrados.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center py-4">
+                          Nenhum saldo a pagar encontrado.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      saldosFiltrados.map((saldo, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{saldo.parceiro}</TableCell>
+                          <TableCell>
+                            <span className="text-sm truncate max-w-xs block">
+                              {saldo.contratos_associados}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">{formatCurrency(saldo.valor_total)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(saldo.valor_pago)}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            <span className={
+                              parseFloat((saldo.valor_total || 0) - (saldo.valor_pago || 0) + '') > 0 
+                                ? "text-red-600" 
+                                : "text-green-600"
+                            }>
+                              {formatCurrency(saldo.saldo_restante)}
+                            </span>
+                          </TableCell>
+                          <TableCell>{formatDate(saldo.vencimento)}</TableCell>
+                          <TableCell>{saldo.data_pagamento ? formatDate(saldo.data_pagamento) : '-'}</TableCell>
+                          <TableCell>{saldo.banco_pagamento || '-'}</TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex justify-center space-x-2">
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
                                 onClick={() => handleRegistrarPagamento(saldo)}
+                                disabled={(saldo.saldo_restante || 0) <= 0}
                               >
-                                <Banknote className="h-4 w-4" />
-                                <span className="sr-only">Pagar</span>
+                                <CreditCard className="h-4 w-4" />
                               </Button>
-                            )}
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="h-8 px-2"
-                              onClick={() => handleEditar(saldo)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                              <span className="sr-only">Editar</span>
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleExcluir(saldo.id!)}
-                            >
-                              <Trash className="h-4 w-4" />
-                              <span className="sr-only">Excluir</span>
-                            </Button>
-                          </div>
+                              <Button variant="outline" size="sm">
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pendentes">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <DollarSign className="mr-2 h-5 w-5 text-yellow-500" />
+                Saldos Pendentes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Parceiro</TableHead>
+                      <TableHead>Contratos</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead className="text-right">Valor Pago</TableHead>
+                      <TableHead className="text-right">Saldo Restante</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead className="text-center">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {carregando ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-4">
+                          Carregando...
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    ) : (
+                      saldosFiltrados
+                        .filter(saldo => (parseFloat((saldo.valor_total || 0) - (saldo.valor_pago || 0) + '') > 0))
+                        .map((saldo, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{saldo.parceiro}</TableCell>
+                            <TableCell>
+                              <span className="text-sm truncate max-w-xs block">
+                                {saldo.contratos_associados}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">{formatCurrency(saldo.valor_total)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(saldo.valor_pago)}</TableCell>
+                            <TableCell className="text-right font-medium text-red-600">
+                              {formatCurrency(saldo.saldo_restante)}
+                            </TableCell>
+                            <TableCell>{formatDate(saldo.vencimento)}</TableCell>
+                            <TableCell className="text-center">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleRegistrarPagamento(saldo)}
+                              >
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                Pagar
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <div className="flex justify-end mb-4">
-        {selectedContratos.length > 0 && (
-          <Button 
-            onClick={handleRegistrarPagamentoMultiplo}
-            className="gap-2"
-          >
-            <Banknote className="h-4 w-4" />
-            Pagar Selecionados ({selectedContratos.length})
-          </Button>
-        )}
-      </div>
+        <TabsContent value="pagos">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <DollarSign className="mr-2 h-5 w-5 text-green-500" />
+                Saldos Pagos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Parceiro</TableHead>
+                      <TableHead>Contratos</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead>Data Pagamento</TableHead>
+                      <TableHead>Banco</TableHead>
+                      <TableHead className="text-center">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {carregando ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-4">
+                          Carregando...
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      saldosFiltrados
+                        .filter(saldo => (parseFloat((saldo.valor_total || 0) - (saldo.valor_pago || 0) + '') <= 0) && saldo.data_pagamento)
+                        .map((saldo, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{saldo.parceiro}</TableCell>
+                            <TableCell>
+                              <span className="text-sm truncate max-w-xs block">
+                                {saldo.contratos_associados}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">{formatCurrency(saldo.valor_total)}</TableCell>
+                            <TableCell>{formatDate(saldo.data_pagamento)}</TableCell>
+                            <TableCell>{saldo.banco_pagamento || '-'}</TableCell>
+                            <TableCell className="text-center">
+                              <Button variant="outline" size="sm">
+                                <Printer className="h-4 w-4 mr-2" />
+                                Comprovante
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
-      <Dialog open={isPagamentoDialogOpen} onOpenChange={setIsPagamentoDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+      {/* Dialog para Novo Saldo a Pagar */}
+      <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Banknote className="h-5 w-5 text-green-600" />
-              Registrar Pagamento
+            <DialogTitle className="flex items-center">
+              <DollarSign className="mr-2 h-5 w-5" />
+              Novo Saldo a Pagar
             </DialogTitle>
-            <DialogDescription>
-              Preencha as informações do pagamento para {pagandoSaldo?.parceiro}
-            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Valor Total</Label>
-                <div className="p-2 border rounded-md bg-gray-50">
-                  {formatarValor(pagandoSaldo?.valor_total)}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Data do Pagamento</Label>
-                <div className="p-2 border rounded-md bg-gray-50 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  {format(new Date(), 'dd/MM/yyyy', { locale: ptBR })}
-                </div>
-              </div>
-            </div>
-            
             <div className="space-y-2">
-              <Label htmlFor="banco">Banco de Pagamento</Label>
-              <Select value={bancoSelecionado} onValueChange={setBancoSelecionado}>
-                <SelectTrigger id="banco">
-                  <SelectValue placeholder="Selecione o banco" />
+              <Label htmlFor="proprietario">Proprietário</Label>
+              <Select
+                value={proprietarioSelecionado}
+                onValueChange={handleProprietarioChange}
+              >
+                <SelectTrigger id="proprietario">
+                  <SelectValue placeholder="Selecione o proprietário" />
                 </SelectTrigger>
                 <SelectContent>
-                  {bancos.map((banco) => (
-                    <SelectItem key={banco.id} value={banco.id}>
-                      {banco.nome}
+                  {proprietarios.map((prop) => (
+                    <SelectItem key={prop} value={prop}>
+                      {prop}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="observacoes">Observações (opcional)</Label>
-              <Input
-                id="observacoes"
-                placeholder="Digite observações sobre o pagamento"
-                value={observacoesPagamento}
-                onChange={(e) => setObservacoesPagamento(e.target.value)}
-              />
-            </div>
+            {contratosDisponiveis.length > 0 && (
+              <div className="space-y-2">
+                <Label>Contratos Disponíveis</Label>
+                <Card className="p-2 max-h-60 overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">Sel.</TableHead>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {contratosDisponiveis.map((contrato) => (
+                        <TableRow key={contrato.id}>
+                          <TableCell>
+                            <Checkbox 
+                              checked={contrato.selecionado}
+                              onCheckedChange={(checked) => 
+                                handleSelecionarContrato(contrato.id, checked === true)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>{contrato.id}</TableCell>
+                          <TableCell>{contrato.cliente_destino}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(contrato.valor_frete)}</TableCell>
+                          <TableCell>{contrato.status_contrato}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+              </div>
+            )}
+            
+            {contratosSelecionados.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label>Total Selecionado:</Label>
+                  <span className="font-bold text-blue-700">{formatCurrency(valorTotalSelecionado)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <Label>Contratos Selecionados:</Label>
+                  <span className="font-medium">{contratosSelecionados.length}</span>
+                </div>
+              </div>
+            )}
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPagamentoDialogOpen(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setDialogAberto(false)}
+            >
               Cancelar
             </Button>
             <Button 
-              className="gap-2" 
-              onClick={handleConfirmarPagamento}
+              onClick={handleSalvarSaldo}
+              disabled={contratosSelecionados.length === 0}
             >
-              <UserCheck className="h-4 w-4" />
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para Registrar Pagamento */}
+      <Dialog open={dialogPagamentoAberto} onOpenChange={setDialogPagamentoAberto}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <CreditCard className="mr-2 h-5 w-5" />
+              Registrar Pagamento
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {saldoSelecionado && (
+              <>
+                <div className="flex justify-between border-b pb-2 mb-4">
+                  <span className="font-medium">Parceiro:</span>
+                  <span>{saldoSelecionado.parceiro}</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <Label className="text-sm text-gray-500">Valor Total</Label>
+                    <p className="font-medium">{formatCurrency(saldoSelecionado.valor_total)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-gray-500">Saldo a Pagar</Label>
+                    <p className="font-medium text-red-600">{formatCurrency(saldoSelecionado.saldo_restante)}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="valor">Valor do Pagamento</Label>
+                    <Input
+                      id="valor"
+                      type="number"
+                      step="0.01"
+                      value={novoPagamento.valor}
+                      onChange={(e) => setNovoPagamento({
+                        ...novoPagamento,
+                        valor: parseFloat(e.target.value)
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="data">Data do Pagamento</Label>
+                    <Input
+                      id="data"
+                      type="date"
+                      value={novoPagamento.data}
+                      onChange={(e) => setNovoPagamento({
+                        ...novoPagamento,
+                        data: e.target.value
+                      })}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="banco">Banco</Label>
+                  <Select
+                    value={novoPagamento.banco}
+                    onValueChange={(valor) => setNovoPagamento({
+                      ...novoPagamento,
+                      banco: valor
+                    })}
+                  >
+                    <SelectTrigger id="banco">
+                      <SelectValue placeholder="Selecione o banco" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bancos.map((banco) => (
+                        <SelectItem key={banco} value={banco}>
+                          {banco}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="observacao">Observação</Label>
+                  <Input
+                    id="observacao"
+                    placeholder="Observações sobre o pagamento (opcional)"
+                    value={novoPagamento.observacao}
+                    onChange={(e) => setNovoPagamento({
+                      ...novoPagamento,
+                      observacao: e.target.value
+                    })}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDialogPagamentoAberto(false)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleSalvarPagamento}>
               Confirmar Pagamento
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </NewPageLayout>
+    </PageLayout>
   );
 };
 
