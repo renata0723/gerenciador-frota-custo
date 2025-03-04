@@ -1,6 +1,6 @@
 
 import React, { Suspense } from "react";
-import { Routes, Route, BrowserRouter, Navigate } from "react-router-dom";
+import { Routes, Route, BrowserRouter } from "react-router-dom";
 import Index from "./pages/Index";
 import EntradaNotas from "./pages/EntradaNotas";
 import NovaNotaForm from "./pages/NovaNotaForm";
@@ -28,7 +28,6 @@ import PlanoContas from "./pages/contabilidade/PlanoContas";
 import BalancoPatrimonial from "./pages/contabilidade/BalancoPatrimonial";
 import DRE from "./pages/contabilidade/DRE";
 import LivroCaixa from "./pages/contabilidade/LivroCaixa";
-import Login from "./pages/Login";
 import Usuarios from "./pages/Usuarios";
 import FolhaPagamento from "./pages/contabilidade/FolhaPagamento";
 import Balancete from "./pages/contabilidade/Balancete";
@@ -49,22 +48,39 @@ const LoadingFallback = () => (
 );
 
 function App() {
+  // Garantir que o usuário esteja sempre autenticado
+  React.useEffect(() => {
+    // Configurar os dados do usuário admin automaticamente
+    const adminTestUser = {
+      id: 9999,
+      nome: 'Administrador',
+      email: 'admin@slog.com.br',
+      cargo: 'Administrador',
+      status: 'ativo',
+      ultimo_acesso: new Date().toISOString()
+    };
+    
+    localStorage.setItem('userData', JSON.stringify(adminTestUser));
+    localStorage.setItem('userToken', 'token-simulado-dev');
+    localStorage.setItem('userName', adminTestUser.nome);
+    localStorage.setItem('userId', String(adminTestUser.id));
+    localStorage.setItem('userEmail', adminTestUser.email);
+    console.log('Autenticação automática realizada - modo desenvolvimento');
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
-        {/* Redirecionamento da tela de login diretamente para index */}
-        <Route path="/login" element={<Navigate to="/" replace />} />
-        
         {/* Rotas principais */}
         <Route path="/" element={<Suspense fallback={<LoadingFallback />}><Index /></Suspense>} />
         
         {/* Notas Fiscais */}
         <Route path="/notas" element={<Suspense fallback={<LoadingFallback />}><EntradaNotas /></Suspense>} />
-        <Route path="/entrada-notas" element={<Navigate to="/notas" replace />} />
+        <Route path="/entrada-notas" element={<Suspense fallback={<LoadingFallback />}><EntradaNotas /></Suspense>} />
         <Route path="/notas/nova" element={<Suspense fallback={<LoadingFallback />}><NovaNotaForm /></Suspense>} />
-        <Route path="/entrada-notas/nova" element={<Navigate to="/notas/nova" replace />} />
+        <Route path="/entrada-notas/nova" element={<Suspense fallback={<LoadingFallback />}><NovaNotaForm /></Suspense>} />
         <Route path="/notas/editar/:id" element={<Suspense fallback={<LoadingFallback />}><NovaNotaForm /></Suspense>} />
-        <Route path="/entrada-notas/editar/:id" element={<Navigate to="/notas/editar/:id" replace />} />
+        <Route path="/entrada-notas/editar/:id" element={<Suspense fallback={<LoadingFallback />}><NovaNotaForm /></Suspense>} />
         
         {/* Veículos */}
         <Route path="/veiculos" element={<Suspense fallback={<LoadingFallback />}><Veiculos /></Suspense>} />
@@ -113,7 +129,7 @@ function App() {
         <Route path="/contabilidade/dre" element={<Suspense fallback={<LoadingFallback />}><DRE /></Suspense>} />
         <Route path="/contabilidade/livro-caixa" element={<Suspense fallback={<LoadingFallback />}><LivroCaixa /></Suspense>} />
         <Route path="/contabilidade/folha-pagamento" element={<Suspense fallback={<LoadingFallback />}><FolhaPagamento /></Suspense>} />
-        <Route path="/folha-pagamento" element={<Navigate to="/contabilidade/folha-pagamento" replace />} />
+        <Route path="/folha-pagamento" element={<Suspense fallback={<LoadingFallback />}><FolhaPagamento /></Suspense>} />
         <Route path="/contabilidade/apuracao-custo-resultado" element={<Suspense fallback={<LoadingFallback />}><LazyApuracaoCustoResultado /></Suspense>} />
         <Route path="/contabilidade/apuracao/:id" element={<Suspense fallback={<LoadingFallback />}><LazyApuracaoCustoResultadoDetalhes /></Suspense>} />
         <Route path="/contabilidade/balancete" element={<Suspense fallback={<LoadingFallback />}><Balancete /></Suspense>} />
@@ -121,7 +137,7 @@ function App() {
         <Route path="/contabilidade/fechamento-fiscal" element={<Suspense fallback={<LoadingFallback />}><FechamentoFiscal /></Suspense>} />
         <Route path="/contabilidade/conciliacao-bancaria" element={<Suspense fallback={<LoadingFallback />}><ConciliacaoBancaria /></Suspense>} />
         
-        {/* Página de erro */}
+        {/* Página de erro - sempre no final */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
