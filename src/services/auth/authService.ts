@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Usuario } from '@/types/usuario';
@@ -9,40 +10,27 @@ export interface LoginCredentials {
 
 export const signIn = async ({ email, password }: LoginCredentials) => {
   try {
-    console.log('Tentando login com:', email);
+    console.log('Modo de desenvolvimento: simulando login com:', email);
     
-    // Buscar usuário diretamente da tabela Usuarios
-    const { data: usuario, error: userError } = await supabase
-      .from('Usuarios')
-      .select('*')
-      .eq('email', email)
-      .eq('senha', password)
-      .single();
-
-    if (userError || !usuario) {
-      console.error('Erro ao buscar usuário:', userError);
-      throw new Error('Email ou senha inválidos');
-    }
-
-    console.log('Usuário encontrado:', usuario);
+    // No modo de desenvolvimento, podemos retornar um usuário simulado
+    const usuarioSimulado: Usuario = {
+      id: 9999,
+      nome: 'Administrador',
+      email: 'admin@slog.com.br',
+      cargo: 'Administrador',
+      status: 'ativo',
+      ultimo_acesso: new Date().toISOString()
+    };
 
     // Armazenar dados do usuário de forma consistente
-    localStorage.setItem('userData', JSON.stringify(usuario));
+    localStorage.setItem('userData', JSON.stringify(usuarioSimulado));
     localStorage.setItem('userToken', 'token-' + Date.now());
-    localStorage.setItem('userName', usuario.nome);
-    localStorage.setItem('userEmail', usuario.email);
-    localStorage.setItem('userId', String(usuario.id));
+    localStorage.setItem('userName', usuarioSimulado.nome);
+    localStorage.setItem('userEmail', usuarioSimulado.email);
+    localStorage.setItem('userId', String(usuarioSimulado.id));
 
-    // Atualizar último acesso (não aguardamos a conclusão para não atrasar o login)
-    supabase
-      .from('Usuarios')
-      .update({ ultimo_acesso: new Date().toISOString() })
-      .eq('id', usuario.id)
-      .then(() => console.log('Último acesso atualizado'))
-      .catch(err => console.error('Erro ao atualizar último acesso:', err));
-
-    console.log('Login realizado com sucesso:', usuario.nome);
-    return usuario;
+    console.log('Login em modo de desenvolvimento realizado com sucesso:', usuarioSimulado.nome);
+    return usuarioSimulado;
   } catch (error: any) {
     console.error('Erro ao fazer login:', error);
     let message = 'Erro ao fazer login';
@@ -73,38 +61,33 @@ export const signOut = async () => {
 };
 
 export const checkAuthStatus = async () => {
-  try {
-    const userData = localStorage.getItem('userData');
-    const userToken = localStorage.getItem('userToken');
-    
-    if (userData && userToken) {
-      // Verificar se os dados do usuário são válidos
-      try {
-        const user = JSON.parse(userData);
-        if (user && user.id && user.email) {
-          console.log('Usuário autenticado:', user.nome);
-          return true;
-        }
-      } catch (e) {
-        console.error('Erro ao analisar dados do usuário:', e);
-        return false;
-      }
-    }
-    
-    console.log('Usuário não autenticado');
-    return false;
-  } catch (error) {
-    console.error('Erro ao verificar autenticação:', error);
-    return false;
-  }
+  // No modo de desenvolvimento, sempre retornamos true para simular um usuário autenticado
+  return true;
 };
 
 export const getUsuarioAutenticado = (): Usuario | null => {
   try {
     const userDataString = localStorage.getItem('userData');
+    
+    // Se não tiver dados no localStorage, criar um usuário simulado para desenvolvimento
     if (!userDataString) {
-      console.log('Nenhum dado de usuário encontrado no localStorage');
-      return null;
+      console.log('Modo de desenvolvimento: criando usuário simulado');
+      const usuarioSimulado: Usuario = {
+        id: 9999,
+        nome: 'Administrador',
+        email: 'admin@slog.com.br',
+        cargo: 'Administrador',
+        status: 'ativo',
+        ultimo_acesso: new Date().toISOString()
+      };
+      
+      localStorage.setItem('userData', JSON.stringify(usuarioSimulado));
+      localStorage.setItem('userToken', 'token-simulado-dev');
+      localStorage.setItem('userName', usuarioSimulado.nome);
+      localStorage.setItem('userId', String(usuarioSimulado.id));
+      localStorage.setItem('userEmail', usuarioSimulado.email);
+      
+      return usuarioSimulado;
     }
     
     const userData: Usuario = JSON.parse(userDataString);

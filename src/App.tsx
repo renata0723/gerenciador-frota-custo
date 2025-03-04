@@ -3,7 +3,7 @@ import React, { Suspense } from "react";
 import { Routes, Route, BrowserRouter, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import EntradaNotas from "./pages/EntradaNotas";
-import NovaNotaForm from "./pages/NovaNotaForm";
+import NovaNotaForm from "./pages/NovaNotas|Form";
 import Veiculos from "./pages/Veiculos";
 import NovoVeiculoForm from "./pages/NovoVeiculoForm";
 import RelatoriosVeiculos from "./pages/RelatoriosVeiculos";
@@ -30,7 +30,7 @@ import DRE from "./pages/contabilidade/DRE";
 import LivroCaixa from "./pages/contabilidade/LivroCaixa";
 import Login from "./pages/Login";
 import Usuarios from "./pages/Usuarios";
-import AuthGuard from "./components/auth/AuthGuard";
+// import AuthGuard from "./components/auth/AuthGuard"; // Comentado durante o desenvolvimento
 import FolhaPagamento from "./pages/contabilidade/FolhaPagamento";
 import Balancete from "./pages/contabilidade/Balancete";
 import RelatoriosContabeis from "./pages/contabilidade/RelatoriosContabeis";
@@ -49,78 +49,107 @@ const LoadingFallback = () => (
   </div>
 );
 
+// Componente temporário para simular AuthGuard durante o desenvolvimento
+const DevModeWrapper = ({ children }) => {
+  // Simular usuário logado para desenvolvimento
+  React.useEffect(() => {
+    // Dados do usuário de teste
+    const adminTestUser = {
+      id: 9999,
+      nome: 'Administrador',
+      email: 'admin@slog.com.br',
+      cargo: 'Administrador',
+      status: 'ativo',
+      ultimo_acesso: new Date().toISOString()
+    };
+    
+    // Verificar se já existe informação no localStorage
+    if (!localStorage.getItem('userData')) {
+      localStorage.setItem('userData', JSON.stringify(adminTestUser));
+      localStorage.setItem('userToken', 'token-simulado-dev');
+      localStorage.setItem('userName', adminTestUser.nome);
+      localStorage.setItem('userId', String(adminTestUser.id));
+      localStorage.setItem('userEmail', adminTestUser.email);
+      
+      console.log('Modo de desenvolvimento: usuário simulado criado');
+    }
+  }, []);
+  
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rotas públicas */}
-        <Route path="/login" element={<Login />} />
+        {/* Redirecionar login para a página principal durante o desenvolvimento */}
+        <Route path="/login" element={<Navigate to="/" replace />} />
         
-        {/* Rotas protegidas */}
-        <Route path="/" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Index /></Suspense></AuthGuard>} />
+        {/* Rotas sem proteção de autenticação durante o desenvolvimento */}
+        <Route path="/" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Index /></Suspense></DevModeWrapper>} />
         
         {/* Notas Fiscais */}
-        <Route path="/notas" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><EntradaNotas /></Suspense></AuthGuard>} />
+        <Route path="/notas" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><EntradaNotas /></Suspense></DevModeWrapper>} />
         <Route path="/entrada-notas" element={<Navigate to="/notas" replace />} />
-        <Route path="/notas/nova" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovaNotaForm /></Suspense></AuthGuard>} />
+        <Route path="/notas/nova" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><NovaNotaForm /></Suspense></DevModeWrapper>} />
         <Route path="/entrada-notas/nova" element={<Navigate to="/notas/nova" replace />} />
-        <Route path="/notas/editar/:id" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovaNotaForm /></Suspense></AuthGuard>} />
+        <Route path="/notas/editar/:id" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><NovaNotaForm /></Suspense></DevModeWrapper>} />
         <Route path="/entrada-notas/editar/:id" element={<Navigate to="/notas/editar/:id" replace />} />
         
         {/* Veículos */}
-        <Route path="/veiculos" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Veiculos /></Suspense></AuthGuard>} />
-        <Route path="/veiculos/novo" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovoVeiculoForm /></Suspense></AuthGuard>} />
-        <Route path="/veiculos/relatorios" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><RelatoriosVeiculos /></Suspense></AuthGuard>} />
+        <Route path="/veiculos" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Veiculos /></Suspense></DevModeWrapper>} />
+        <Route path="/veiculos/novo" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><NovoVeiculoForm /></Suspense></DevModeWrapper>} />
+        <Route path="/veiculos/relatorios" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><RelatoriosVeiculos /></Suspense></DevModeWrapper>} />
         
         {/* Motoristas */}
-        <Route path="/motoristas" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Motoristas /></Suspense></AuthGuard>} />
+        <Route path="/motoristas" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Motoristas /></Suspense></DevModeWrapper>} />
         
         {/* Contratos */}
-        <Route path="/contratos" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Contratos /></Suspense></AuthGuard>} />
-        <Route path="/contratos/novo" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovoContratoForm /></Suspense></AuthGuard>} />
-        <Route path="/contratos/editar/:id" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovoContratoForm /></Suspense></AuthGuard>} />
+        <Route path="/contratos" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Contratos /></Suspense></DevModeWrapper>} />
+        <Route path="/contratos/novo" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><NovoContratoForm /></Suspense></DevModeWrapper>} />
+        <Route path="/contratos/editar/:id" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><NovoContratoForm /></Suspense></DevModeWrapper>} />
         
         {/* Abastecimentos */}
-        <Route path="/abastecimentos" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Abastecimentos /></Suspense></AuthGuard>} />
+        <Route path="/abastecimentos" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Abastecimentos /></Suspense></DevModeWrapper>} />
         
         {/* Despesas */}
-        <Route path="/despesas" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><DespesasGerais /></Suspense></AuthGuard>} />
-        <Route path="/despesas/nova" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovaDespesaForm /></Suspense></AuthGuard>} />
+        <Route path="/despesas" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><DespesasGerais /></Suspense></DevModeWrapper>} />
+        <Route path="/despesas/nova" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><NovaDespesaForm /></Suspense></DevModeWrapper>} />
         
         {/* Manutenção */}
-        <Route path="/manutencao" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Manutencao /></Suspense></AuthGuard>} />
+        <Route path="/manutencao" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Manutencao /></Suspense></DevModeWrapper>} />
         
         {/* Canhotos */}
-        <Route path="/buscar-contrato" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><BuscarContrato /></Suspense></AuthGuard>} />
-        <Route path="/canhotos" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Canhotos /></Suspense></AuthGuard>} />
+        <Route path="/buscar-contrato" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><BuscarContrato /></Suspense></DevModeWrapper>} />
+        <Route path="/canhotos" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Canhotos /></Suspense></DevModeWrapper>} />
         
         {/* Saldo a Pagar */}
-        <Route path="/saldo-pagar" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><SaldoPagar /></Suspense></AuthGuard>} />
+        <Route path="/saldo-pagar" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><SaldoPagar /></Suspense></DevModeWrapper>} />
         
         {/* Relatórios */}
-        <Route path="/relatorios" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Relatorios /></Suspense></AuthGuard>} />
-        <Route path="/tv-dashboard" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><TVDashboard /></Suspense></AuthGuard>} />
+        <Route path="/relatorios" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Relatorios /></Suspense></DevModeWrapper>} />
+        <Route path="/tv-dashboard" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><TVDashboard /></Suspense></DevModeWrapper>} />
         
         {/* Configurações */}
-        <Route path="/configuracoes" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><ConfiguracoesEmpresa /></Suspense></AuthGuard>} />
-        <Route path="/utilitarios" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Utilitarios /></Suspense></AuthGuard>} />
-        <Route path="/usuarios" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Usuarios /></Suspense></AuthGuard>} />
+        <Route path="/configuracoes" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><ConfiguracoesEmpresa /></Suspense></DevModeWrapper>} />
+        <Route path="/utilitarios" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Utilitarios /></Suspense></DevModeWrapper>} />
+        <Route path="/usuarios" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Usuarios /></Suspense></DevModeWrapper>} />
         
         {/* Módulo de Contabilidade */}
-        <Route path="/contabilidade" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Contabilidade /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/lancamentos" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><LancamentosContabeis /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/plano-contas" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><PlanoContas /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/balanco" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><BalancoPatrimonial /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/dre" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><DRE /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/livro-caixa" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><LivroCaixa /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/folha-pagamento" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><FolhaPagamento /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Contabilidade /></Suspense></DevModeWrapper>} />
+        <Route path="/contabilidade/lancamentos" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><LancamentosContabeis /></Suspense></DevModeWrapper>} />
+        <Route path="/contabilidade/plano-contas" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><PlanoContas /></Suspense></DevModeWrapper>} />
+        <Route path="/contabilidade/balanco" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><BalancoPatrimonial /></Suspense></DevModeWrapper>} />
+        <Route path="/contabilidade/dre" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><DRE /></Suspense></DevModeWrapper>} />
+        <Route path="/contabilidade/livro-caixa" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><LivroCaixa /></Suspense></DevModeWrapper>} />
+        <Route path="/contabilidade/folha-pagamento" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><FolhaPagamento /></Suspense></DevModeWrapper>} />
         <Route path="/folha-pagamento" element={<Navigate to="/contabilidade/folha-pagamento" replace />} />
-        <Route path="/contabilidade/apuracao-custo-resultado" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><LazyApuracaoCustoResultado /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/apuracao/:id" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><LazyApuracaoCustoResultadoDetalhes /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/balancete" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Balancete /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/relatorios" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><RelatoriosContabeis /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/fechamento-fiscal" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><FechamentoFiscal /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/conciliacao-bancaria" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><ConciliacaoBancaria /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/apuracao-custo-resultado" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><LazyApuracaoCustoResultado /></Suspense></DevModeWrapper>} />
+        <Route path="/contabilidade/apuracao/:id" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><LazyApuracaoCustoResultadoDetalhes /></Suspense></DevModeWrapper>} />
+        <Route path="/contabilidade/balancete" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Balancete /></Suspense></DevModeWrapper>} />
+        <Route path="/contabilidade/relatorios" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><RelatoriosContabeis /></Suspense></DevModeWrapper>} />
+        <Route path="/contabilidade/fechamento-fiscal" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><FechamentoFiscal /></Suspense></DevModeWrapper>} />
+        <Route path="/contabilidade/conciliacao-bancaria" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><ConciliacaoBancaria /></Suspense></DevModeWrapper>} />
         
         {/* Página de erro */}
         <Route path="*" element={<NotFound />} />
