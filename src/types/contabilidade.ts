@@ -62,6 +62,7 @@ export interface DREData {
   status: StatusItem;
   created_at?: string;
   updated_at?: string;
+  folha_pagamento?: number;
 }
 
 export interface BalancoPatrimonialData {
@@ -73,6 +74,10 @@ export interface BalancoPatrimonialData {
   status: StatusItem;
   created_at?: string;
   updated_at?: string;
+  ativo_circulante?: number;
+  ativo_nao_circulante?: number;
+  passivo_circulante?: number;
+  passivo_nao_circulante?: number;
 }
 
 export interface FolhaPagamento {
@@ -105,4 +110,17 @@ export interface RelatorioContabil {
   gerado_por: string;
   arquivo_url?: string;
   observacoes?: string;
+}
+
+export interface SaldoPagarItem {
+  id?: number;
+  parceiro: string;
+  valor_total: number;
+  valor_pago?: number;
+  saldo_restante?: number;
+  contratos_associados?: string;
+  dados_bancarios?: string;
+  data_pagamento?: string;
+  banco_pagamento?: string;
+  vencimento?: string;
 }

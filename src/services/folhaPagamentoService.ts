@@ -1,156 +1,241 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { FolhaPagamento, StatusItem } from '@/types/contabilidade';
-import { logOperation } from '@/utils/logOperations';
-import { createFolhaPagamentoTable } from '@/integrations/supabase/exec-sql';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
 
-// Inicialização - verifica se a tabela existe e cria se necessário
-const initFolhaPagamento = async (): Promise<void> => {
-  await createFolhaPagamentoTable();
-};
-
-// Chama a inicialização automaticamente
-initFolhaPagamento().catch(error => {
-  console.error('Erro ao inicializar módulo de Folha de Pagamento:', error);
-});
-
-/**
- * Lista todos os registros de folha de pagamento
- */
+// Função para buscar todos os registros de folha de pagamento
 export const listarFolhaPagamento = async (): Promise<FolhaPagamento[]> => {
   try {
-    // Cria a tabela se não existir
-    await createFolhaPagamentoTable();
+    // Verificar se a tabela existe
+    const { data: checkResult } = await supabase
+      .rpc('check_table_exists', { table_name: 'Folha_Pagamento' });
+      
+    // Se a tabela não existir, cria-la
+    if (!checkResult || checkResult === 0) {
+      await supabase.rpc('create_folha_pagamento_table');
+      console.log('Tabela Folha_Pagamento criada com sucesso');
+      toast.success('Tabela de Folha de Pagamento criada com sucesso');
+    }
     
-    // Tenta buscar os dados da tabela real
+    // Buscar todos os registros
     const { data, error } = await supabase
       .from('Folha_Pagamento')
       .select('*')
       .order('data_pagamento', { ascending: false });
     
     if (error) {
-      console.error('Erro ao buscar folhas de pagamento:', error);
-      logOperation('Folha de Pagamento', 'Erro ao listar folhas de pagamento', false);
-      
-      // Se houve erro, retorna dados mockados
-      return criarDadosMockados();
+      console.error('Erro ao listar folha de pagamento:', error);
+      throw error;
     }
     
-    if (!data || data.length === 0) {
-      // Se não há dados, insere dados mockados e retorna
-      await inserirDadosMockados();
-      return criarDadosMockados();
-    }
-    
-    return data.map(item => ({
-      ...item,
-      status: item.status as StatusItem
+    // Converter os dados para o formato esperado
+    const folhaPagamentos: FolhaPagamento[] = (data || []).map(item => ({
+      id: item.id,
+      funcionario_nome: item.funcionario_nome,
+      salario_base: item.salario_base,
+      data_pagamento: item.data_pagamento,
+      mes_referencia: item.mes_referencia,
+      ano_referencia: item.ano_referencia,
+      inss: item.inss,
+      fgts: item.fgts,
+      ir: item.ir,
+      vale_transporte: item.vale_transporte,
+      vale_refeicao: item.vale_refeicao,
+      outros_descontos: item.outros_descontos,
+      outros_beneficios: item.outros_beneficios,
+      valor_liquido: item.valor_liquido,
+      observacoes: item.observacoes,
+      status: item.status as StatusItem,
+      created_at: item.created_at
     }));
+    
+    return folhaPagamentos;
   } catch (error) {
-    console.error('Erro ao listar folhas de pagamento:', error);
-    logOperation('Folha de Pagamento', 'Erro ao listar folhas de pagamento', false);
-    return criarDadosMockados();
+    console.error('Erro ao listar folha de pagamento:', error);
+    toast.error('Erro ao listar registros de folha de pagamento');
+    return [];
   }
 };
 
-/**
- * Adiciona um novo registro de folha de pagamento
- */
-export const adicionarFolhaPagamento = async (folha: Partial<FolhaPagamento>): Promise<FolhaPagamento | null> => {
-  try {
-    // Cria a tabela se não existir
-    await createFolhaPagamentoTable();
-    
-    const { data, error } = await supabase
-      .from('Folha_Pagamento')
-      .insert([{
-        funcionario_nome: folha.funcionario_nome,
-        salario_base: folha.salario_base,
-        data_pagamento: folha.data_pagamento,
-        mes_referencia: folha.mes_referencia,
-        ano_referencia: folha.ano_referencia,
-        inss: folha.inss,
-        fgts: folha.fgts,
-        ir: folha.ir,
-        vale_transporte: folha.vale_transporte,
-        vale_refeicao: folha.vale_refeicao,
-        outros_descontos: folha.outros_descontos,
-        outros_beneficios: folha.outros_beneficios,
-        valor_liquido: folha.valor_liquido,
-        observacoes: folha.observacoes,
-        status: folha.status || 'concluido'
-      }])
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Erro ao adicionar folha de pagamento:', error);
-      logOperation('Folha de Pagamento', 'Erro ao adicionar folha de pagamento', false);
-      return null;
-    }
-    
-    logOperation('Folha de Pagamento', 'Folha de pagamento adicionada com sucesso', true);
-    return {
-      ...data,
-      status: data.status as StatusItem
-    };
-  } catch (error) {
-    console.error('Erro ao adicionar folha de pagamento:', error);
-    logOperation('Folha de Pagamento', 'Erro ao adicionar folha de pagamento', false);
-    return null;
-  }
-};
-
-/**
- * Atualiza um registro existente de folha de pagamento
- */
-export const atualizarFolhaPagamento = async (id: number, folha: Partial<FolhaPagamento>): Promise<FolhaPagamento | null> => {
+// Função para buscar um registro específico de folha de pagamento
+export const buscarFolhaPagamento = async (id: number): Promise<FolhaPagamento | null> => {
   try {
     const { data, error } = await supabase
       .from('Folha_Pagamento')
-      .update({
-        funcionario_nome: folha.funcionario_nome,
-        salario_base: folha.salario_base,
-        data_pagamento: folha.data_pagamento,
-        mes_referencia: folha.mes_referencia,
-        ano_referencia: folha.ano_referencia,
-        inss: folha.inss,
-        fgts: folha.fgts,
-        ir: folha.ir,
-        vale_transporte: folha.vale_transporte,
-        vale_refeicao: folha.vale_refeicao,
-        outros_descontos: folha.outros_descontos,
-        outros_beneficios: folha.outros_beneficios,
-        valor_liquido: folha.valor_liquido,
-        observacoes: folha.observacoes,
-        status: folha.status
-      })
+      .select('*')
       .eq('id', id)
-      .select()
       .single();
     
     if (error) {
-      console.error('Erro ao atualizar folha de pagamento:', error);
-      logOperation('Folha de Pagamento', 'Erro ao atualizar folha de pagamento', false);
+      console.error('Erro ao buscar folha de pagamento:', error);
+      throw error;
+    }
+    
+    if (!data) {
       return null;
     }
     
-    logOperation('Folha de Pagamento', 'Folha de pagamento atualizada com sucesso', true);
-    return {
-      ...data,
-      status: data.status as StatusItem
+    // Converter os dados para o formato esperado
+    const folhaPagamento: FolhaPagamento = {
+      id: data.id,
+      funcionario_nome: data.funcionario_nome,
+      salario_base: data.salario_base,
+      data_pagamento: data.data_pagamento,
+      mes_referencia: data.mes_referencia,
+      ano_referencia: data.ano_referencia,
+      inss: data.inss,
+      fgts: data.fgts,
+      ir: data.ir,
+      vale_transporte: data.vale_transporte,
+      vale_refeicao: data.vale_refeicao,
+      outros_descontos: data.outros_descontos,
+      outros_beneficios: data.outros_beneficios,
+      valor_liquido: data.valor_liquido,
+      observacoes: data.observacoes,
+      status: data.status as StatusItem,
+      created_at: data.created_at
     };
+    
+    return folhaPagamento;
   } catch (error) {
-    console.error('Erro ao atualizar folha de pagamento:', error);
-    logOperation('Folha de Pagamento', 'Erro ao atualizar folha de pagamento', false);
+    console.error('Erro ao buscar folha de pagamento:', error);
+    toast.error('Erro ao buscar registro de folha de pagamento');
     return null;
   }
 };
 
-/**
- * Exclui um registro de folha de pagamento
- */
-export const excluirFolhaPagamento = async (id: number): Promise<boolean> => {
+// Função para criar um novo registro de folha de pagamento
+export const criarRegistroFolhaPagamento = async (dados: Partial<FolhaPagamento>): Promise<FolhaPagamento | null> => {
+  try {
+    // Calcular o valor líquido se não foi informado
+    if (!dados.valor_liquido) {
+      const salarioBase = dados.salario_base || 0;
+      const inss = dados.inss || 0;
+      const fgts = dados.fgts || 0;
+      const ir = dados.ir || 0;
+      const valeTransporte = dados.vale_transporte || 0;
+      const valeRefeicao = dados.vale_refeicao || 0;
+      const outrosDescontos = dados.outros_descontos || 0;
+      const outrosBeneficios = dados.outros_beneficios || 0;
+      
+      const valorLiquido = salarioBase - inss - ir - valeTransporte - valeRefeicao - outrosDescontos + outrosBeneficios;
+      dados.valor_liquido = valorLiquido;
+    }
+    
+    // Inserir o registro
+    const { data, error } = await supabase
+      .from('Folha_Pagamento')
+      .insert(dados)
+      .select('*')
+      .single();
+    
+    if (error) {
+      console.error('Erro ao criar registro de folha de pagamento:', error);
+      throw error;
+    }
+    
+    // Converter os dados para o formato esperado
+    const folhaPagamento: FolhaPagamento = {
+      id: data.id,
+      funcionario_nome: data.funcionario_nome,
+      salario_base: data.salario_base,
+      data_pagamento: data.data_pagamento,
+      mes_referencia: data.mes_referencia,
+      ano_referencia: data.ano_referencia,
+      inss: data.inss,
+      fgts: data.fgts,
+      ir: data.ir,
+      vale_transporte: data.vale_transporte,
+      vale_refeicao: data.vale_refeicao,
+      outros_descontos: data.outros_descontos,
+      outros_beneficios: data.outros_beneficios,
+      valor_liquido: data.valor_liquido,
+      observacoes: data.observacoes,
+      status: data.status as StatusItem,
+      created_at: data.created_at
+    };
+    
+    toast.success(`Folha de pagamento de ${data.funcionario_nome} registrada com sucesso!`);
+    return folhaPagamento;
+  } catch (error) {
+    console.error('Erro ao criar registro de folha de pagamento:', error);
+    toast.error('Erro ao criar registro de folha de pagamento');
+    return null;
+  }
+};
+
+// Função para atualizar um registro de folha de pagamento
+export const atualizarRegistroFolhaPagamento = async (id: number, dados: Partial<FolhaPagamento>): Promise<FolhaPagamento | null> => {
+  try {
+    // Calcular o valor líquido se não foi informado mas outros componentes foram
+    if (!dados.valor_liquido && (dados.salario_base || dados.inss || dados.fgts || dados.ir || 
+        dados.vale_transporte || dados.vale_refeicao || dados.outros_descontos || dados.outros_beneficios)) {
+      
+      // Precisamos buscar o registro atual primeiro para ter todos os valores
+      const registroAtual = await buscarFolhaPagamento(id);
+      if (!registroAtual) {
+        throw new Error('Registro não encontrado');
+      }
+      
+      const salarioBase = dados.salario_base || registroAtual.salario_base;
+      const inss = dados.inss || registroAtual.inss || 0;
+      const fgts = dados.fgts || registroAtual.fgts || 0;
+      const ir = dados.ir || registroAtual.ir || 0;
+      const valeTransporte = dados.vale_transporte || registroAtual.vale_transporte || 0;
+      const valeRefeicao = dados.vale_refeicao || registroAtual.vale_refeicao || 0;
+      const outrosDescontos = dados.outros_descontos || registroAtual.outros_descontos || 0;
+      const outrosBeneficios = dados.outros_beneficios || registroAtual.outros_beneficios || 0;
+      
+      const valorLiquido = salarioBase - inss - ir - valeTransporte - valeRefeicao - outrosDescontos + outrosBeneficios;
+      dados.valor_liquido = valorLiquido;
+    }
+    
+    // Atualizar o registro
+    const { data, error } = await supabase
+      .from('Folha_Pagamento')
+      .update(dados)
+      .eq('id', id)
+      .select('*')
+      .single();
+    
+    if (error) {
+      console.error('Erro ao atualizar registro de folha de pagamento:', error);
+      throw error;
+    }
+    
+    // Converter os dados para o formato esperado
+    const folhaPagamento: FolhaPagamento = {
+      id: data.id,
+      funcionario_nome: data.funcionario_nome,
+      salario_base: data.salario_base,
+      data_pagamento: data.data_pagamento,
+      mes_referencia: data.mes_referencia,
+      ano_referencia: data.ano_referencia,
+      inss: data.inss,
+      fgts: data.fgts,
+      ir: data.ir,
+      vale_transporte: data.vale_transporte,
+      vale_refeicao: data.vale_refeicao,
+      outros_descontos: data.outros_descontos,
+      outros_beneficios: data.outros_beneficios,
+      valor_liquido: data.valor_liquido,
+      observacoes: data.observacoes,
+      status: data.status as StatusItem,
+      created_at: data.created_at
+    };
+    
+    toast.success(`Folha de pagamento de ${data.funcionario_nome} atualizada com sucesso!`);
+    return folhaPagamento;
+  } catch (error) {
+    console.error('Erro ao atualizar registro de folha de pagamento:', error);
+    toast.error('Erro ao atualizar registro de folha de pagamento');
+    return null;
+  }
+};
+
+// Função para excluir um registro de folha de pagamento
+export const excluirRegistroFolhaPagamento = async (id: number): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('Folha_Pagamento')
@@ -158,104 +243,59 @@ export const excluirFolhaPagamento = async (id: number): Promise<boolean> => {
       .eq('id', id);
     
     if (error) {
-      console.error('Erro ao excluir folha de pagamento:', error);
-      logOperation('Folha de Pagamento', 'Erro ao excluir folha de pagamento', false);
-      return false;
+      console.error('Erro ao excluir registro de folha de pagamento:', error);
+      throw error;
     }
     
-    logOperation('Folha de Pagamento', 'Folha de pagamento excluída com sucesso', true);
+    toast.success('Registro de folha de pagamento excluído com sucesso!');
     return true;
   } catch (error) {
-    console.error('Erro ao excluir folha de pagamento:', error);
-    logOperation('Folha de Pagamento', 'Erro ao excluir folha de pagamento', false);
+    console.error('Erro ao excluir registro de folha de pagamento:', error);
+    toast.error('Erro ao excluir registro de folha de pagamento');
     return false;
   }
 };
 
-/**
- * Auxiliar - Cria dados mockados para exibição
- */
-const criarDadosMockados = (): FolhaPagamento[] => {
-  const dataAtual = new Date();
-  const mesAtual = String(dataAtual.getMonth() + 1).padStart(2, '0');
-  const anoAtual = dataAtual.getFullYear().toString();
-  const mesAnterior = String(dataAtual.getMonth() === 0 ? 12 : dataAtual.getMonth()).padStart(2, '0');
-  const anoAnterior = dataAtual.getMonth() === 0 ? (dataAtual.getFullYear() - 1).toString() : anoAtual;
-  
-  return [
-    {
-      id: 1,
-      funcionario_nome: 'João Silva',
-      salario_base: 5000,
-      data_pagamento: `${anoAtual}-${mesAtual}-05`,
-      mes_referencia: mesAnterior,
-      ano_referencia: anoAnterior,
-      inss: 550,
-      fgts: 400,
-      ir: 250,
-      valor_liquido: 3800,
-      status: 'concluido' as StatusItem,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 2,
-      funcionario_nome: 'Maria Oliveira',
-      salario_base: 6500,
-      data_pagamento: `${anoAtual}-${mesAtual}-05`,
-      mes_referencia: mesAnterior,
-      ano_referencia: anoAnterior,
-      inss: 715,
-      fgts: 520,
-      ir: 450,
-      valor_liquido: 4815,
-      status: 'concluido' as StatusItem,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 3,
-      funcionario_nome: 'Carlos Santos',
-      salario_base: 7200,
-      data_pagamento: `${anoAtual}-${mesAtual}-05`,
-      mes_referencia: mesAnterior,
-      ano_referencia: anoAnterior,
-      inss: 792,
-      fgts: 576,
-      ir: 520,
-      valor_liquido: 5312,
-      status: 'concluido' as StatusItem,
-      created_at: new Date().toISOString()
-    }
-  ];
-};
-
-/**
- * Auxiliar - Insere dados mockados no banco
- */
-const inserirDadosMockados = async (): Promise<void> => {
+// Função para gerar relatório de folha de pagamento por período
+export const gerarRelatorioFolhaPagamento = async (mesReferencia: string, anoReferencia: string): Promise<FolhaPagamento[]> => {
   try {
-    const dadosMockados = criarDadosMockados();
-    
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('Folha_Pagamento')
-      .insert(dadosMockados.map(item => ({
-        funcionario_nome: item.funcionario_nome,
-        salario_base: item.salario_base,
-        data_pagamento: item.data_pagamento,
-        mes_referencia: item.mes_referencia,
-        ano_referencia: item.ano_referencia,
-        inss: item.inss,
-        fgts: item.fgts,
-        ir: item.ir,
-        valor_liquido: item.valor_liquido,
-        status: item.status
-      })));
+      .select('*')
+      .eq('mes_referencia', mesReferencia)
+      .eq('ano_referencia', anoReferencia)
+      .order('funcionario_nome', { ascending: true });
     
     if (error) {
-      console.error('Erro ao inserir dados mockados de folha de pagamento:', error);
-    } else {
-      console.log('Dados mockados de folha de pagamento inseridos com sucesso!');
+      console.error('Erro ao gerar relatório de folha de pagamento:', error);
+      throw error;
     }
+    
+    // Converter os dados para o formato esperado
+    const folhaPagamentos: FolhaPagamento[] = (data || []).map(item => ({
+      id: item.id,
+      funcionario_nome: item.funcionario_nome,
+      salario_base: item.salario_base,
+      data_pagamento: item.data_pagamento,
+      mes_referencia: item.mes_referencia,
+      ano_referencia: item.ano_referencia,
+      inss: item.inss,
+      fgts: item.fgts,
+      ir: item.ir,
+      vale_transporte: item.vale_transporte,
+      vale_refeicao: item.vale_refeicao,
+      outros_descontos: item.outros_descontos,
+      outros_beneficios: item.outros_beneficios,
+      valor_liquido: item.valor_liquido,
+      observacoes: item.observacoes,
+      status: item.status as StatusItem,
+      created_at: item.created_at
+    }));
+    
+    return folhaPagamentos;
   } catch (error) {
-    console.error('Erro ao inserir dados mockados de folha de pagamento:', error);
+    console.error('Erro ao gerar relatório de folha de pagamento:', error);
+    toast.error('Erro ao gerar relatório de folha de pagamento');
+    return [];
   }
 };

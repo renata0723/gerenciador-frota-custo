@@ -2,108 +2,101 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Eye, Pencil, Trash2 } from 'lucide-react';
-import { FolhaPagamento } from '@/services/contabilidadeService';
-import { format, parseISO } from 'date-fns';
+import { FolhaPagamento } from '@/types/contabilidade';
+import { Edit, Trash2, Eye } from 'lucide-react';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formataMoeda } from '@/utils/constants';
 
-interface FolhaPagamentoTableProps {
-  data: FolhaPagamento[];
-  onEdit?: (folha: FolhaPagamento) => void;
-  onDelete?: (id: number) => void;
-  onView?: (folha: FolhaPagamento) => void;
+export interface FolhaPagamentoTableProps {
+  dados: FolhaPagamento[];
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
+  onView: (id: number) => void;
 }
 
-const FolhaPagamentoTable: React.FC<FolhaPagamentoTableProps> = ({
-  data,
-  onEdit,
-  onDelete,
-  onView
-}) => {
-  const formatarData = (dataString: string) => {
+const FolhaPagamentoTable: React.FC<FolhaPagamentoTableProps> = ({ dados, onEdit, onDelete, onView }) => {
+  const formatarData = (dataString: string): string => {
     try {
-      return format(parseISO(dataString), 'dd/MM/yyyy', { locale: ptBR });
+      const data = new Date(dataString);
+      return format(data, 'dd/MM/yyyy', { locale: ptBR });
     } catch (error) {
       return dataString;
     }
   };
-
-  const formatarValor = (valor: number | undefined) => {
-    if (valor === undefined) return 'R$ 0,00';
-    return `R$ ${valor.toFixed(2).replace('.', ',')}`;
-  };
-
-  const capitalizeFirstLetter = (string: string) => {
-    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
-  };
-
+  
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[180px]">Funcionário</TableHead>
-            <TableHead>Cargo</TableHead>
-            <TableHead>Data Pgto.</TableHead>
-            <TableHead>Período</TableHead>
+            <TableHead>Funcionário</TableHead>
+            <TableHead>Data Pagamento</TableHead>
+            <TableHead>Referência</TableHead>
             <TableHead className="text-right">Salário Base</TableHead>
             <TableHead className="text-right">Valor Líquido</TableHead>
-            <TableHead className="text-center">Ações</TableHead>
+            <TableHead className="text-center">Status</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.length === 0 ? (
+          {dados.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                Nenhum registro de folha de pagamento encontrado
+              <TableCell colSpan={7} className="text-center py-6 text-gray-500">
+                Nenhum registro de folha de pagamento encontrado.
               </TableCell>
             </TableRow>
           ) : (
-            data.map((folha) => (
-              <TableRow key={folha.id}>
-                <TableCell className="font-medium">{folha.funcionario_nome}</TableCell>
-                <TableCell>{folha.cargo || '-'}</TableCell>
-                <TableCell>{formatarData(folha.data_pagamento)}</TableCell>
-                <TableCell>
-                  {capitalizeFirstLetter(folha.mes_referencia)}/{folha.ano_referencia}
+            dados.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell className="font-medium">{item.funcionario_nome}</TableCell>
+                <TableCell>{formatarData(item.data_pagamento)}</TableCell>
+                <TableCell>{item.mes_referencia}/{item.ano_referencia}</TableCell>
+                <TableCell className="text-right">{formataMoeda(Number(item.salario_base))}</TableCell>
+                <TableCell className="text-right">{formataMoeda(Number(item.valor_liquido))}</TableCell>
+                <TableCell className="text-center">
+                  <span 
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      item.status === 'concluido' 
+                        ? 'bg-green-100 text-green-800' 
+                        : item.status === 'pendente'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {item.status === 'concluido' ? 'Concluído' : 
+                     item.status === 'pendente' ? 'Pendente' : 
+                     item.status === 'cancelado' ? 'Cancelado' : 
+                     item.status}
+                  </span>
                 </TableCell>
-                <TableCell className="text-right">{formatarValor(folha.salario_base)}</TableCell>
-                <TableCell className="text-right font-semibold">
-                  {formatarValor(folha.valor_total)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-center space-x-2">
-                    {onView && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onView(folha)}
-                        title="Visualizar detalhes"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {onEdit && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onEdit(folha)}
-                        title="Editar"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {onDelete && folha.id && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onDelete(folha.id!)}
-                        title="Excluir"
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                <TableCell className="text-right">
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => onView(item.id!)}
+                      title="Visualizar"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => onEdit(item.id!)}
+                      title="Editar"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => onDelete(item.id!)}
+                      title="Excluir"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>

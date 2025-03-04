@@ -323,6 +323,66 @@ export type Database = {
         }
         Relationships: []
       }
+      Folha_Pagamento: {
+        Row: {
+          ano_referencia: string
+          created_at: string | null
+          data_pagamento: string
+          fgts: number | null
+          funcionario_nome: string
+          id: number
+          inss: number | null
+          ir: number | null
+          mes_referencia: string
+          observacoes: string | null
+          outros_beneficios: number | null
+          outros_descontos: number | null
+          salario_base: number
+          status: string
+          vale_refeicao: number | null
+          vale_transporte: number | null
+          valor_liquido: number
+        }
+        Insert: {
+          ano_referencia: string
+          created_at?: string | null
+          data_pagamento: string
+          fgts?: number | null
+          funcionario_nome: string
+          id?: number
+          inss?: number | null
+          ir?: number | null
+          mes_referencia: string
+          observacoes?: string | null
+          outros_beneficios?: number | null
+          outros_descontos?: number | null
+          salario_base: number
+          status?: string
+          vale_refeicao?: number | null
+          vale_transporte?: number | null
+          valor_liquido: number
+        }
+        Update: {
+          ano_referencia?: string
+          created_at?: string | null
+          data_pagamento?: string
+          fgts?: number | null
+          funcionario_nome?: string
+          id?: number
+          inss?: number | null
+          ir?: number | null
+          mes_referencia?: string
+          observacoes?: string | null
+          outros_beneficios?: number | null
+          outros_descontos?: number | null
+          salario_base?: number
+          status?: string
+          vale_refeicao?: number | null
+          vale_transporte?: number | null
+          valor_liquido?: number
+        }
+        Relationships: []
+      }
       Lancamentos_Contabeis: {
         Row: {
           centro_custo: string | null
@@ -914,7 +974,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_function_exists: {
+        Args: {
+          function_name: string
+        }
+        Returns: boolean
+      }
+      check_table_exists: {
+        Args: {
+          table_name: string
+        }
+        Returns: number
+      }
+      create_folha_pagamento_table: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      exec_sql: {
+        Args: {
+          sql_query: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
