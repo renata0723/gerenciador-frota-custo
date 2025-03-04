@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,15 +17,10 @@ const Login = () => {
   useEffect(() => {
     const verificarSessao = async () => {
       try {
-        // Limpar qualquer toast de redirecionamento
         toast.dismiss('auth-redirect');
         
-        const session = await checkAuthStatus();
-        // Verificar também os dados do usuário no localStorage
-        const userData = localStorage.getItem('userData');
-        const userToken = localStorage.getItem('userToken');
-        
-        if (session || (userData && userToken)) {
+        const isAutenticado = await checkAuthStatus();
+        if (isAutenticado) {
           console.log('Usuário já autenticado, redirecionando...');
           navigate('/');
         }
@@ -49,7 +43,6 @@ const Login = () => {
       toast.success('Login realizado com sucesso!');
       navigate('/');
     } catch (error: any) {
-      // Erro já tratado no serviço
       console.error('Erro de login:', error);
     } finally {
       setLoading(false);
@@ -95,19 +88,7 @@ const Login = () => {
             </div>
 
             <div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Senha</Label>
-                <a 
-                  href="#" 
-                  className="text-sm text-blue-600 hover:text-blue-500"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    toast.info('Funcionalidade em desenvolvimento');
-                  }}
-                >
-                  Esqueceu a senha?
-                </a>
-              </div>
+              <Label htmlFor="password">Senha</Label>
               <Input
                 id="password"
                 type="password"
@@ -127,13 +108,11 @@ const Login = () => {
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
             
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mt-4 text-sm text-gray-500 text-center">
-                <p>Credenciais para teste:</p>
-                <p>Email: operador@slog.com.br</p>
-                <p>Senha: slog123</p>
-              </div>
-            )}
+            <div className="mt-4 text-sm text-gray-500 text-center">
+              <p>Credenciais para teste:</p>
+              <p>Email: admin@slog.com.br</p>
+              <p>Senha: admin123</p>
+            </div>
           </form>
         </CardContent>
       </Card>

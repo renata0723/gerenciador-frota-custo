@@ -10,62 +10,29 @@ export interface LoginCredentials {
 
 export const signIn = async ({ email, password }: LoginCredentials) => {
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // Buscar usuário diretamente da tabela Usuarios
+    const { data: usuario, error: userError } = await supabase
+      .from('Usuarios')
+      .select('*')
+      .eq('email', email)
+      .eq('senha', password)
+      .single();
 
-    if (error) {
-      throw error;
+    if (userError || !usuario) {
+      throw new Error('Email ou senha inválidos');
     }
 
-    if (data?.user) {
-      // Armazenar dados do usuário
-      localStorage.setItem('userId', data.user.id);
-      localStorage.setItem('userEmail', data.user.email || '');
-      localStorage.setItem('userToken', data.session?.access_token || '');
-      
-      // Buscar informações adicionais do usuário no banco
-      const { data: userData, error: userError } = await supabase
-        .from('Usuarios')
-        .select('*')
-        .eq('email', email)
-        .single();
-      
-      if (!userError && userData) {
-        localStorage.setItem('userData', JSON.stringify(userData));
-        console.log('Dados do usuário armazenados:', userData);
-        
-        // Atualizar último acesso
-        await supabase
-          .from('Usuarios')
-          .update({ ultimo_acesso: new Date().toISOString() })
-          .eq('id', userData.id);
-      } else {
-        // Se estamos em desenvolvimento, criar um usuário de teste
-        if (process.env.NODE_ENV === 'development') {
-          const testUser: Usuario = {
-            id: 9999,
-            nome: 'Usuário de Teste',
-            email: email,
-            cargo: 'Operador',
-            status: 'ativo',
-            ultimo_acesso: new Date().toISOString()
-          };
-          localStorage.setItem('userData', JSON.stringify(testUser));
-          console.log('Usuário de teste criado para desenvolvimento');
-        } else {
-          console.log('Usuário autenticado, mas não encontrado na tabela Usuarios');
-        }
-      }
-      
-      return data;
-    }
+    // Armazenar dados do usuário
+    localStorage.setItem('userData', JSON.stringify(usuario));
+    localStorage.setItem('userToken', 'token-' + Date.now()); // Token simulado
+    localStorage.setItem('userName', usuario.nome);
 
-    throw new Error('Falha na autenticação');
+    console.log('Login realizado com sucesso:', usuario.nome);
+    return usuario;
   } catch (error: any) {
+    console.error('Erro ao fazer login:', error);
     let message = 'Erro ao fazer login';
-    if (error.message === 'Invalid login credentials') {
+    if (error.message === 'Email ou senha inválidos') {
       message = 'Email ou senha inválidos';
     }
     toast.error(message);
@@ -75,9 +42,6 @@ export const signIn = async ({ email, password }: LoginCredentials) => {
 
 export const signOut = async () => {
   try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    
     // Limpar dados do usuário
     localStorage.removeItem('userId');
     localStorage.removeItem('userEmail');
@@ -95,44 +59,16 @@ export const signOut = async () => {
 
 export const checkAuthStatus = async () => {
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) throw error;
+    const userData = localStorage.getItem('userData');
+    const userToken = localStorage.getItem('userToken');
     
-    // Se temos uma sessão ativa, vamos garantir que temos todos os dados do usuário
-    if (session) {
-      const userEmail = session.user.email;
-      const userId = session.user.id;
-      
-      // Verificar se já temos os dados do usuário
-      const userData = localStorage.getItem('userData');
-      if (!userData) {
-        // Buscar informações adicionais do usuário no banco
-        const { data: userDetails, error: userError } = await supabase
-          .from('Usuarios')
-          .select('*')
-          .eq('email', userEmail)
-          .single();
-        
-        if (!userError && userDetails) {
-          localStorage.setItem('userData', JSON.stringify(userDetails));
-          localStorage.setItem('userName', userDetails.nome);
-        }
-      }
-      
-      // Atualizar token se necessário
-      localStorage.setItem('userId', userId);
-      localStorage.setItem('userEmail', userEmail || '');
-      localStorage.setItem('userToken', session?.access_token || '');
-    }
-    
-    return session;
+    return !!(userData && userToken);
   } catch (error) {
     console.error('Erro ao verificar autenticação:', error);
-    return null;
+    return false;
   }
 };
 
-// Função para obter o usuário autenticado
 export const getUsuarioAutenticado = (): Usuario | null => {
   try {
     const userDataString = localStorage.getItem('userData');
