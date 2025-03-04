@@ -1,5 +1,5 @@
 
 import FreteContratadoForm, { FreteContratadoFormData } from './FreteContratadoForm';
 
-export { FreteContratadoFormData };
-export const FormularioFreteContratado = FreteContratadoForm;
+export type { FreteContratadoFormData };
+export default FreteContratadoForm;

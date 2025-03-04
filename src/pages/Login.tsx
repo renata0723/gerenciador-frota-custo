@@ -1,63 +1,69 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { Card } from '@/components/ui/card';
+import { autenticarUsuario } from '@/services/usuarioService';
+import { logOperation } from '@/utils/logOperations';
 
 const Login = () => {
+  const [email, setEmail] = useState<string>('');
+  const [senha, setSenha] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Verificar se já está autenticado
+    const token = localStorage.getItem('userToken');
+    if (token) {
+      navigate('/');
+    }
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
+    
     try {
-      // Verificar login - simplificado para demonstração
-      const { data, error } = await supabase
-        .from('Usuarios')
-        .select('*')
-        .eq('email', email)
-        .eq('senha', password)
-        .single();
-
-      if (error || !data) {
-        toast.error('Email ou senha incorretos. Tente novamente.');
-      } else {
-        // Set session/auth info in localStorage or context
-        localStorage.setItem('user', JSON.stringify(data));
-        localStorage.setItem('authenticated', 'true');
-        localStorage.setItem('userName', data.nome);
+      const usuario = await autenticarUsuario(email, senha);
+      
+      if (usuario) {
+        localStorage.setItem('userToken', 'token-simulado');
+        localStorage.setItem('userData', JSON.stringify(usuario));
         
-        toast.success('Login realizado com sucesso!');
+        // Registrar operação de login bem-sucedida
+        logOperation('Login', 'Login bem-sucedido', 'true');
+        
+        // Navegação sem exibir toast
         navigate('/');
+      } else {
+        toast.error('Usuário ou senha incorretos');
+        logOperation('Login', 'Tentativa de login com credenciais inválidas', 'false');
       }
     } catch (error) {
-      console.error('Erro ao fazer login:', error);
-      toast.error('Ocorreu um erro ao fazer login. Tente novamente.');
+      console.error('Erro ao realizar login:', error);
+      toast.error('Ocorreu um erro ao tentar fazer login');
+      logOperation('Login', 'Erro ao tentar fazer login', 'false');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md space-y-8 p-8 shadow-lg">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-blue-700">Controladoria de Custo</h1>
-          <h2 className="mt-2 text-lg font-medium text-gray-900">Sistema de Gestão de Frota</h2>
-          <p className="mt-2 text-sm text-gray-600">Faça login para acessar o sistema</p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          <div className="space-y-4">
-            <div>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <Card className="w-full max-w-md">
+        <CardContent className="flex flex-col items-center p-8">
+          <div className="w-full text-center mb-6">
+            <h1 className="text-2xl font-bold text-sistema-primary">Controladoria de Custo</h1>
+            <h2 className="text-lg mt-2">Sistema de Gestão de Frota</h2>
+            <p className="text-sm text-gray-500 mt-2">Faça login para acessar o sistema</p>
+          </div>
+          
+          <form onSubmit={handleLogin} className="w-full space-y-4">
+            <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
@@ -65,45 +71,50 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
-                className="mt-1"
                 required
               />
             </div>
             
-            <div>
-              <div className="flex justify-between items-center">
-                <Label htmlFor="password">Senha</Label>
-                <a href="#" className="text-sm text-blue-500 hover:text-blue-600">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="senha">Senha</Label>
+                <a 
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toast.info('Funcionalidade em implementação');
+                  }}
+                  className="text-sm text-sistema-primary hover:underline"
+                >
                   Esqueceu a senha?
                 </a>
               </div>
               <Input
-                id="password"
+                id="senha"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
                 required
               />
             </div>
+            
+            <Button 
+              type="submit" 
+              className="w-full bg-sistema-primary hover:bg-sistema-primary/90"
+              disabled={loading}
+            >
+              {loading ? 'Entrando...' : 'Entrar'}
+            </Button>
+          </form>
+          
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <p>Usuário de demonstração: admin@slog.com.br / senha123</p>
           </div>
-
-          <Button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700"
-            disabled={loading}
-          >
-            {loading ? 'Entrando...' : 'Entrar'}
-          </Button>
-
-          <div className="text-center">
-            <p className="text-xs text-gray-500">Usuário de demonstração: admin@slog.com.br / senha123</p>
+          
+          <div className="mt-6 text-center text-xs text-gray-400">
+            © 2025 SLog Controladoria - Todos os direitos reservados
           </div>
-        </form>
-
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>© 2025 SLog Controladoria - Todos os direitos reservados</p>
-        </div>
+        </CardContent>
       </Card>
     </div>
   );

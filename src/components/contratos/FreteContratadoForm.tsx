@@ -1,131 +1,130 @@
 
 import React, { useState, useEffect } from 'react';
-import { addDays } from "date-fns";
-import { DadosContratoFormData } from './FormularioDadosContrato';
-import FreteInfoAlert from './frete/FreteInfoAlert';
-import ValoresFreteForm from './frete/ValoresFreteForm';
-import DataAdiantamentoSelector from './frete/DataAdiantamentoSelector';
-import SaldoPagarOptions from './frete/SaldoPagarOptions';
-import ContabilizacaoOption from './frete/ContabilizacaoOption';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import FormNavigation from './frete/FormNavigation';
+import FreteInfoAlert from './frete/FreteInfoAlert';
+import SaldoPagarOptions from './frete/SaldoPagarOptions';
+import DataAdiantamentoSelector from './frete/DataAdiantamentoSelector';
+import ContabilizacaoOption from './frete/ContabilizacaoOption';
+import ValoresFreteForm from './frete/ValoresFreteForm';
+import { formatCurrency } from '@/utils/formatters';
 
 export interface FreteContratadoFormData {
-  valorFreteContratado: number;
-  valorAdiantamento: number;
-  valorPedagio: number;
-  saldoPagar: number;
-  gerarSaldoPagar: boolean;
-  dataVencimento?: Date;
-  dataAdiantamento?: Date;
-  contabilizarFrete?: boolean;
-  proprietarioInfo?: any;
+  valor_frete_contratado?: number;
+  valor_adiantamento?: number;
+  valor_pedagio?: number;
+  saldo_pagar?: number; 
+  data_programada_pagamento?: string;
+  contabilizado?: boolean;
 }
 
 interface FreteContratadoFormProps {
+  isTipoFrota: boolean;
+  initialData?: FreteContratadoFormData;
   onSubmit: (data: FreteContratadoFormData) => void;
   onBack?: () => void;
   onNext?: () => void;
-  initialData?: FreteContratadoFormData;
-  dadosContrato?: DadosContratoFormData | null;
 }
 
 const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({
+  isTipoFrota,
+  initialData,
   onSubmit,
   onBack,
   onNext,
-  initialData,
-  dadosContrato
 }) => {
-  const [valorFreteContratado, setValorFreteContratado] = useState(initialData?.valorFreteContratado || 0);
-  const [valorAdiantamento, setValorAdiantamento] = useState(initialData?.valorAdiantamento || 0);
-  const [valorPedagio, setValorPedagio] = useState(initialData?.valorPedagio || 0);
-  const [saldoPagar, setSaldoPagar] = useState(initialData?.saldoPagar || 0);
-  const [gerarSaldoPagar, setGerarSaldoPagar] = useState(initialData?.gerarSaldoPagar || false);
-  const [contabilizarFrete, setContabilizarFrete] = useState(initialData?.contabilizarFrete || false);
-  const [dataVencimento, setDataVencimento] = useState<Date | undefined>(
-    initialData?.dataVencimento || addDays(new Date(), 30)
+  const [valorFreteContratado, setValorFreteContratado] = useState<string>(
+    initialData?.valor_frete_contratado ? initialData.valor_frete_contratado.toString() : ''
   );
-  const [dataAdiantamento, setDataAdiantamento] = useState<Date | undefined>(
-    initialData?.dataAdiantamento || new Date()
+  const [valorAdiantamento, setValorAdiantamento] = useState<string>(
+    initialData?.valor_adiantamento ? initialData.valor_adiantamento.toString() : ''
   );
-  const [dataAdiantamentoAberta, setDataAdiantamentoAberta] = useState(false);
-  
-  const isTipoFrota = dadosContrato?.tipo === 'frota';
-  
-  // Calcular o saldo a pagar automaticamente quando os valores mudam
+  const [valorPedagio, setValorPedagio] = useState<string>(
+    initialData?.valor_pedagio ? initialData.valor_pedagio.toString() : ''
+  );
+  const [saldoPagar, setSaldoPagar] = useState<number | undefined>(initialData?.saldo_pagar);
+  const [dataProgramadaPagamento, setDataProgramadaPagamento] = useState<string>(
+    initialData?.data_programada_pagamento || ''
+  );
+  const [contabilizado, setContabilizado] = useState<boolean>(initialData?.contabilizado || false);
+
   useEffect(() => {
-    const calculatedSaldo = valorFreteContratado - valorAdiantamento - valorPedagio;
-    setSaldoPagar(calculatedSaldo > 0 ? calculatedSaldo : 0);
-  }, [valorFreteContratado, valorAdiantamento, valorPedagio]);
-  
-  // Se for tipo frota, limpar todos os valores
-  useEffect(() => {
-    if (isTipoFrota) {
-      setValorFreteContratado(0);
-      setValorAdiantamento(0);
-      setValorPedagio(0);
-      setSaldoPagar(0);
-      setGerarSaldoPagar(false);
+    // Atualizar saldo a pagar sempre que os valores mudarem
+    if (!valorFreteContratado || isNaN(parseFloat(valorFreteContratado))) {
+      setSaldoPagar(undefined);
+      return;
     }
-  }, [isTipoFrota]);
+
+    const freteContratado = parseFloat(valorFreteContratado) || 0;
+    const adiantamento = parseFloat(valorAdiantamento) || 0;
+    const pedagio = parseFloat(valorPedagio) || 0;
+    
+    const novoSaldo = freteContratado - adiantamento - pedagio;
+    setSaldoPagar(novoSaldo > 0 ? novoSaldo : 0);
+  }, [valorFreteContratado, valorAdiantamento, valorPedagio]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const formData: FreteContratadoFormData = {
-      valorFreteContratado,
-      valorAdiantamento,
-      valorPedagio,
-      saldoPagar,
-      gerarSaldoPagar,
-      dataVencimento,
-      dataAdiantamento,
-      contabilizarFrete,
-      proprietarioInfo: dadosContrato?.proprietarioInfo
-    };
-    
-    onSubmit(formData);
+    if (!isTipoFrota) {
+      // Validar campos obrigatórios
+      if (!valorFreteContratado || parseFloat(valorFreteContratado) <= 0) {
+        alert('O valor do frete contratado é obrigatório.');
+        return;
+      }
+    }
+
+    onSubmit({
+      valor_frete_contratado: valorFreteContratado ? parseFloat(valorFreteContratado) : undefined,
+      valor_adiantamento: valorAdiantamento ? parseFloat(valorAdiantamento) : undefined,
+      valor_pedagio: valorPedagio ? parseFloat(valorPedagio) : undefined,
+      saldo_pagar: saldoPagar,
+      data_programada_pagamento: dataProgramadaPagamento,
+      contabilizado: contabilizado
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Alerta informativo para contratos do tipo frota */}
       <FreteInfoAlert isTipoFrota={isTipoFrota} />
       
       {!isTipoFrota && (
         <>
-          <ValoresFreteForm 
-            valorFreteContratado={valorFreteContratado}
-            valorAdiantamento={valorAdiantamento}
-            valorPedagio={valorPedagio}
-            saldoPagar={saldoPagar}
-            setValorFreteContratado={setValorFreteContratado}
-            setValorAdiantamento={setValorAdiantamento}
-            setValorPedagio={setValorPedagio}
-            disabled={isTipoFrota}
-          />
-          
-          <DataAdiantamentoSelector 
-            valorAdiantamento={valorAdiantamento}
-            dataAdiantamento={dataAdiantamento}
-            setDataAdiantamento={setDataAdiantamento}
-            dataAdiantamentoAberta={dataAdiantamentoAberta}
-            setDataAdiantamentoAberta={setDataAdiantamentoAberta}
-          />
-          
-          <SaldoPagarOptions 
-            gerarSaldoPagar={gerarSaldoPagar}
-            setGerarSaldoPagar={setGerarSaldoPagar}
-            dataVencimento={dataVencimento}
-            setDataVencimento={setDataVencimento}
-            isTipoFrota={isTipoFrota}
-            saldoPagar={saldoPagar}
-          />
-          
-          <ContabilizacaoOption 
-            contabilizarFrete={contabilizarFrete}
-            setContabilizarFrete={setContabilizarFrete}
-            isTipoFrota={isTipoFrota}
-          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ValoresFreteForm 
+              valorFreteContratado={valorFreteContratado}
+              setValorFreteContratado={setValorFreteContratado}
+              valorAdiantamento={valorAdiantamento}
+              setValorAdiantamento={setValorAdiantamento}
+              valorPedagio={valorPedagio}
+              setValorPedagio={setValorPedagio}
+            />
+            
+            <div className="space-y-4">
+              <SaldoPagarOptions 
+                saldoPagar={saldoPagar}
+                formattedSaldoPagar={saldoPagar !== undefined ? formatCurrency(saldoPagar) : '-'}
+              />
+              
+              <Separator className="my-4" />
+              
+              <DataAdiantamentoSelector 
+                dataProgramadaPagamento={dataProgramadaPagamento}
+                setDataProgramadaPagamento={setDataProgramadaPagamento}
+              />
+              
+              <Separator className="my-4" />
+              
+              <ContabilizacaoOption 
+                contabilizado={contabilizado}
+                setContabilizado={setContabilizado}
+              />
+            </div>
+          </div>
         </>
       )}
       

@@ -10,13 +10,20 @@ export const validarPlaca = (placa: string): boolean => {
   const placaUpperCase = placa.toUpperCase().trim();
   console.log('Validando placa:', placaUpperCase);
   
+  // Formatos aceitos:
+  // 1. Padrão antigo com hífen: ABC-1234
+  // 2. Padrão antigo sem hífen: ABC1234
+  // 3. Padrão Mercosul: ABC1D23
   const regexAntigoMercosul = /^[A-Z]{3}-\d{4}$/;
   const regexNovoMercosul = /^[A-Z]{3}\d[A-Z]\d{2}$/;
   const regexAntigoSemHifen = /^[A-Z]{3}\d{4}$/;
   
-  return regexAntigoMercosul.test(placaUpperCase) || 
-         regexNovoMercosul.test(placaUpperCase) || 
-         regexAntigoSemHifen.test(placaUpperCase);
+  const isValid = regexAntigoMercosul.test(placaUpperCase) || 
+                  regexNovoMercosul.test(placaUpperCase) ||
+                  regexAntigoSemHifen.test(placaUpperCase);
+  
+  console.log('Placa é válida:', isValid);
+  return isValid;
 };
 
 /**
@@ -27,15 +34,20 @@ export const validarPlaca = (placa: string): boolean => {
 export const formatarPlaca = (placa: string): string => {
   if (!placa || typeof placa !== 'string') return '';
   
-  // Remover espaços e caracteres especiais e converter para maiúsculas
-  const placaLimpa = placa.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
-  console.log('Placa limpa após formatação:', placaLimpa);
+  // Remover espaços e converter para maiúsculas
+  const placaLimpa = placa.toUpperCase().trim();
   
-  // Formatar placa no padrão antigo (ABC1234 -> ABC-1234)
+  // Se tiver hífen, manter o formato
+  if (placaLimpa.includes('-')) {
+    return placaLimpa;
+  }
+  
+  // Formatar placa no padrão antigo (ABC1234 -> ABC-1234) se for o padrão antigo
   if (/^[A-Z]{3}\d{4}$/.test(placaLimpa)) {
     return `${placaLimpa.substring(0, 3)}-${placaLimpa.substring(3)}`;
   }
   
+  // Se for padrão Mercosul ou outro formato, retornar como está
   return placaLimpa;
 };
 
