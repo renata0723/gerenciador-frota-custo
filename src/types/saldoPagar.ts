@@ -13,3 +13,18 @@ export interface SaldoPagar {
   observacoes?: string;
   status?: string;
 }
+
+export interface ParceiroInfo {
+  id?: number;
+  nome: string;
+  documento?: string;
+  dados_bancarios?: any;
+  created_at?: string;
+}
+
+export interface PagamentoSaldo {
+  valor_pago: number;
+  data_pagamento: string;
+  banco_pagamento: string;
+  observacoes?: string;
+}

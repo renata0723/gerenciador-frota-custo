@@ -1,13 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { InfoCircle } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Info } from 'lucide-react';
 import FreteContratadoForm from './FreteContratadoForm';
 
 interface FormularioFreteContratadoProps {
@@ -25,48 +21,37 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({ c
     setDadosValidos(!!valorFreteContratado);
   }, [valorFreteContratado]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!dadosValidos) {
-      return;
-    }
-
-    onSave({
-      ...contrato,
-      valor_frete_contratado: valorFreteContratado,
-    });
-  };
-
   return (
-    <form onSubmit={handleSubmit}>
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-8">
-            <Alert>
-              <InfoCircle className="h-4 w-4" />
-              <AlertDescription>
-                Informe os valores do frete contratado para este contrato.
-              </AlertDescription>
-            </Alert>
+    <Card>
+      <CardContent className="pt-6">
+        <div className="space-y-8">
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Informe os valores do frete contratado para este contrato.
+            </AlertDescription>
+          </Alert>
 
-            <FreteContratadoForm 
-              contrato={contrato} 
-              onSave={onSave}
-            />
-            
-            <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={onBack}>
-                Voltar
-              </Button>
-              <Button type="submit" disabled={!dadosValidos}>
-                Salvar e Continuar
-              </Button>
-            </div>
+          <FreteContratadoForm 
+            contrato={contrato} 
+            onSave={onSave}
+          />
+          
+          <div className="flex justify-between">
+            <Button type="button" variant="outline" onClick={onBack}>
+              Voltar
+            </Button>
+            <Button 
+              type="button" 
+              onClick={() => onSave({...contrato, valor_frete_contratado: valorFreteContratado})}
+              disabled={!dadosValidos}
+            >
+              Salvar e Continuar
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-    </form>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

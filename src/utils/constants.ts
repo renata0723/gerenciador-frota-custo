@@ -1,4 +1,3 @@
-
 // Constantes globais da aplicação
 export const APP_ROUTES = {
   HOME: '/',
@@ -38,7 +37,15 @@ export const STATUS_VEICULO = {
   MANUTENCAO: 'manutenção',
 };
 
-// Formatar valores monetários
+// Constantes para status do saldo a pagar
+export const statusSaldoPagar = {
+  PENDENTE: 'pendente',
+  LIBERADO: 'liberado',
+  PAGO: 'pago',
+  CANCELADO: 'cancelado'
+};
+
+// Funções de formatação monetária
 export const formatCurrency = (value: number): string => {
   return value.toLocaleString('pt-BR', {
     style: 'currency',
@@ -46,6 +53,17 @@ export const formatCurrency = (value: number): string => {
     minimumFractionDigits: 2
   });
 };
+
+export const formataMoeda = (valor: number): string => {
+  return valor.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2
+  });
+};
+
+// Constante para o ano atual
+export const ANO_ATUAL = new Date().getFullYear();
 
 // Formatar datas
 export const formatDate = (date: string | Date): string => {

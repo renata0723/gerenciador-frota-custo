@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,6 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { Canhoto } from "@/types/canhoto";
 import { supabase } from '@/integrations/supabase/client';
-import { DatePicker } from "@/components/ui/date-picker";
 
 interface CanhotoFormProps {
   dados?: Partial<Canhoto>;
@@ -34,12 +34,13 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
     numero_cte: dados?.numero_cte || '',
     numero_nota_fiscal: dados?.numero_nota_fiscal || '',
     data_entrega_cliente: dados?.data_entrega_cliente || dataEntrega || today,
-    data_recebimento_canhoto: dados?.data_recebimento_canhoto || today,
+    data_recebimento: dados?.data_recebimento || today,
     responsavel_recebimento: dados?.responsavel_recebimento || '',
     data_programada_pagamento: dados?.data_programada_pagamento || '',
     status: 'Recebido',
     data_recebimento_mercadoria: dados?.data_recebimento_mercadoria || '',
     data_recebimento_controladoria: dados?.data_recebimento_controladoria || today,
+    observacoes: dados?.observacoes || '',
   });
   
   const [loadingContrato, setLoadingContrato] = useState(false);
@@ -98,15 +99,6 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
     }));
   };
   
-  const handleDateChange = (field: string, date: Date | undefined) => {
-    if (date) {
-      setFormData(prev => ({
-        ...prev,
-        [field]: format(date, 'yyyy-MM-dd')
-      }));
-    }
-  };
-  
   const calculaSaldoPagar = () => {
     // Esta função seria implementada para calcular o saldo a pagar
     // baseando-se no contrato e outros parâmetros
@@ -121,7 +113,7 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
       return;
     }
     
-    if (!formData.data_recebimento_canhoto) {
+    if (!formData.data_recebimento) {
       toast.error("Informe a data de recebimento do canhoto");
       return;
     }
@@ -147,15 +139,15 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
         const { data: saldoData, error: saldoError } = await supabase
           .from('Saldo a pagar')
           .select('*')
-          .eq('contratos_associados', formData.contrato_id)
+          .eq('contratos_associados', formData.contrato_id?.toString())
           .single();
           
         if (!saldoError && saldoData) {
-          // Atualizar status do saldo para liberado para pagamento (sem usar o campo status diretamente)
+          // Atualizar status do saldo para liberado para pagamento
           await supabase
             .from('Saldo a pagar')
             .update({ 
-              observacoes: 'Liberado para pagamento'
+              observacoes: 'Liberado para pagamento' 
             })
             .eq('id', saldoData.id);
             
@@ -275,12 +267,12 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="data_recebimento_canhoto">Data do Recebimento do Canhoto</Label>
+          <Label htmlFor="data_recebimento">Data do Recebimento do Canhoto</Label>
           <Input
-            id="data_recebimento_canhoto"
-            name="data_recebimento_canhoto"
+            id="data_recebimento"
+            name="data_recebimento"
             type="date"
-            value={formData.data_recebimento_canhoto}
+            value={formData.data_recebimento}
             onChange={handleChange}
             required
           />
@@ -321,6 +313,19 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
             value={formData.data_programada_pagamento}
             onChange={handleChange}
             placeholder="Data para pagamento do saldo ao parceiro (opcional)"
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-4">
+        <div>
+          <Label htmlFor="observacoes">Observações</Label>
+          <Input
+            id="observacoes"
+            name="observacoes"
+            value={formData.observacoes}
+            onChange={handleChange}
+            placeholder="Observações adicionais (opcional)"
           />
         </div>
       </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import NewPageLayout from '@/components/layout/NewPageLayout';
 import PageHeader from '@/components/ui/PageHeader';
@@ -43,11 +42,9 @@ const SaldoPagarPage = () => {
   }, []);
   
   useEffect(() => {
-    // Filtra saldos com base no termo de busca e aba ativa
     const filtrar = () => {
       let filtrados = [...saldos];
       
-      // Aplicar filtro de texto (nome do parceiro ou número do contrato)
       if (termoBusca) {
         const termoLowerCase = termoBusca.toLowerCase();
         filtrados = filtrados.filter(saldo => 
@@ -56,7 +53,6 @@ const SaldoPagarPage = () => {
         );
       }
       
-      // Aplicar filtro por status
       if (activeTab === 'pendentes') {
         filtrados = filtrados.filter(saldo => 
           saldo.status !== statusSaldoPagar.PAGO && 
@@ -118,7 +114,6 @@ const SaldoPagarPage = () => {
   
   const handleVerDetalhes = async (id: number) => {
     try {
-      // Buscar detalhes do saldo
       const { data: saldoData, error: saldoError } = await supabase
         .from('Saldo a pagar')
         .select('*')
@@ -129,7 +124,6 @@ const SaldoPagarPage = () => {
       
       setSaldoSelecionado(saldoData);
       
-      // Buscar dados do parceiro (proprietário)
       const { data: parceiroData, error: parceiroError } = await supabase
         .from('Proprietarios')
         .select('*')
@@ -147,7 +141,6 @@ const SaldoPagarPage = () => {
         setParceiroInfo(null);
       }
       
-      // Buscar contratos associados se houver
       if (saldoData.contratos_associados) {
         const contratoIds = saldoData.contratos_associados.split(',').map(id => id.trim());
         
@@ -202,7 +195,6 @@ const SaldoPagarPage = () => {
         const novoValorPago = valorPagoAnterior + pagamento.valor_pago;
         const saldoRestante = saldo.valor_total - novoValorPago;
         
-        // Determinar o status baseado no valor pago
         const novoStatus = novoValorPago >= saldo.valor_total 
           ? statusSaldoPagar.PAGO 
           : statusSaldoPagar.LIBERADO;
@@ -214,7 +206,8 @@ const SaldoPagarPage = () => {
             saldo_restante: saldoRestante > 0 ? saldoRestante : 0,
             data_pagamento: pagamento.data_pagamento,
             banco_pagamento: pagamento.banco_pagamento,
-            status: novoStatus
+            status: novoStatus,
+            observacoes: pagamento.observacoes
           })
           .eq('id', saldo.id);
       }
@@ -235,10 +228,7 @@ const SaldoPagarPage = () => {
   
   const handleDownloadRelatorio = async () => {
     try {
-      // Implementar geração de relatório
       toast.info('Gerando relatório...');
-      
-      // Implementar a lógica PDF aqui...
       
       toast.success('Relatório gerado com sucesso!');
     } catch (error) {
@@ -362,7 +352,6 @@ const SaldoPagarPage = () => {
         </Card>
       </div>
       
-      {/* Modal de Detalhes do Saldo */}
       <Dialog open={modalDetalhesAberto} onOpenChange={setModalDetalhesAberto}>
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
@@ -389,7 +378,6 @@ const SaldoPagarPage = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Modal de Pagamento */}
       <FormularioPagamento 
         saldos={getSaldosPagamentoSelecionados()}
         onPagamentoRealizado={handlePagamentoRealizado}
