@@ -1,4 +1,5 @@
 
+
 export interface CanhotoPendente {
   id?: number;
   contrato_id?: string;
@@ -60,3 +61,4 @@ export interface CancelamentoDocumento {
   observacoes?: string;
   data_cancelamento?: string;
 }
+

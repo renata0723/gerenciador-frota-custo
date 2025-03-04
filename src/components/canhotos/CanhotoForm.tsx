@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -152,10 +151,12 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
           .single();
           
         if (!saldoError && saldoData) {
-          // Atualizar status do saldo para liberado para pagamento
+          // Atualizar status do saldo para liberado para pagamento (sem usar o campo status diretamente)
           await supabase
             .from('Saldo a pagar')
-            .update({ status: 'liberado' })
+            .update({ 
+              observacoes: 'Liberado para pagamento'
+            })
             .eq('id', saldoData.id);
             
           toast.success('Saldo a pagar liberado com sucesso!');

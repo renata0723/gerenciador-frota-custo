@@ -1,6 +1,6 @@
 
 import React from 'react';
-import FreteContratadoForm, { FreteContratadoFormData } from './FreteContratadoForm';
+import { FreteContratadoFormData } from './FreteContratadoForm';
 
 interface FormularioFreteContratadoProps {
   onSubmit: (data: FreteContratadoFormData) => void;
@@ -10,16 +10,22 @@ interface FormularioFreteContratadoProps {
   dadosContrato?: any;
 }
 
-const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = (props) => {
-  const isTipoFrota = props.dadosContrato?.tipoFrota === 'frota';
+const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
+  onSubmit,
+  onBack,
+  onNext,
+  initialData,
+  dadosContrato
+}) => {
+  const isTipoFrota = dadosContrato?.tipoFrota === 'frota' || dadosContrato?.tipo === 'frota';
   
   return (
     <FreteContratadoForm 
       isTipoFrota={isTipoFrota} 
-      initialData={props.initialData}
-      onSubmit={props.onSubmit}
-      onBack={props.onBack}
-      onNext={props.onNext}
+      initialData={initialData}
+      onSubmit={onSubmit}
+      onBack={onBack}
+      onNext={onNext}
     />
   );
 };
