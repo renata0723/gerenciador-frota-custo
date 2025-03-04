@@ -1,82 +1,169 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { AbastecimentoFormData, TipoCombustivel } from '@/types/abastecimento';
-import { logOperation } from '@/utils/logOperations';
+import { toast } from 'sonner';
 
-export async function cadastrarAbastecimento(data: AbastecimentoFormData) {
-  try {
-    const itensAbastecidos = [{
-      tipo: data.tipoCombustivel,
-      quantidade: data.quantidade
-    }];
-
-    const { error } = await supabase
-      .from('Abastecimentos')
-      .insert({
-        data_abastecimento: data.data,
-        placa_veiculo: data.placa,
-        motorista_solicitante: data.motorista,
-        tipo_combustivel: data.tipoCombustivel,
-        valor_abastecimento: data.valor,
-        valor_total: data.valor,
-        quilometragem: data.quilometragem,
-        posto: data.posto,
-        responsavel_autorizacao: data.responsavel,
-        itens_abastecidos: JSON.stringify(itensAbastecidos)
-      });
-
-    if (error) throw error;
-    
-    logOperation('Abastecimentos', `Abastecimento registrado para veículo ${data.placa}`);
-    return { success: true };
-  } catch (error) {
-    console.error('Erro ao cadastrar abastecimento:', error);
-    return { success: false, error };
-  }
+export interface AbastecimentoData {
+  id?: number;
+  data_abastecimento: string;
+  placa_veiculo: string;
+  responsavel_autorizacao: string;
+  motorista_solicitante: string;
+  tipo_combustivel: string;
+  quilometragem: number;
+  posto: string;
+  valor_abastecimento: number;
+  itens_abastecidos: string;
+  valor_total: number;
 }
 
-export async function buscarAbastecimentos() {
+export interface TipoCombustivel {
+  id: string;
+  nome: string;
+  descricao?: string;
+}
+
+export const addTipoCombustivel = async (tipoCombustivel: TipoCombustivel): Promise<TipoCombustivel | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('TiposCombustivel')
+      .insert([tipoCombustivel])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Erro ao adicionar tipo de combustível:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Erro ao adicionar tipo de combustível:', error);
+    return null;
+  }
+};
+
+export const listarTiposCombustivel = async (): Promise<TipoCombustivel[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('TiposCombustivel')
+      .select('*')
+      .order('nome');
+    
+    if (error) {
+      console.error('Erro ao buscar tipos de combustível:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao listar tipos de combustível:', error);
+    return [];
+  }
+};
+
+export const addAbastecimento = async (abastecimento: AbastecimentoData): Promise<AbastecimentoData | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('Abastecimentos')
+      .insert([abastecimento])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao adicionar abastecimento:', error);
+      toast.error('Erro ao adicionar abastecimento.');
+      return null;
+    }
+
+    toast.success('Abastecimento adicionado com sucesso!');
+    return data;
+  } catch (error) {
+    console.error('Erro ao adicionar abastecimento:', error);
+    toast.error('Erro ao adicionar abastecimento.');
+    return null;
+  }
+};
+
+export const listarAbastecimentos = async (): Promise<AbastecimentoData[]> => {
   try {
     const { data, error } = await supabase
       .from('Abastecimentos')
       .select('*')
       .order('data_abastecimento', { ascending: false });
 
-    if (error) throw error;
-    return { success: true, data };
-  } catch (error) {
-    console.error('Erro ao buscar abastecimentos:', error);
-    return { success: false, error, data: [] };
-  }
-}
+    if (error) {
+      console.error('Erro ao listar abastecimentos:', error);
+      return [];
+    }
 
-export async function buscarTiposCombustivel() {
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao listar abastecimentos:', error);
+    return [];
+  }
+};
+
+export const getAbastecimentoById = async (id: number): Promise<AbastecimentoData | null> => {
   try {
     const { data, error } = await supabase
-      .from('TiposCombustivel')
+      .from('Abastecimentos')
       .select('*')
-      .order('nome');
+      .eq('id', id)
+      .single();
 
-    if (error) throw error;
-    return { success: true, data };
+    if (error) {
+      console.error('Erro ao buscar abastecimento por ID:', error);
+      return null;
+    }
+
+    return data || null;
   } catch (error) {
-    console.error('Erro ao buscar tipos de combustível:', error);
-    return { success: false, error, data: [] };
+    console.error('Erro ao buscar abastecimento por ID:', error);
+    return null;
   }
-}
+};
 
-export async function cadastrarTipoCombustivel(tipo: TipoCombustivel) {
+export const updateAbastecimento = async (id: number, updates: Partial<AbastecimentoData>): Promise<AbastecimentoData | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('Abastecimentos')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao atualizar abastecimento:', error);
+      toast.error('Erro ao atualizar abastecimento.');
+      return null;
+    }
+
+    toast.success('Abastecimento atualizado com sucesso!');
+    return data;
+  } catch (error) {
+    console.error('Erro ao atualizar abastecimento:', error);
+    toast.error('Erro ao atualizar abastecimento.');
+    return null;
+  }
+};
+
+export const deleteAbastecimento = async (id: number): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('TiposCombustivel')
-      .insert(tipo);
+      .from('Abastecimentos')
+      .delete()
+      .eq('id', id);
 
-    if (error) throw error;
-    
-    logOperation('Abastecimentos', `Tipo de combustível cadastrado: ${tipo.nome}`);
-    return { success: true, id: tipo.id };
+    if (error) {
+      console.error('Erro ao excluir abastecimento:', error);
+      toast.error('Erro ao excluir abastecimento.');
+      return false;
+    }
+
+    toast.success('Abastecimento excluído com sucesso!');
+    return true;
   } catch (error) {
-    console.error('Erro ao cadastrar tipo de combustível:', error);
-    return { success: false, error };
+    console.error('Erro ao excluir abastecimento:', error);
+    toast.error('Erro ao excluir abastecimento.');
+    return false;
   }
-}
+};

@@ -27,13 +27,13 @@ const BalancetePage: React.FC = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('Balancete')
+        .from('balancete')
         .select('*')
         .order('periodo_fim', { ascending: false });
 
       if (error) throw error;
 
-      setBalancetes(data || []);
+      setBalancetes(data as Balancete[] || []);
     } catch (error) {
       console.error('Erro ao buscar balancetes:', error);
       toast.error('Erro ao carregar balancetes');

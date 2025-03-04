@@ -1,309 +1,263 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
 import { FolhaPagamento } from '@/types/contabilidade';
-import { criarRegistroFolhaPagamento, atualizarRegistroFolhaPagamento } from '@/services/folhaPagamentoService';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 
-export interface FolhaPagamentoFormProps {
-  dados?: Partial<FolhaPagamento>;
-  onSubmit: (dados: Partial<FolhaPagamento>) => Promise<void>;
+interface FolhaPagamentoFormProps {
+  registro?: FolhaPagamento | null;
+  onSubmit: (data: Partial<FolhaPagamento>) => Promise<void>;
   onCancel: () => void;
 }
 
-const FolhaPagamentoForm: React.FC<FolhaPagamentoFormProps> = ({ dados, onSubmit, onCancel }) => {
-  const [funcionarioNome, setFuncionarioNome] = useState(dados?.funcionario_nome || '');
-  const [salarioBase, setSalarioBase] = useState(dados?.salario_base?.toString() || '');
-  const [dataPagamento, setDataPagamento] = useState<Date | undefined>(
-    dados?.data_pagamento ? new Date(dados.data_pagamento) : new Date()
-  );
-  const [mesReferencia, setMesReferencia] = useState(dados?.mes_referencia || format(new Date(), 'MM'));
-  const [anoReferencia, setAnoReferencia] = useState(dados?.ano_referencia || format(new Date(), 'yyyy'));
-  const [inss, setInss] = useState(dados?.inss?.toString() || '');
-  const [fgts, setFgts] = useState(dados?.fgts?.toString() || '');
-  const [ir, setIr] = useState(dados?.ir?.toString() || '');
-  const [valeTransporte, setValeTransporte] = useState(dados?.vale_transporte?.toString() || '');
-  const [valeRefeicao, setValeRefeicao] = useState(dados?.vale_refeicao?.toString() || '');
-  const [outrosDescontos, setOutrosDescontos] = useState(dados?.outros_descontos?.toString() || '');
-  const [outrosBeneficios, setOutrosBeneficios] = useState(dados?.outros_beneficios?.toString() || '');
-  const [valorLiquido, setValorLiquido] = useState(dados?.valor_liquido?.toString() || '');
-  const [observacoes, setObservacoes] = useState(dados?.observacoes || '');
-  const [isProcessing, setIsProcessing] = useState(false);
+const FolhaPagamentoForm: React.FC<FolhaPagamentoFormProps> = ({ 
+  registro, 
+  onSubmit, 
+  onCancel 
+}) => {
+  const defaultValues = {
+    funcionario_nome: registro?.funcionario_nome || '',
+    salario_base: registro?.salario_base || 0,
+    mes_referencia: registro?.mes_referencia || new Date().getMonth().toString().padStart(2, '0'),
+    ano_referencia: registro?.ano_referencia || new Date().getFullYear().toString(),
+    data_pagamento: registro?.data_pagamento ? format(new Date(registro.data_pagamento), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+    inss: registro?.inss || 0,
+    fgts: registro?.fgts || 0,
+    ir: registro?.ir || 0,
+    vale_transporte: registro?.vale_transporte || 0,
+    vale_refeicao: registro?.vale_refeicao || 0,
+    outros_descontos: registro?.outros_descontos || 0,
+    outros_beneficios: registro?.outros_beneficios || 0,
+    valor_liquido: registro?.valor_liquido || 0,
+    observacoes: registro?.observacoes || '',
+    status: registro?.status || 'concluido'
+  };
 
-  // Calcular valor líquido automaticamente
-  useEffect(() => {
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<Partial<FolhaPagamento>>({
+    defaultValues
+  });
+
+  // Observa as mudanças nos valores para calcular automaticamente o valor líquido
+  const salarioBase = watch('salario_base') || 0;
+  const inss = watch('inss') || 0;
+  const fgts = watch('fgts') || 0;
+  const ir = watch('ir') || 0;
+  const valeTransporte = watch('vale_transporte') || 0;
+  const valeRefeicao = watch('vale_refeicao') || 0;
+  const outrosDescontos = watch('outros_descontos') || 0;
+  const outrosBeneficios = watch('outros_beneficios') || 0;
+
+  React.useEffect(() => {
+    const totalDescontos = Number(inss) + Number(ir) + Number(valeTransporte) + Number(outrosDescontos);
+    const totalBeneficios = Number(valeRefeicao) + Number(outrosBeneficios);
+    const liquido = Number(salarioBase) - totalDescontos + totalBeneficios;
+    setValue('valor_liquido', liquido);
+  }, [salarioBase, inss, fgts, ir, valeTransporte, valeRefeicao, outrosDescontos, outrosBeneficios, setValue]);
+
+  const onFormSubmit = async (data: Partial<FolhaPagamento>) => {
     try {
-      const salario = parseFloat(salarioBase || '0');
-      const inssValor = parseFloat(inss || '0');
-      const fgtsValor = parseFloat(fgts || '0');
-      const irValor = parseFloat(ir || '0');
-      const valeTransporteValor = parseFloat(valeTransporte || '0');
-      const valeRefeicaoValor = parseFloat(valeRefeicao || '0');
-      const outrosDescontosValor = parseFloat(outrosDescontos || '0');
-      const outrosBeneficiosValor = parseFloat(outrosBeneficios || '0');
-
-      const liquido = salario - inssValor - irValor - valeTransporteValor 
-                     - valeRefeicaoValor - outrosDescontosValor + outrosBeneficiosValor;
-      
-      setValorLiquido(liquido.toFixed(2));
-    } catch (err) {
-      // Ignora erros de conversão
-    }
-  }, [salarioBase, inss, fgts, ir, valeTransporte, valeRefeicao, outrosDescontos, outrosBeneficios]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!funcionarioNome) {
-      toast.error('Nome do funcionário é obrigatório');
-      return;
-    }
-    
-    if (!salarioBase || isNaN(parseFloat(salarioBase)) || parseFloat(salarioBase) <= 0) {
-      toast.error('Salário base deve ser um valor positivo');
-      return;
-    }
-    
-    if (!dataPagamento) {
-      toast.error('Data de pagamento é obrigatória');
-      return;
-    }
-    
-    setIsProcessing(true);
-    
-    try {
-      const folhaPagamentoData: Partial<FolhaPagamento> = {
-        funcionario_nome: funcionarioNome,
-        salario_base: parseFloat(salarioBase),
-        data_pagamento: format(dataPagamento, 'yyyy-MM-dd'),
-        mes_referencia: mesReferencia,
-        ano_referencia: anoReferencia,
-        inss: inss ? parseFloat(inss) : undefined,
-        fgts: fgts ? parseFloat(fgts) : undefined,
-        ir: ir ? parseFloat(ir) : undefined,
-        vale_transporte: valeTransporte ? parseFloat(valeTransporte) : undefined,
-        vale_refeicao: valeRefeicao ? parseFloat(valeRefeicao) : undefined,
-        outros_descontos: outrosDescontos ? parseFloat(outrosDescontos) : undefined,
-        outros_beneficios: outrosBeneficios ? parseFloat(outrosBeneficios) : undefined,
-        valor_liquido: parseFloat(valorLiquido),
-        observacoes
-      };
-      
-      await onSubmit(folhaPagamentoData);
+      await onSubmit(data);
     } catch (error) {
-      console.error('Erro ao processar formulário:', error);
-      toast.error('Ocorreu um erro ao salvar os dados');
-    } finally {
-      setIsProcessing(false);
+      console.error('Erro ao salvar folha de pagamento:', error);
+      toast.error('Erro ao salvar folha de pagamento');
     }
   };
 
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
-        <CardTitle>{dados?.id ? 'Editar' : 'Novo'} Registro de Folha de Pagamento</CardTitle>
+        <CardTitle>{registro ? 'Editar' : 'Novo'} Registro de Folha de Pagamento</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="funcionarioNome">Nome do Funcionário</Label>
+            <div>
+              <Label htmlFor="funcionario_nome">Nome do Funcionário</Label>
               <Input
-                id="funcionarioNome"
-                value={funcionarioNome}
-                onChange={(e) => setFuncionarioNome(e.target.value)}
-                required
+                id="funcionario_nome"
+                {...register('funcionario_nome', { required: true })}
+                placeholder="Nome completo do funcionário"
               />
+              {errors.funcionario_nome && <span className="text-red-500 text-sm">Campo obrigatório</span>}
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="salarioBase">Salário Base</Label>
+            <div>
+              <Label htmlFor="salario_base">Salário Base</Label>
               <Input
-                id="salarioBase"
+                id="salario_base"
                 type="number"
                 step="0.01"
-                value={salarioBase}
-                onChange={(e) => setSalarioBase(e.target.value)}
-                required
+                {...register('salario_base', { required: true, valueAsNumber: true })}
               />
+              {errors.salario_base && <span className="text-red-500 text-sm">Campo obrigatório</span>}
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="dataPagamento">Data de Pagamento</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dataPagamento && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataPagamento ? format(dataPagamento, "dd/MM/yyyy") : <span>Selecione uma data</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dataPagamento}
-                    onSelect={setDataPagamento}
-                    initialFocus
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="data_pagamento">Data de Pagamento</Label>
+              <Input
+                id="data_pagamento"
+                type="date"
+                {...register('data_pagamento', { required: true })}
+              />
+              {errors.data_pagamento && <span className="text-red-500 text-sm">Campo obrigatório</span>}
             </div>
-            
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-2">
-                <Label htmlFor="mesReferencia">Mês Referência</Label>
-                <Input
-                  id="mesReferencia"
-                  value={mesReferencia}
-                  onChange={(e) => setMesReferencia(e.target.value)}
-                  required
-                  placeholder="MM"
-                  maxLength={2}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="anoReferencia">Ano Referência</Label>
-                <Input
-                  id="anoReferencia"
-                  value={anoReferencia}
-                  onChange={(e) => setAnoReferencia(e.target.value)}
-                  required
-                  placeholder="YYYY"
-                  maxLength={4}
-                />
-              </div>
+            <div>
+              <Label htmlFor="mes_referencia">Mês de Referência</Label>
+              <select
+                id="mes_referencia"
+                className="w-full h-10 px-3 py-2 border rounded"
+                {...register('mes_referencia', { required: true })}
+              >
+                <option value="01">Janeiro</option>
+                <option value="02">Fevereiro</option>
+                <option value="03">Março</option>
+                <option value="04">Abril</option>
+                <option value="05">Maio</option>
+                <option value="06">Junho</option>
+                <option value="07">Julho</option>
+                <option value="08">Agosto</option>
+                <option value="09">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+              </select>
+              {errors.mes_referencia && <span className="text-red-500 text-sm">Campo obrigatório</span>}
             </div>
-            
-            <div className="space-y-2">
+            <div>
+              <Label htmlFor="ano_referencia">Ano de Referência</Label>
+              <Input
+                id="ano_referencia"
+                {...register('ano_referencia', { required: true })}
+              />
+              {errors.ano_referencia && <span className="text-red-500 text-sm">Campo obrigatório</span>}
+            </div>
+          </div>
+
+          <Separator />
+          <h3 className="text-lg font-medium">Encargos e Descontos</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
               <Label htmlFor="inss">INSS</Label>
               <Input
                 id="inss"
                 type="number"
                 step="0.01"
-                value={inss}
-                onChange={(e) => setInss(e.target.value)}
+                {...register('inss', { valueAsNumber: true })}
               />
             </div>
-            
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="fgts">FGTS</Label>
               <Input
                 id="fgts"
                 type="number"
                 step="0.01"
-                value={fgts}
-                onChange={(e) => setFgts(e.target.value)}
+                {...register('fgts', { valueAsNumber: true })}
               />
             </div>
-            
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="ir">IR</Label>
               <Input
                 id="ir"
                 type="number"
                 step="0.01"
-                value={ir}
-                onChange={(e) => setIr(e.target.value)}
+                {...register('ir', { valueAsNumber: true })}
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="valeTransporte">Vale Transporte</Label>
+            <div>
+              <Label htmlFor="vale_transporte">Vale Transporte</Label>
               <Input
-                id="valeTransporte"
+                id="vale_transporte"
                 type="number"
                 step="0.01"
-                value={valeTransporte}
-                onChange={(e) => setValeTransporte(e.target.value)}
+                {...register('vale_transporte', { valueAsNumber: true })}
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="valeRefeicao">Vale Refeição</Label>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="vale_refeicao">Vale Refeição</Label>
               <Input
-                id="valeRefeicao"
+                id="vale_refeicao"
                 type="number"
                 step="0.01"
-                value={valeRefeicao}
-                onChange={(e) => setValeRefeicao(e.target.value)}
+                {...register('vale_refeicao', { valueAsNumber: true })}
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="outrosDescontos">Outros Descontos</Label>
+            <div>
+              <Label htmlFor="outros_descontos">Outros Descontos</Label>
               <Input
-                id="outrosDescontos"
+                id="outros_descontos"
                 type="number"
                 step="0.01"
-                value={outrosDescontos}
-                onChange={(e) => setOutrosDescontos(e.target.value)}
+                {...register('outros_descontos', { valueAsNumber: true })}
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="outrosBeneficios">Outros Benefícios</Label>
+            <div>
+              <Label htmlFor="outros_beneficios">Outros Benefícios</Label>
               <Input
-                id="outrosBeneficios"
+                id="outros_beneficios"
                 type="number"
                 step="0.01"
-                value={outrosBeneficios}
-                onChange={(e) => setOutrosBeneficios(e.target.value)}
+                {...register('outros_beneficios', { valueAsNumber: true })}
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="valorLiquido">Valor Líquido</Label>
+          </div>
+
+          <Separator />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="valor_liquido">Valor Líquido</Label>
               <Input
-                id="valorLiquido"
+                id="valor_liquido"
                 type="number"
                 step="0.01"
-                value={valorLiquido}
-                onChange={(e) => setValorLiquido(e.target.value)}
+                {...register('valor_liquido', { required: true, valueAsNumber: true })}
                 readOnly
                 className="bg-gray-100"
               />
+              {errors.valor_liquido && <span className="text-red-500 text-sm">Campo obrigatório</span>}
+            </div>
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <select
+                id="status"
+                className="w-full h-10 px-3 py-2 border rounded"
+                {...register('status', { required: true })}
+              >
+                <option value="pendente">Pendente</option>
+                <option value="concluido">Concluído</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+              {errors.status && <span className="text-red-500 text-sm">Campo obrigatório</span>}
             </div>
           </div>
-          
-          <div className="space-y-2">
+
+          <div>
             <Label htmlFor="observacoes">Observações</Label>
-            <Input
+            <Textarea
               id="observacoes"
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
+              {...register('observacoes')}
+              rows={3}
             />
           </div>
-          
-          <div className="flex justify-end gap-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onCancel}
-              disabled={isProcessing}
-            >
+
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={onCancel}>
               Cancelar
             </Button>
-            <Button 
-              type="submit"
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Processando...' : dados?.id ? 'Atualizar' : 'Salvar'}
+            <Button type="submit">
+              {registro ? 'Atualizar' : 'Salvar'}
             </Button>
           </div>
         </form>

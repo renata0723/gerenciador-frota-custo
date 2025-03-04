@@ -20,7 +20,7 @@ const BalanceteForm: React.FC<BalanceteFormProps> = ({ onClose, onSuccess }) => 
   const onSubmit = async (data: Partial<Balancete>) => {
     try {
       const { error } = await supabase
-        .from('Balancete')
+        .from('balancete')
         .insert([{
           ...data,
           status: 'ativo',

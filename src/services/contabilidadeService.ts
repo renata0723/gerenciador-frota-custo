@@ -391,7 +391,7 @@ export const adicionarBalancoPatrimonial = async (balanco: Partial<BalancoPatrim
 export const listarBalancetes = async () => {
   try {
     const { data, error } = await supabase
-      .from('Balancete')
+      .from('balancete')
       .select('*')
       .order('periodo_fim', { ascending: false });
     
@@ -410,7 +410,7 @@ export const listarBalancetes = async () => {
 export const adicionarBalancete = async (balancete: Partial<Balancete>) => {
   try {
     const { data, error } = await supabase
-      .from('Balancete')
+      .from('balancete')
       .insert([balancete])
       .select()
       .single();
