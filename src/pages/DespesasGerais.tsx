@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
 import { DollarSign, Plus, Search, Filter, Download, BarChart2 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -33,6 +33,7 @@ const DespesasGerais = () => {
   const carregarDespesas = async () => {
     setLoading(true);
     try {
+      console.log("Buscando despesas do banco...");
       const { data, error } = await supabase
         .from('Despesas Gerais')
         .select('*');
@@ -43,6 +44,7 @@ const DespesasGerais = () => {
         return;
       }
 
+      console.log("Despesas carregadas:", data);
       setDespesas(data || []);
     } catch (error) {
       console.error("Erro ao processar dados:", error);
@@ -53,7 +55,7 @@ const DespesasGerais = () => {
   };
 
   const filteredDespesas = despesas.filter(despesa => 
-    despesa.tipo_despesa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    despesa.tipo_despesa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     despesa.descricao_detalhada?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     despesa.categoria?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -78,7 +80,7 @@ const DespesasGerais = () => {
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 mt-6">
         <Card className="p-4 shadow-sm border">
           <div className="flex justify-between items-center">
             <div>
@@ -152,7 +154,7 @@ const DespesasGerais = () => {
               </TableHeader>
               <TableBody>
                 {filteredDespesas.map((despesa) => (
-                  <TableRow key={despesa.id}>
+                  <TableRow key={despesa.id} className="cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/despesas/editar/${despesa.id}`)}>
                     <TableCell>{despesa.data_despesa}</TableCell>
                     <TableCell>{despesa.tipo_despesa}</TableCell>
                     <TableCell>{despesa.categoria || 'N/A'}</TableCell>

@@ -36,7 +36,7 @@ const NovaDespesaForm = () => {
         }
       />
 
-      <Card className="p-6 mb-6 bg-white shadow-sm">
+      <Card className="p-6 mb-6 bg-white shadow-sm mt-6">
         <h2 className="text-xl font-bold mb-4">Formulário de Registro de Despesa</h2>
         <NovaDespesaFormComponent 
           onDespesaAdicionada={handleDespesaAdicionada} 

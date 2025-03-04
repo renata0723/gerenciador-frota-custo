@@ -10,7 +10,20 @@ import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DespesaFormData, TipoDespesa } from '@/types/despesa';
-import { tiposDespesa } from '@/utils/constants';
+
+const tiposDespesa = [
+  "Descarga", 
+  "Reentrega", 
+  "No-Show", 
+  "Diária", 
+  "Pedágio", 
+  "Alimentação", 
+  "Hospedagem", 
+  "Multa", 
+  "Equipamentos", 
+  "Administrativa", 
+  "Outros"
+];
 
 interface NovaDespesaFormProps {
   onDespesaAdicionada: () => void;
@@ -44,6 +57,7 @@ const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({ onDespesaAdicionada, 
 
   const onSubmit = async (data: DespesaFormData) => {
     try {
+      console.log("Salvando despesa:", data);
       // Converter valores para maiúsculas
       const descricaoUpper = data.descricao.toUpperCase();
       
@@ -61,7 +75,10 @@ const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({ onDespesaAdicionada, 
           conta_contabil: data.contabilizar ? data.conta_contabil?.toUpperCase() : null
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao adicionar despesa:', error);
+        throw error;
+      }
       
       reset();
       onDespesaAdicionada();

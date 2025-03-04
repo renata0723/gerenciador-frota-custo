@@ -28,7 +28,9 @@ const Contratos = () => {
         }
       />
 
-      <ContratosPagina />
+      <div className="mt-6">
+        <ContratosPagina />
+      </div>
     </PageLayout>
   );
 };
