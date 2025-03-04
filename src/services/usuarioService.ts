@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Usuario, Permissao, PermissaoUsuario, StatusUsuario } from '@/types/usuario';
 import { logOperation } from '@/utils/logOperations';
@@ -214,6 +213,22 @@ export const autenticarUsuario = async (email: string, senha: string): Promise<U
   try {
     console.log('Tentando autenticar usuário:', email);
     
+    // Verificar se é o usuário administrador de demonstração
+    if (email === 'admin@slog.com.br' && senha === 'senha123') {
+      const adminUser: Usuario = {
+        id: 9999,
+        nome: 'Administrador',
+        email: 'admin@slog.com.br',
+        cargo: 'Administrador',
+        status: 'ativo',
+        ultimo_acesso: new Date().toISOString()
+      };
+      
+      logOperation('Usuários', 'Login como administrador', 'true');
+      return adminUser;
+    }
+    
+    // Autenticação normal via Supabase
     const { data, error } = await supabase
       .from('Usuarios')
       .select('*')
@@ -253,5 +268,56 @@ export const autenticarUsuario = async (email: string, senha: string): Promise<U
     console.error('Erro ao autenticar usuário:', error);
     logOperation('Usuários', 'Login', 'false');
     return null;
+  }
+};
+
+// Obter usuário autenticado do storage
+export const getUsuarioAutenticado = (): Usuario | null => {
+  try {
+    const usuarioString = localStorage.getItem('userData');
+    if (!usuarioString) return null;
+    
+    const usuario = JSON.parse(usuarioString) as Usuario;
+    return usuario;
+  } catch (error) {
+    console.error('Erro ao obter usuário autenticado:', error);
+    return null;
+  }
+};
+
+// Função para verificar se o usuário atual tem permissão para uma ação específica
+export const verificarPermissao = async (modulo: string, acao: string): Promise<boolean> => {
+  try {
+    const usuario = getUsuarioAutenticado();
+    if (!usuario) return false;
+    
+    // Administrador tem todas as permissões
+    if (usuario.cargo === 'Administrador' || usuario.email === 'admin@slog.com.br') {
+      return true;
+    }
+    
+    // Para usuários normais, verificar permissões no banco
+    const { data, error } = await supabase
+      .from('UsuarioPermissoes')
+      .select(`
+        *,
+        permissao:permissao_id (
+          modulo, 
+          acao
+        )
+      `)
+      .eq('usuario_id', usuario.id);
+    
+    if (error) {
+      console.error('Erro ao verificar permissões:', error);
+      return false;
+    }
+    
+    return data.some(
+      item => item.permissao.modulo === modulo && item.permissao.acao === acao
+    );
+  } catch (error) {
+    console.error('Erro ao verificar permissão:', error);
+    return false;
   }
 };

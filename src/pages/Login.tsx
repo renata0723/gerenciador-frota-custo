@@ -28,6 +28,30 @@ const Login = () => {
     setLoading(true);
     
     try {
+      // Caso de admin@slog.com.br/senha123 (usuário de demonstração)
+      if (email === 'admin@slog.com.br' && senha === 'senha123') {
+        // Criar usuário administrador simulado
+        const adminUser = {
+          id: 9999,
+          nome: 'Administrador',
+          email: 'admin@slog.com.br',
+          cargo: 'Administrador',
+          status: 'ativo',
+          ultimo_acesso: new Date().toISOString()
+        };
+        
+        localStorage.setItem('userData', JSON.stringify(adminUser));
+        localStorage.setItem('userToken', 'token-simulado');
+        
+        // Registrar operação de login bem-sucedida
+        logOperation('Login', 'Login bem-sucedido como administrador', 'true');
+        
+        toast.success('Login realizado com sucesso!');
+        navigate('/');
+        return;
+      }
+      
+      // Caso normal - autenticar via serviço
       const usuario = await autenticarUsuario(email, senha);
       
       if (usuario) {
@@ -37,7 +61,7 @@ const Login = () => {
         // Registrar operação de login bem-sucedida
         logOperation('Login', 'Login bem-sucedido', 'true');
         
-        // Navegação sem exibir toast
+        toast.success('Login realizado com sucesso!');
         navigate('/');
       } else {
         toast.error('Usuário ou senha incorretos');
@@ -57,7 +81,7 @@ const Login = () => {
       <Card className="w-full max-w-md">
         <CardContent className="flex flex-col items-center p-8">
           <div className="w-full text-center mb-6">
-            <h1 className="text-2xl font-bold text-sistema-primary">Controladoria de Custo</h1>
+            <h1 className="text-2xl font-bold text-blue-600">Controladoria de Custo</h1>
             <h2 className="text-lg mt-2">Sistema de Gestão de Frota</h2>
             <p className="text-sm text-gray-500 mt-2">Faça login para acessar o sistema</p>
           </div>
@@ -84,7 +108,7 @@ const Login = () => {
                     e.preventDefault();
                     toast.info('Funcionalidade em implementação');
                   }}
-                  className="text-sm text-sistema-primary hover:underline"
+                  className="text-sm text-blue-600 hover:underline"
                 >
                   Esqueceu a senha?
                 </a>
@@ -100,7 +124,7 @@ const Login = () => {
             
             <Button 
               type="submit" 
-              className="w-full bg-sistema-primary hover:bg-sistema-primary/90"
+              className="w-full bg-blue-600 hover:bg-blue-700"
               disabled={loading}
             >
               {loading ? 'Entrando...' : 'Entrar'}

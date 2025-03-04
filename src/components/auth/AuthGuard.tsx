@@ -17,28 +17,41 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     const verificarAutenticacao = () => {
       try {
         // Verificar se o usuário está autenticado
-        const usuarioString = sessionStorage.getItem('usuario');
-        const adminGeral = sessionStorage.getItem('adminGeral');
+        const usuarioString = localStorage.getItem('userData');
+        const userToken = localStorage.getItem('userToken');
         
         console.log('Verificando autenticação:');
-        console.log('- usuarioString:', !!usuarioString);
-        console.log('- adminGeral:', adminGeral);
+        console.log('- userData:', !!usuarioString);
+        console.log('- userToken:', !!userToken);
         
         // Para desenvolvimento, vamos criar uma sessão de teste se não existir
-        if (!usuarioString && !adminGeral && process.env.NODE_ENV === 'development') {
+        if (!usuarioString && !userToken && process.env.NODE_ENV === 'development') {
           console.log('Criando sessão de desenvolvimento');
-          sessionStorage.setItem('adminGeral', 'true');
+          
+          // Criar um usuário administrador de teste para desenvolvimento
+          const adminTestUser = {
+            id: 9999,
+            nome: 'Administrador',
+            email: 'admin@slog.com.br',
+            cargo: 'Administrador',
+            status: 'ativo',
+            ultimo_acesso: new Date().toISOString()
+          };
+          
+          localStorage.setItem('userData', JSON.stringify(adminTestUser));
+          localStorage.setItem('userToken', 'token-simulado-dev');
+          
           setIsAuthenticated(true);
           setLoading(false);
           return;
         }
         
-        // Verificar se é usuário ou admin
-        if (usuarioString) {
+        // Verificar se é usuário válido
+        if (usuarioString && userToken) {
           try {
             const usuario: Usuario = JSON.parse(usuarioString);
             
-            if (usuario && usuario.id) {
+            if (usuario && (usuario.id || usuario.email)) {
               console.log('Usuário autenticado:', usuario.nome);
               setIsAuthenticated(true);
             } else {
@@ -49,10 +62,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             console.error('Erro ao processar dados de autenticação:', error);
             setIsAuthenticated(false);
           }
-        } else if (adminGeral === 'true') {
-          // Se for administrador geral
-          console.log('Administrador geral autenticado');
-          setIsAuthenticated(true);
         } else {
           console.log('Nenhum usuário autenticado');
           setIsAuthenticated(false);
