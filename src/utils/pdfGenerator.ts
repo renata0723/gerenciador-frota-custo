@@ -38,13 +38,13 @@ const adicionarCabecalho = (doc: jsPDF, titulo: string) => {
   // Título do relatório
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text(titulo, doc.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
+  doc.text(titulo, doc.internal.pageSize.width / 2, 30, { align: 'center' });
   
   // Data da impressão
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
   doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 
-    doc.internal.pageSize.getWidth() - 15, 10, { align: 'right' });
+    doc.internal.pageSize.width - 15, 10, { align: 'right' });
     
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
@@ -112,8 +112,8 @@ export const gerarRelatorioSaldoPagar = (
   doc.setFontSize(8);
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.getWidth() / 2, 
-      doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width / 2, 
+      doc.internal.pageSize.height - 10, { align: 'center' });
   }
   
   return doc;
@@ -154,8 +154,8 @@ export const gerarRelatorioPlanoConta = (contas: ContaContabil[]) => {
   doc.setFontSize(8);
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.getWidth() / 2, 
-      doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width / 2, 
+      doc.internal.pageSize.height - 10, { align: 'center' });
   }
   
   return doc;
@@ -197,8 +197,8 @@ export const gerarRelatorioNotasFiscais = (notas: any[], periodo: string) => {
   doc.setFontSize(8);
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.getWidth() / 2, 
-      doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width / 2, 
+      doc.internal.pageSize.height - 10, { align: 'center' });
   }
   
   return doc;

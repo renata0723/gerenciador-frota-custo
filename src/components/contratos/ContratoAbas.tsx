@@ -50,7 +50,7 @@ const ContratoAbas: React.FC<ContratoAbasProps> = ({
       
       <TabsContent value="dados" className="p-4 space-y-4">
         <FormularioDadosContrato 
-          onSubmit={handleSaveContractData} 
+          onSave={handleSaveContractData} 
           onNext={() => setActiveTab("documentos")}
           initialData={dadosContrato || undefined}
         />

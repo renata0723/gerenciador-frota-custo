@@ -60,3 +60,22 @@ export const estadosBrasileiros = [
   { sigla: 'SE', nome: 'Sergipe' },
   { sigla: 'TO', nome: 'Tocantins' }
 ];
+
+// Adicionando as funções de formatação que estão faltando
+export const formatCurrency = formataMoeda;
+
+export const formatDate = (date: string | Date): string => {
+  if (!date) return '';
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleDateString('pt-BR');
+};
+
+export const ANO_ATUAL = new Date().getFullYear();
+
+export const statusSaldoPagar = [
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'parcial', label: 'Parcialmente Pago' },
+  { value: 'pago', label: 'Pago' },
+  { value: 'cancelado', label: 'Cancelado' }
+];

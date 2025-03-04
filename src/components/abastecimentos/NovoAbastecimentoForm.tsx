@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -153,9 +152,17 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
       const valorTotal = data.valor * data.quantidade;
       
       onSave({
-        ...data,
+        data: data.data,
+        placa: data.placa,
+        motorista: data.motorista,
+        tipoCombustivel: data.tipoCombustivel,
         valor: data.valor,
-        quantidade: data.quantidade, 
+        quantidade: data.quantidade,
+        quilometragem: data.quilometragem,
+        posto: data.posto,
+        responsavel: data.responsavel,
+        itens: data.itens,
+        contrato_id: data.contrato_id,
         contabilizado: isContabilizado,
         conta_debito: isContabilizado ? data.conta_debito : undefined,
         conta_credito: isContabilizado ? data.conta_credito : undefined
@@ -193,10 +200,10 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
                     <FormLabel>Data do Abastecimento</FormLabel>
                     <FormControl>
                       <DatePicker
-                        value={field.value}
-                        onChange={(date) => {
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={(date) => {
                           if (date) {
-                            field.onChange(date);
+                            field.onChange(date.toISOString().split('T')[0]);
                           }
                         }}
                       />
