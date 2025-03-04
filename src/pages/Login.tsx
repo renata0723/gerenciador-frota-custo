@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,7 +15,6 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Verificar se já está autenticado
     const token = localStorage.getItem('userToken');
     if (token) {
       navigate('/');
@@ -28,49 +26,20 @@ const Login = () => {
     setLoading(true);
     
     try {
-      // Caso de admin@slog.com.br/senha123 (usuário de demonstração)
-      if (email === 'admin@slog.com.br' && senha === 'senha123') {
-        // Criar usuário administrador simulado
-        const adminUser = {
-          id: 9999,
-          nome: 'Administrador',
-          email: 'admin@slog.com.br',
-          cargo: 'Administrador',
-          status: 'ativo',
-          ultimo_acesso: new Date().toISOString()
-        };
-        
-        localStorage.setItem('userData', JSON.stringify(adminUser));
-        localStorage.setItem('userToken', 'token-simulado');
-        
-        // Registrar operação de login bem-sucedida
-        logOperation('Login', 'Login bem-sucedido como administrador', 'true');
-        
-        toast.success('Login realizado com sucesso!');
-        navigate('/');
-        return;
-      }
-      
-      // Caso normal - autenticar via serviço
       const usuario = await autenticarUsuario(email, senha);
       
       if (usuario) {
-        localStorage.setItem('userToken', 'token-simulado');
         localStorage.setItem('userData', JSON.stringify(usuario));
-        
-        // Registrar operação de login bem-sucedida
-        logOperation('Login', 'Login bem-sucedido', 'true');
+        localStorage.setItem('userToken', 'token-simulado');
         
         toast.success('Login realizado com sucesso!');
         navigate('/');
       } else {
-        toast.error('Usuário ou senha incorretos');
-        logOperation('Login', 'Tentativa de login com credenciais inválidas', 'false');
+        toast.error('Email ou senha incorretos');
       }
     } catch (error) {
       console.error('Erro ao realizar login:', error);
       toast.error('Ocorreu um erro ao tentar fazer login');
-      logOperation('Login', 'Erro ao tentar fazer login', 'false');
     } finally {
       setLoading(false);
     }
@@ -130,10 +99,6 @@ const Login = () => {
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
-          
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>Usuário de demonstração: admin@slog.com.br / senha123</p>
-          </div>
           
           <div className="mt-6 text-center text-xs text-gray-400">
             © 2025 SLog Controladoria - Todos os direitos reservados

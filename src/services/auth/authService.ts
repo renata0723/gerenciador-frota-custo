@@ -1,29 +1,12 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Usuario } from '@/types/usuario';
 import { logOperation } from '@/utils/logOperations';
 
-// Autenticação simples
 export const autenticarUsuario = async (email: string, senha: string): Promise<Usuario | null> => {
   try {
     console.log('Tentando autenticar usuário:', email);
     
-    // Verificar se é o usuário administrador de demonstração
-    if (email === 'admin@slog.com.br' && senha === 'senha123') {
-      const adminUser: Usuario = {
-        id: 9999,
-        nome: 'Administrador',
-        email: 'admin@slog.com.br',
-        cargo: 'Administrador',
-        status: 'ativo',
-        ultimo_acesso: new Date().toISOString()
-      };
-      
-      logOperation('Usuários', 'Login como administrador', 'true');
-      return adminUser;
-    }
-    
-    // Autenticação normal via Supabase
+    // Autenticação via Supabase
     const { data, error } = await supabase
       .from('Usuarios')
       .select('*')
@@ -50,7 +33,6 @@ export const autenticarUsuario = async (email: string, senha: string): Promise<U
       
       logOperation('Usuários', 'Login', 'true');
       
-      // Converter o tipo status para StatusUsuario
       return {
         ...data,
         status: data.status as Usuario['status']
@@ -66,7 +48,6 @@ export const autenticarUsuario = async (email: string, senha: string): Promise<U
   }
 };
 
-// Obter usuário autenticado do storage
 export const getUsuarioAutenticado = (): Usuario | null => {
   try {
     const usuarioString = localStorage.getItem('userData');
