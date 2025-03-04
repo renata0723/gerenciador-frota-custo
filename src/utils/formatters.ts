@@ -1,4 +1,3 @@
-
 export const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -34,4 +33,35 @@ export const formatCPFCNPJ = (value: string | null | undefined): string => {
   }
   
   return value;
+};
+
+/**
+ * Formata um valor numérico para o formato monetário brasileiro (R$)
+ * @param valor O valor a ser formatado
+ * @returns String formatada no padrão monetário brasileiro
+ */
+export const formatarValorMonetario = (valor: number | null | undefined): string => {
+  if (valor === null || valor === undefined) return 'R$ 0,00';
+  
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(valor);
+};
+
+/**
+ * Formata uma data string para o formato brasileiro (dd/mm/yyyy)
+ * @param data A data em formato ISO ou string
+ * @returns String formatada no padrão brasileiro
+ */
+export const formatarData = (data: string | Date | null | undefined): string => {
+  if (!data) return '';
+  
+  try {
+    const dataObj = typeof data === 'string' ? new Date(data) : data;
+    return new Intl.DateTimeFormat('pt-BR').format(dataObj);
+  } catch (error) {
+    console.error('Erro ao formatar data:', error);
+    return String(data);
+  }
 };

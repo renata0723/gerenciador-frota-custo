@@ -3,16 +3,26 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, Truck } from 'lucide-react';
 import FreteContratadoForm from './FreteContratadoForm';
 
-interface FormularioFreteContratadoProps {
-  contrato: any;
+export interface FormularioFreteContratadoProps {
   onSave: (data: any) => void;
   onBack: () => void;
+  onNext?: () => void;
+  initialData?: any;
+  dadosContrato?: any;
+  contrato?: any;
 }
 
-const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({ contrato, onSave, onBack }) => {
+const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({ 
+  contrato, 
+  onSave, 
+  onBack, 
+  onNext,
+  initialData,
+  dadosContrato 
+}) => {
   const [valorFreteContratado, setValorFreteContratado] = useState(contrato?.valor_frete_contratado || 0);
   const [dadosValidos, setDadosValidos] = useState(false);
 
@@ -33,8 +43,9 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({ c
           </Alert>
 
           <FreteContratadoForm 
-            contrato={contrato} 
+            contrato={contrato || dadosContrato} 
             onSave={onSave}
+            initialData={initialData}
           />
           
           <div className="flex justify-between">
@@ -43,7 +54,10 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({ c
             </Button>
             <Button 
               type="button" 
-              onClick={() => onSave({...contrato, valor_frete_contratado: valorFreteContratado})}
+              onClick={() => {
+                onSave({...contrato, valor_frete_contratado: valorFreteContratado});
+                if (onNext) onNext();
+              }}
               disabled={!dadosValidos}
             >
               Salvar e Continuar

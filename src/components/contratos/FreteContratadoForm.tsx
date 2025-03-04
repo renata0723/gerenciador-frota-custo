@@ -1,33 +1,35 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
-import { Info, DollarSign, Truck, Road } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import FreteInfoAlert from './frete/FreteInfoAlert';
-import SaldoPagarOptions from './frete/SaldoPagarOptions';
-import DataAdiantamentoSelector from './frete/DataAdiantamentoSelector';
-import ContabilizacaoOption from './frete/ContabilizacaoOption';
-import FormNavigation from './frete/FormNavigation';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Truck, Banknote, CreditCard } from 'lucide-react';
+import { FreteContratadoData } from '@/hooks/useContratoForm';
 import ValoresFreteForm from './frete/ValoresFreteForm';
-import { formatCurrency } from '@/utils/constants';
+import SaldoPagarOptions from './frete/SaldoPagarOptions';
+import ContabilizacaoOption from './frete/ContabilizacaoOption';
+import DataAdiantamentoSelector from './frete/DataAdiantamentoSelector';
+import FreteInfoAlert from './frete/FreteInfoAlert';
+import FormNavigation from './frete/FormNavigation';
 
-// Definição de tipos
 interface FreteContratadoFormProps {
   contrato: any;
   onSave: (data: any) => void;
+  initialData?: FreteContratadoData;
 }
 
-const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onSave }) => {
+const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ 
+  contrato, 
+  onSave,
+  initialData
+}) => {
   // Estados para os valores
-  const [valorFreteContratado, setValorFreteContratado] = useState<number>(contrato?.valor_frete_contratado || 0);
-  const [valorAdiantamento, setValorAdiantamento] = useState<number>(contrato?.valor_adiantamento || 0);
-  const [valorPedagio, setValorPedagio] = useState<number>(contrato?.valor_pedagio || 0);
-  const [dataAdiantamento, setDataAdiantamento] = useState<string>(contrato?.data_programada_pagamento || '');
-  const [contabilizado, setContabilizado] = useState<boolean>(contrato?.contabilizado || false);
+  const [valorFreteContratado, setValorFreteContratado] = useState<number>(initialData?.valor_frete_contratado || 0);
+  const [valorAdiantamento, setValorAdiantamento] = useState<number>(initialData?.valor_adiantamento || 0);
+  const [valorPedagio, setValorPedagio] = useState<number>(initialData?.valor_pedagio || 0);
+  const [dataAdiantamento, setDataAdiantamento] = useState<string>(initialData?.data_programada_pagamento || '');
+  const [contabilizado, setContabilizado] = useState<boolean>(initialData?.contabilizado || false);
   
   // Calcular saldo a pagar
   const saldoPagar = valorFreteContratado - valorAdiantamento - valorPedagio;
@@ -58,7 +60,7 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onS
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <FreteInfoAlert 
         placaCavalo={contrato?.placa_cavalo} 
         motorista={contrato?.motorista}

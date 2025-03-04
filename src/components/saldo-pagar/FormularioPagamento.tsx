@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BankCheck, Calendar, DollarSign } from "lucide-react";
+import { CreditCard, CalendarDays, FileText, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { SaldoPagar, PagamentoSaldo } from '@/types/saldoPagar';
 import { formataMoeda } from '@/utils/constants';
@@ -142,7 +141,7 @@ const FormularioPagamento: React.FC<FormularioPagamentoProps> = ({
             <div>
               <Label htmlFor="data_pagamento">Data do Pagamento</Label>
               <div className="relative">
-                <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <CalendarDays className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <Input
                   id="data_pagamento"
                   type="date"
@@ -158,7 +157,7 @@ const FormularioPagamento: React.FC<FormularioPagamentoProps> = ({
           <div>
             <Label htmlFor="banco_pagamento">Banco Utilizado</Label>
             <div className="relative">
-              <BankCheck className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 z-10" />
+              <CreditCard className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 z-10" />
               <Select value={bancoPagamento} onValueChange={setBancoPagamento} required>
                 <SelectTrigger className="pl-8">
                   <SelectValue placeholder="Selecione o banco" />

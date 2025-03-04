@@ -21,3 +21,39 @@ export interface Canhoto {
   saldo_a_pagar?: number;
   proprietario_veiculo?: string;
 }
+
+// Adicionando interfaces ausentes
+export interface CanhotoBusca {
+  contrato_id?: string;
+  numero_manifesto?: string;
+  numero_cte?: string;
+  cliente?: string;
+  data_inicio?: string;
+  data_fim?: string;
+  status?: string;
+}
+
+export interface CanhotoPendente {
+  id: number;
+  contrato_id: string;
+  cliente: string;
+  data_entrega: string;
+  motorista?: string;
+  status: string;
+}
+
+export interface CanhotoFiltro {
+  status?: string;
+  periodo?: string;
+  cliente?: string;
+}
+
+export interface CancelamentoDocumento {
+  id: number;
+  tipo_documento: string;
+  numero_documento: string;
+  motivo: string;
+  observacoes?: string;
+  responsavel: string;
+  data_cancelamento: string;
+}

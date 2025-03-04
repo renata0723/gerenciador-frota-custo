@@ -67,7 +67,7 @@ const ContratoAbas: React.FC<ContratoAbasProps> = ({
       
       <TabsContent value="frete" className="p-4 space-y-4">
         <FormularioFreteContratado 
-          onSubmit={handleSaveFreightData} 
+          onSave={handleSaveFreightData} 
           onBack={() => setActiveTab("documentos")}
           onNext={() => setActiveTab("observacoes")}
           initialData={dadosFrete || undefined}
@@ -100,6 +100,7 @@ const ContratoAbas: React.FC<ContratoAbasProps> = ({
           <FormularioRejeicaoContrato
             contrato={contratoId}
             onBack={() => setActiveTab("observacoes")}
+            onSave={() => {}} // Add empty function to fix the prop error
           />
         ) : (
           <ContratoNaoSalvo onVoltar={() => setActiveTab("dados")} />

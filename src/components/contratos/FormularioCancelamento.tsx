@@ -55,8 +55,8 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
     setErro(null);
 
     try {
-      let tableName: string = '';
-      let statusField: string = '';
+      let tableName = '';
+      let statusField = '';
       
       // Determinar a tabela com base no tipo
       switch (tipo) {
@@ -82,7 +82,7 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
 
       // Atualizar status para "Cancelado"
       const { error } = await supabase
-        .from(tableName)
+        .from(tableName as any)
         .update({
           [statusField]: 'Cancelado',
           motivo_cancelamento: data.motivoCancelamento,
