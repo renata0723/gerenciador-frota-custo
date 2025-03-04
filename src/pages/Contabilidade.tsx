@@ -15,7 +15,9 @@ import {
   TrendingUp,
   FilePlus,
   Users,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Lock,
+  CalendarRange
 } from 'lucide-react';
 
 const Contabilidade = () => {
@@ -75,14 +77,32 @@ const Contabilidade = () => {
       description: 'Visualize e gerencie os balancetes contábeis',
       icon: <FileText className="h-8 w-8 text-teal-500" />,
       onClick: () => navigate('/contabilidade/balancete')
+    },
+    {
+      title: 'Fechamento Fiscal',
+      description: 'Realize o fechamento de períodos fiscais',
+      icon: <Lock className="h-8 w-8 text-red-500" />,
+      onClick: () => navigate('/contabilidade/fechamento-fiscal')
+    },
+    {
+      title: 'Conciliação Bancária',
+      description: 'Concilie transações bancárias com o sistema',
+      icon: <CreditCard className="h-8 w-8 text-blue-600" />,
+      onClick: () => navigate('/contabilidade/conciliacao-bancaria')
+    },
+    {
+      title: 'Agenda Fiscal',
+      description: 'Calendário de obrigações fiscais e tributárias',
+      icon: <CalendarRange className="h-8 w-8 text-green-600" />,
+      onClick: () => navigate('/contabilidade/relatorios')
     }
   ];
 
   return (
     <PageLayout>
       <PageHeader
-        title="Contabilidade"
-        description="Gerenciamento financeiro e contábil da empresa"
+        title="Controladoria SLog Transportes"
+        description="Gestão financeira e controle contábil da empresa"
         icon={<DollarSign className="h-6 w-6" />}
       />
 

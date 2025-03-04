@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
@@ -46,6 +45,9 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
     setErro(null);
 
     try {
+      // Converter o ID do contrato para número se for string
+      const contratoId = typeof contrato === 'string' ? parseInt(contrato, 10) : contrato;
+      
       // Atualizar status do contrato para "Rejeitado"
       const { error } = await supabase
         .from('Contratos')
@@ -55,7 +57,7 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
           observacao_rejeicao: data.observacaoAdicional,
           data_rejeicao: new Date().toISOString(),
         })
-        .eq('id', contrato);
+        .eq('id', contratoId);
 
       if (error) {
         throw error;

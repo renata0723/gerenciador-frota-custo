@@ -1,143 +1,103 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { autenticarUsuario } from '@/services/usuarioService';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // Verificar se o usuário já está autenticado
-  useEffect(() => {
-    const usuarioString = localStorage.getItem('auth_user');
-    if (usuarioString) {
-      navigate('/');
-    }
-  }, [navigate]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email.trim() || !senha.trim()) {
-      setErro('Por favor, preencha todos os campos.');
-      return;
-    }
-    
     setLoading(true);
-    setErro(null);
-    
+
     try {
-      const usuario = await autenticarUsuario(email, senha);
-      
-      if (usuario) {
-        // Remover a senha por questões de segurança
-        const { senha, ...usuarioSemSenha } = usuario;
-        
-        // Salvar o usuário na localStorage
-        localStorage.setItem('auth_user', JSON.stringify(usuarioSemSenha));
-        
-        // Verificar se é o primeiro acesso (admin padrão)
-        if (email === 'admin@sistema.com' && senha === 'admin123') {
-          toast.warning('Você está usando o usuário padrão. Por favor, altere a senha assim que possível.', {
-            duration: 6000,
-          });
-        }
+      // Verificar login - simplificado para demonstração
+      const { data, error } = await supabase
+        .from('Usuarios')
+        .select('*')
+        .eq('email', email)
+        .eq('senha', password)
+        .single();
+
+      if (error || !data) {
+        toast.error('Email ou senha incorretos. Tente novamente.');
+      } else {
+        // Set session/auth info in localStorage or context
+        localStorage.setItem('user', JSON.stringify(data));
+        localStorage.setItem('authenticated', 'true');
         
         toast.success('Login realizado com sucesso!');
         navigate('/');
-      } else {
-        setErro('E-mail ou senha incorretos.');
       }
     } catch (error) {
       console.error('Erro ao fazer login:', error);
-      setErro('Ocorreu um erro ao tentar fazer login. Tente novamente.');
+      toast.error('Ocorreu um erro ao fazer login. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-blue-700">ControlFrota</h1>
-          <h2 className="text-xl font-bold text-gray-900">Sistema de Gestão de Frota</h2>
-          <p className="text-gray-600 mt-1">Faça login para acessar o sistema</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-md">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-blue-600">ControlFrota</h1>
+          <h2 className="mt-2 text-lg font-medium text-gray-900">Sistema de Gestão de Frota</h2>
+          <p className="mt-2 text-sm text-gray-600">Faça login para acessar o sistema</p>
         </div>
-        
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Login</CardTitle>
-            <CardDescription>
-              Entre com suas credenciais de acesso
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {erro && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{erro}</AlertDescription>
-                </Alert>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  autoComplete="email"
-                  required
-                />
+
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                className="mt-1"
+                required
+              />
+            </div>
+            
+            <div>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="password">Senha</Label>
+                <a href="#" className="text-sm text-blue-500 hover:text-blue-600">
+                  Esqueceu a senha?
+                </a>
               </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="senha">Senha</Label>
-                  <Button variant="link" className="p-0 h-auto text-xs" type="button">
-                    Esqueceu a senha?
-                  </Button>
-                </div>
-                <Input
-                  id="senha"
-                  type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={loading}
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {loading ? 'Entrando...' : 'Entrar'}
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex justify-center border-t pt-4">
-            <p className="text-sm text-gray-500">
-              © {new Date().getFullYear()} SLog Controladoria - Todos os direitos reservados
-            </p>
-          </CardFooter>
-        </Card>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1"
+                required
+              />
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700"
+            disabled={loading}
+          >
+            {loading ? 'Entrando...' : 'Entrar'}
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center text-sm text-gray-500">
+          <p>© 2025 SLog Controladoria - Todos os direitos reservados</p>
+        </div>
       </div>
     </div>
   );

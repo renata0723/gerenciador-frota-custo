@@ -2,7 +2,7 @@
 import React from 'react';
 import NewPageLayout from '@/components/layout/NewPageLayout';
 import PageHeader from '@/components/ui/PageHeader';
-import { ArrowLeft, DollarSign } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 import NovaDespesaFormComponent from '@/components/despesas/NovaDespesaForm';
 import { useNavigate } from 'react-router-dom';
 

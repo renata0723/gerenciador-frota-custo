@@ -33,6 +33,9 @@ import Usuarios from "./pages/Usuarios";
 import AuthGuard from "./components/auth/AuthGuard";
 import FolhaPagamento from "./pages/contabilidade/FolhaPagamento";
 import Balancete from "./pages/contabilidade/Balancete";
+import RelatoriosContabeis from "./pages/contabilidade/RelatoriosContabeis";
+import FechamentoFiscal from "./pages/contabilidade/FechamentoFiscal";
+import ConciliacaoBancaria from "./pages/contabilidade/ConciliacaoBancaria";
 
 // Lazy load the ApuracaoCustoResultado components
 const LazyApuracaoCustoResultado = React.lazy(() => import('./pages/contabilidade/ApuracaoCustoResultado'));
@@ -109,6 +112,9 @@ function App() {
         <Route path="/contabilidade/apuracao-custo-resultado" element={<AuthGuard><Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div></div>}><LazyApuracaoCustoResultado /></Suspense></AuthGuard>} />
         <Route path="/contabilidade/apuracao/:id" element={<AuthGuard><Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div></div>}><LazyApuracaoCustoResultadoDetalhes /></Suspense></AuthGuard>} />
         <Route path="/contabilidade/balancete" element={<AuthGuard><Balancete /></AuthGuard>} />
+        <Route path="/contabilidade/relatorios" element={<AuthGuard><RelatoriosContabeis /></AuthGuard>} />
+        <Route path="/contabilidade/fechamento-fiscal" element={<AuthGuard><FechamentoFiscal /></AuthGuard>} />
+        <Route path="/contabilidade/conciliacao-bancaria" element={<AuthGuard><ConciliacaoBancaria /></AuthGuard>} />
         
         {/* Página de erro */}
         <Route path="*" element={<NotFound />} />
