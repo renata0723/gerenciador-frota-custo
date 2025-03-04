@@ -14,6 +14,8 @@ interface OrigemDestinoFormProps {
   setCidadeDestino: (value: string) => void;
   estadoDestino: string;
   setEstadoDestino: (value: string) => void;
+  clienteDestino?: string;
+  setClienteDestino?: (value: string) => void;
   readOnly?: boolean;
 }
 
@@ -26,6 +28,8 @@ const OrigemDestinoForm: React.FC<OrigemDestinoFormProps> = ({
   setCidadeDestino,
   estadoDestino,
   setEstadoDestino,
+  clienteDestino,
+  setClienteDestino,
   readOnly = false
 }) => {
   return (
@@ -98,6 +102,19 @@ const OrigemDestinoForm: React.FC<OrigemDestinoFormProps> = ({
             </Select>
           </div>
         </div>
+        
+        {setClienteDestino && (
+          <div>
+            <Label htmlFor="clienteDestino">Cliente Destinatário*</Label>
+            <Input
+              id="clienteDestino"
+              value={clienteDestino || ''}
+              onChange={(e) => setClienteDestino(e.target.value)}
+              placeholder="Nome do cliente destinatário"
+              readOnly={readOnly}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

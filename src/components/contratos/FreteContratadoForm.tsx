@@ -1,354 +1,184 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Banknote, Truck, CreditCard, Info } from 'lucide-react';
-import { formatCurrency } from '@/utils/constants';
 import { Label } from '@/components/ui/label';
-import { CONTAS_CONTABEIS } from '@/utils/constants';
-import ValoresFreteForm from './frete/ValoresFreteForm';
-import SaldoPagarOptions from './frete/SaldoPagarOptions';
-import ContabilizacaoOption from './frete/ContabilizacaoOption';
-import DataAdiantamentoSelector from './frete/DataAdiantamentoSelector';
-import FreteInfoAlert from './frete/FreteInfoAlert';
-import FormNavigation from './frete/FormNavigation';
-import { Switch } from '@/components/ui/switch';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { bancos } from '@/utils/constants';
-import { supabase } from '@/integrations/supabase/client';
+import { DatePicker } from '@/components/ui/date-picker';
+import { formatarValorMonetario as formatCurrency } from '@/utils/formatters';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoIcon } from 'lucide-react';
+import { bancos } from '@/utils/constants';
 
 interface FreteContratadoFormProps {
-  contrato: any;
+  contrato?: any;
   onSave: (data: any) => void;
   initialData?: any;
 }
 
-const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ 
-  contrato, 
-  onSave,
-  initialData
-}) => {
-  // Estados para os valores
-  const [valorFreteContratado, setValorFreteContratado] = useState<number>(initialData?.valorFreteContratado || 0);
-  const [valorAdiantamento, setValorAdiantamento] = useState<number>(initialData?.valorAdiantamento || 0);
-  const [valorPedagio, setValorPedagio] = useState<number>(initialData?.valorPedagio || 0);
-  const [dataAdiantamento, setDataAdiantamento] = useState<string>(initialData?.dataProgramadaPagamento || '');
-  const [contabilizado, setContabilizado] = useState<boolean>(initialData?.contabilizado || false);
-  const [adiantamentoEfetuado, setAdiantamentoEfetuado] = useState<boolean>(initialData?.adiantamentoEfetuado || false);
-  const [gerarSaldoPagar, setGerarSaldoPagar] = useState<boolean>(
-    initialData?.gerarSaldoPagar !== undefined ? initialData.gerarSaldoPagar : true
+const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onSave, initialData }) => {
+  const [valorFreteContratado, setValorFreteContratado] = useState(initialData?.valorFreteContratado || 0);
+  const [valorAdiantamento, setValorAdiantamento] = useState(initialData?.valorAdiantamento || 0);
+  const [valorPedagio, setValorPedagio] = useState(initialData?.valorPedagio || 0);
+  const [saldoPagar, setSaldoPagar] = useState(0);
+  const [dataAdiantamento, setDataAdiantamento] = useState<Date | undefined>(
+    initialData?.dataAdiantamento ? new Date(initialData.dataAdiantamento) : undefined
   );
-  const [dataVencimento, setDataVencimento] = useState<Date | undefined>(
-    initialData?.dataVencimento ? new Date(initialData.dataVencimento) : undefined
-  );
+  const [metodoPagamentoAdiantamento, setMetodoPagamentoAdiantamento] = useState(initialData?.metodoPagamentoAdiantamento || '');
+  const [bancoPagamentoAdiantamento, setBancoPagamentoAdiantamento] = useState(initialData?.bancoPagamentoAdiantamento || '');
   
-  // Estados para contabilização
-  const [contaDebitoFrete, setContaDebitoFrete] = useState<string>(initialData?.contaDebitoFrete || CONTAS_CONTABEIS.CLIENTES);
-  const [contaCreditoFrete, setContaCreditoFrete] = useState<string>(initialData?.contaCreditoFrete || CONTAS_CONTABEIS.RECEITA_FRETE);
-  const [contaDebitoAdiantamento, setContaDebitoAdiantamento] = useState<string>(initialData?.contaDebitoAdiantamento || CONTAS_CONTABEIS.ADIANTAMENTO_FORNECEDORES);
-  const [contaCreditoAdiantamento, setContaCreditoAdiantamento] = useState<string>(initialData?.contaCreditoAdiantamento || CONTAS_CONTABEIS.CAIXA);
-  const [centroCusto, setCentroCusto] = useState<string>(initialData?.centroCusto || '');
-  const [bancoAdiantamento, setBancoAdiantamento] = useState<string>(initialData?.bancoAdiantamento || '');
-  const [contabilizarAdiantamento, setContabilizarAdiantamento] = useState<boolean>(initialData?.contabilizarAdiantamento || false);
-  
-  // Dados adicionais do proprietário
-  const [proprietarioInfo, setProprietarioInfo] = useState<any>(initialData?.proprietarioInfo || null);
-  
-  // Calcular saldo a pagar
-  const saldoPagar = valorFreteContratado - valorAdiantamento - valorPedagio;
-  
-  // Buscar informações do proprietário quando o contrato for carregado
+  // Calcular saldo a pagar quando valores são alterados
   useEffect(() => {
-    if (contrato?.proprietario) {
-      buscarProprietario(contrato.proprietario);
-    }
-  }, [contrato]);
-  
-  const buscarProprietario = async (nome: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('Proprietarios')
-        .select('*')
-        .eq('nome', nome)
-        .single();
-        
-      if (error) throw error;
-      
-      if (data) {
-        let dadosBancarios = data.dados_bancarios;
-        
-        // Se os dados bancários estiverem em formato string JSON, converter para objeto
-        if (typeof dadosBancarios === 'string' && dadosBancarios) {
-          try {
-            dadosBancarios = JSON.parse(dadosBancarios);
-          } catch (e) {
-            console.error('Erro ao fazer parse dos dados bancários:', e);
-          }
-        }
-        
-        setProprietarioInfo({
-          ...data,
-          dadosBancarios
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao buscar proprietário:', error);
-    }
-  };
-  
-  // Função para atualizar os valores diretamente
-  const handleValorFreteChange = (valor: number) => {
-    setValorFreteContratado(valor);
-  };
-  
-  const handleValorAdiantamentoChange = (valor: number) => {
-    setValorAdiantamento(valor);
-  };
-  
-  const handleValorPedagioChange = (valor: number) => {
-    setValorPedagio(valor);
-  };
+    const saldo = valorFreteContratado - (valorAdiantamento + valorPedagio);
+    setSaldoPagar(saldo > 0 ? saldo : 0);
+  }, [valorFreteContratado, valorAdiantamento, valorPedagio]);
 
-  const handleContabilizarAdiantamentoEfetuado = async () => {
-    if (!adiantamentoEfetuado || !contabilizarAdiantamento) return;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     
-    try {
-      // Inserir lançamento contábil do adiantamento
-      const { error } = await supabase
-        .from('Lancamentos_Contabeis')
-        .insert({
-          data_lancamento: new Date().toISOString().split('T')[0],
-          data_competencia: new Date().toISOString().split('T')[0],
-          conta_debito: contaDebitoAdiantamento,
-          conta_credito: contaCreditoAdiantamento,
-          valor: valorAdiantamento,
-          historico: `Adiantamento de frete - Contrato ${contrato?.idContrato || 'N/A'} - ${contrato?.proprietario || 'N/A'}`,
-          documento_referencia: `Contrato ${contrato?.idContrato || 'N/A'}`,
-          tipo_documento: 'ADIANTAMENTO',
-          centro_custo: centroCusto || null
-        });
-        
-      if (error) throw error;
-      
-      toast.success('Adiantamento contabilizado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao contabilizar adiantamento:', error);
-      toast.error('Erro ao contabilizar adiantamento');
-    }
-  };
-
-  const handleSave = () => {
-    // Se adiantamento for efetuado e contabilização solicitada, lançar
-    if (adiantamentoEfetuado && contabilizarAdiantamento) {
-      handleContabilizarAdiantamentoEfetuado();
+    if (valorFreteContratado <= 0) {
+      toast.error('O valor do frete contratado deve ser maior que zero.');
+      return;
     }
     
-    onSave({
+    // Preparar dados para envio
+    const data = {
       valorFreteContratado,
       valorAdiantamento,
       valorPedagio,
       saldoPagar,
-      dataProgramadaPagamento: dataAdiantamento,
-      contabilizado,
-      adiantamentoEfetuado,
-      gerarSaldoPagar,
-      dataVencimento,
-      contaDebitoFrete,
-      contaCreditoFrete,
-      contaDebitoAdiantamento,
-      contaCreditoAdiantamento,
-      centroCusto,
-      bancoAdiantamento,
-      contabilizarAdiantamento,
-      proprietarioInfo
-    });
+      dataAdiantamento: dataAdiantamento ? dataAdiantamento.toISOString().split('T')[0] : null,
+      metodoPagamentoAdiantamento: valorAdiantamento > 0 ? metodoPagamentoAdiantamento : null,
+      bancoPagamentoAdiantamento: valorAdiantamento > 0 ? bancoPagamentoAdiantamento : null,
+      contratoId: contrato?.id
+    };
+    
+    // Enviar dados para o componente pai
+    onSave(data);
   };
 
   return (
-    <div className="space-y-4">
-      <FreteInfoAlert 
-        placaCavalo={contrato?.placa_cavalo} 
-        motorista={contrato?.motorista}
-      />
+    <div className="p-4">
+      <Alert className="mb-6 bg-blue-50">
+        <InfoIcon className="h-4 w-4" />
+        <AlertDescription>
+          Informe os valores do frete contratado para este serviço.
+        </AlertDescription>
+      </Alert>
       
-      <ValoresFreteForm 
-        valorFreteContratado={valorFreteContratado}
-        onValorFreteChange={handleValorFreteChange}
-        valorAdiantamento={valorAdiantamento}
-        onValorAdiantamentoChange={handleValorAdiantamentoChange}
-        valorPedagio={valorPedagio}
-        onValorPedagioChange={handleValorPedagioChange}
-      />
-
-      <SaldoPagarOptions 
-        saldoPagar={saldoPagar}
-      />
-      
-      {contrato?.tipo === 'terceiro' && (
-        <>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold">Saldo a Pagar</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-3">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base font-medium">Gerar Saldo a Pagar</Label>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Gera um lançamento no módulo de Saldo a Pagar para controle
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={gerarSaldoPagar} 
-                    onCheckedChange={setGerarSaldoPagar} 
-                  />
-                </div>
-                
-                {gerarSaldoPagar && (
-                  <div className="pt-3 border-t border-gray-200 mt-3">
-                    <Label htmlFor="dataVencimento">Data de Vencimento</Label>
-                    <div className="mt-1">
-                      {dataVencimento ? (
-                        <DatePicker
-                          value={dataVencimento}
-                          onChange={setDataVencimento}
-                        />
-                      ) : (
-                        <DatePicker
-                          value={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
-                          onChange={setDataVencimento}
-                        />
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
-      
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold">Adiantamento</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-3">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-base font-medium">Adiantamento Efetuado</Label>
-                <p className="text-sm text-gray-500 mt-1">
-                  Marque esta opção se o adiantamento já foi realizado
-                </p>
-              </div>
-              <Switch 
-                checked={adiantamentoEfetuado}
-                onCheckedChange={setAdiantamentoEfetuado}
-              />
-            </div>
-            
-            {adiantamentoEfetuado && (
-              <div className="space-y-4 pt-3 border-t border-gray-200 mt-3">
-                <div>
-                  <Label htmlFor="bancoAdiantamento">Banco Utilizado</Label>
-                  <Select
-                    value={bancoAdiantamento}
-                    onValueChange={setBancoAdiantamento}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione o banco" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {bancos.map(banco => (
-                        <SelectItem key={banco.codigo} value={banco.codigo}>
-                          {banco.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base font-medium">Contabilizar Adiantamento</Label>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Gera lançamento contábil para o adiantamento
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={contabilizarAdiantamento}
-                    onCheckedChange={setContabilizarAdiantamento}
-                  />
-                </div>
-                
-                {contabilizarAdiantamento && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-md bg-gray-50">
-                    <div>
-                      <Label htmlFor="contaDebitoAdiantamento">Conta Débito</Label>
-                      <Select
-                        value={contaDebitoAdiantamento}
-                        onValueChange={setContaDebitoAdiantamento}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a conta" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={CONTAS_CONTABEIS.ADIANTAMENTO_FORNECEDORES}>Adiantamento a Fornecedores (1.1.5.01)</SelectItem>
-                          <SelectItem value={CONTAS_CONTABEIS.FORNECEDORES}>Fornecedores (2.1.1.01)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="contaCreditoAdiantamento">Conta Crédito</Label>
-                      <Select 
-                        value={contaCreditoAdiantamento}
-                        onValueChange={setContaCreditoAdiantamento}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a conta" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={CONTAS_CONTABEIS.CAIXA}>Caixa (1.1.1.01)</SelectItem>
-                          <SelectItem value={CONTAS_CONTABEIS.BANCOS}>Bancos (1.1.1.02)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {contrato?.id && (
+          <div className="p-4 bg-gray-50 rounded-md">
+            <h3 className="font-medium mb-2">Contrato</h3>
+            <p><span className="font-medium">Número:</span> {contrato.id}</p>
           </div>
-        </CardContent>
-      </Card>
-      
-      <DataAdiantamentoSelector 
-        dataAdiantamento={dataAdiantamento}
-        setDataAdiantamento={setDataAdiantamento}
-      />
-      
-      <ContabilizacaoOption 
-        isContabilizado={contabilizado}
-        setIsContabilizado={setContabilizado}
-        contaDebito={contaDebitoFrete}
-        setContaDebito={setContaDebitoFrete}
-        contaCredito={contaCreditoFrete}
-        setContaCredito={setContaCreditoFrete}
-        centroCusto={centroCusto}
-        setCentroCusto={setCentroCusto}
-        descricaoLancamento={`Receita de frete - Contrato ${contrato?.idContrato || 'N/A'}`}
-      />
-      
-      <FormNavigation 
-        onBack={() => {}}
-        onSave={handleSave}
-        isValid={true}
-      />
+        )}
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="valorFreteContratado">Valor do Frete Contratado*</Label>
+            <Input
+              id="valorFreteContratado"
+              type="number"
+              step="0.01"
+              min="0"
+              value={valorFreteContratado}
+              onChange={(e) => setValorFreteContratado(parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="valorAdiantamento">Valor do Adiantamento</Label>
+            <Input
+              id="valorAdiantamento"
+              type="number"
+              step="0.01"
+              min="0"
+              max={valorFreteContratado}
+              value={valorAdiantamento}
+              onChange={(e) => setValorAdiantamento(parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="valorPedagio">Valor do Pedágio</Label>
+            <Input
+              id="valorPedagio"
+              type="number"
+              step="0.01"
+              min="0"
+              value={valorPedagio}
+              onChange={(e) => setValorPedagio(parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+            />
+          </div>
+        </div>
+        
+        <div className="p-4 border rounded-md bg-gray-50">
+          <div className="flex justify-between">
+            <span className="font-medium">Saldo a Pagar:</span>
+            <span className="font-bold text-blue-600">{formatCurrency(saldoPagar)}</span>
+          </div>
+        </div>
+        
+        {valorAdiantamento > 0 && (
+          <div className="border p-4 rounded-md">
+            <h3 className="font-medium mb-4">Detalhes do Adiantamento</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="dataAdiantamento">Data do Adiantamento</Label>
+                <DatePicker 
+                  value={dataAdiantamento} 
+                  onChange={setDataAdiantamento} 
+                  placeholder="Selecione a data"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="metodoPagamentoAdiantamento">Método de Pagamento</Label>
+                <Select value={metodoPagamentoAdiantamento} onValueChange={setMetodoPagamentoAdiantamento}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o método" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pix">PIX</SelectItem>
+                    <SelectItem value="transferencia">Transferência</SelectItem>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="bancoPagamentoAdiantamento">Banco</Label>
+                <Select value={bancoPagamentoAdiantamento} onValueChange={setBancoPagamentoAdiantamento}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o banco" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bancos.map(banco => (
+                      <SelectItem key={banco.codigo} value={banco.codigo}>
+                        {banco.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex justify-end pt-4">
+          <Button type="submit">
+            Salvar Frete Contratado
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };

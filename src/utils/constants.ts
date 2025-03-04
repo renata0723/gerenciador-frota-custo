@@ -22,12 +22,10 @@ export const CONTAS_CONTABEIS = {
   DESPESAS_VIAGEM: '41501'
 };
 
-export const formataMoeda = (valor: number): string => {
-  return valor.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  });
-};
+// Funções de formatação movidas para formatters.ts
+export { formatarValorMonetario as formataMoeda } from './formatters';
+export { formatarValorMonetario as formatCurrency } from './formatters';
+export { formatarData as formatDate } from './formatters';
 
 export const STATUS_SALDO_PAGAR = {
   PENDENTE: { value: 'pendente', label: 'Pendente' },
@@ -79,6 +77,30 @@ export const ALIQUOTAS_IMPOSTO = {
   IRPJ_ADICIONAL: 10.0,
   CSLL: 9.0
 };
+
+// Lista de bancos brasileiros
+export const bancos = [
+  { codigo: '001', nome: 'Banco do Brasil' },
+  { codigo: '104', nome: 'Caixa Econômica Federal' },
+  { codigo: '341', nome: 'Itaú Unibanco' },
+  { codigo: '033', nome: 'Santander' },
+  { codigo: '237', nome: 'Bradesco' },
+  { codigo: '756', nome: 'Sicoob' },
+  { codigo: '748', nome: 'Sicredi' },
+  { codigo: '077', nome: 'Inter' },
+  { codigo: '422', nome: 'Safra' },
+  { codigo: '336', nome: 'C6 Bank' },
+  { codigo: '212', nome: 'Banco Original' },
+  { codigo: '260', nome: 'Nubank' },
+  { codigo: '290', nome: 'PagSeguro' },
+  { codigo: '000', nome: 'Outro' }
+];
+
+// Ano atual para relatórios
+export const ANO_ATUAL = new Date().getFullYear();
+
+// Constante para limites de IRPJ adicional
+export const LIMITE_MENSAL_IRPJ_ADICIONAL = 20000;
 
 // Constantes para códigos reduzidos
 export const CODIGOS_REDUZIDOS = {

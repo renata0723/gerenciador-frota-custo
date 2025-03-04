@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { bancos, formataMoeda } from '@/utils/constants';
+import { bancos } from '@/utils/constants';
 import { SaldoPagarItem, PagamentoSaldo } from '@/types/saldoPagar';
-import { formatCurrency } from '@/utils/constants';
+import { formatCurrency } from '@/utils/formatters';
 import { format } from 'date-fns';
 
 interface FormularioPagamentoProps {

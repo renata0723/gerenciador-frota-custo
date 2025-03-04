@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import DatePicker from '@/components/ui/DatePicker';
 import { AbastecimentoFormData, NovoAbastecimentoFormProps, TipoCombustivel } from '@/types/abastecimento';
 import { supabase } from '@/integrations/supabase/client';
-import { formatCurrency } from '@/utils/constants';
+import { formatCurrency } from '@/utils/formatters';
 
 const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({ 
   onSubmit, 
@@ -288,7 +288,7 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
                     <SelectValue placeholder="Selecione a conta" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={CONTAS_CONTABEIS.DESPESA_COMBUSTIVEL}>Combustível (4.1.1.01)</SelectItem>
+                    <SelectItem value={CONTAS_CONTABEIS.COMBUSTIVEL}>Combustível (4.1.1.01)</SelectItem>
                     <SelectItem value={CONTAS_CONTABEIS.DESPESAS_VIAGEM}>Despesas de Viagem (4.1.4.01)</SelectItem>
                   </SelectContent>
                 </Select>
