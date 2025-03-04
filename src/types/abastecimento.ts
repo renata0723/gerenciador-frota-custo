@@ -1,54 +1,37 @@
 
-export interface AbastecimentoItem {
+export type AbastecimentoFormData = {
+  valor: number;
+  quantidade: number;
+  contabilizado: boolean;
+  conta_debito: string;
+  conta_credito: string;
+  contrato_id?: string;
+  posto?: string;
+  quilometragem?: number;
+  responsavel?: string;
+  motorista?: string;
+  data_abastecimento: string; // Campo obrigatório
+  placa?: string;
+  tipo_combustivel?: string;
+  itens?: string;
+};
+
+export type AbastecimentoItem = {
   id?: number;
   data_abastecimento: string;
   placa_veiculo: string;
-  motorista_solicitante: string;
   tipo_combustivel: string;
+  quantidade: number;
   valor_abastecimento: number;
-  quantidade: number;
-  quilometragem: number;
-  posto: string;
-  responsavel_autorizacao: string;
-  itens_abastecidos: string;
   valor_total: number;
-  contrato_id?: string;
-  contabilizado?: boolean;
-  conta_debito?: string;
-  conta_credito?: string;
-  status?: string;
-}
-
-export interface TipoCombustivel {
-  id: string;
-  nome: string;
-  descricao?: string;
-}
-
-export interface AbastecimentoFormData {
-  data: string;
-  placa: string;
-  motorista: string;
-  tipoCombustivel: string;
-  valor: number;
-  quantidade: number;
-  quilometragem: number;
   posto: string;
-  responsavel: string;
-  itens: string;
-  contrato_id?: string;
-  contabilizado?: boolean;
+  motorista_solicitante?: string;
+  responsavel_autorizacao?: string;
+  quilometragem?: number;
+  contabilizado: boolean;
   conta_debito?: string;
   conta_credito?: string;
-}
-
-export interface TipoCombustivelFormProps {
-  onSuccess: (tipoCombustivel: TipoCombustivel) => void;
-}
-
-export interface NovoAbastecimentoFormProps {
-  tiposCombustivel: TipoCombustivel[];
-  onSave: (data: AbastecimentoFormData) => void;
-  initialData?: Partial<AbastecimentoFormData>;
-  onCancel?: () => void;
-}
+  status: string;
+  contrato_id?: string;
+  itens_abastecidos?: string;
+};

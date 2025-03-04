@@ -105,3 +105,18 @@ export const PERCENTUAIS_PRESUNCAO = {
   TRANSPORTE: 0.08, // 8% para IRPJ
   TRANSPORTE_CSLL: 0.12, // 12% para CSLL
 };
+
+// Constantes para contas contábeis padrão
+export const CONTAS_CONTABEIS = {
+  RECEITA_FRETE: '3.1.1.01', // Receita de fretes
+  CAIXA: '1.1.1.01', // Caixa
+  BANCOS: '1.1.1.02', // Bancos
+  CLIENTES: '1.1.2.01', // Clientes
+  ADIANTAMENTO_FORNECEDORES: '1.1.5.01', // Adiantamento a fornecedores
+  FORNECEDORES: '2.1.1.01', // Fornecedores
+  IMPOSTOS_A_RECOLHER: '2.1.2.01', // Impostos a recolher
+  COMBUSTIVEL: '4.1.1.01', // Despesa com combustível
+  MANUTENCAO: '4.1.2.01', // Despesa com manutenção
+  PEDÁGIO: '4.1.3.01', // Despesa com pedágio
+  DESPESAS_VIAGEM: '4.1.4.01', // Despesas de viagem
+};

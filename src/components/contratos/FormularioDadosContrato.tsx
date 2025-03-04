@@ -1,750 +1,450 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Form, FormItem, FormLabel, FormControl, FormMessage, FormField } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar } from '@/components/ui/calendar';
+import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Truck, User, Plus, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { DatePicker } from '@/components/ui/date-picker';
 import { supabase } from '@/integrations/supabase/client';
+import { estadosBrasileiros } from '@/utils/constants';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import CadastroPlacaForm from './CadastroPlacaForm';
 import CadastroMotoristaForm from './CadastroMotoristaForm';
-import { formatarPlaca } from '@/utils/veiculoUtils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
-// Schema de validação dos dados
-export const dadosContratoSchema = z.object({
-  idContrato: z.string(),
-  dataSaida: z.string().min(1, 'Data de saída é obrigatória'),
-  cidadeOrigem: z.string().min(1, 'Cidade de origem é obrigatória'),
-  estadoOrigem: z.string().min(1, 'Estado de origem é obrigatório').default(''),
-  cidadeDestino: z.string().min(1, 'Cidade de destino é obrigatória'),
-  estadoDestino: z.string().min(1, 'Estado de destino é obrigatório').default(''),
-  clienteDestino: z.string().min(1, 'Cliente de destino é obrigatório'),
-  tipo: z.enum(['frota', 'terceiro']),
-  placaCavalo: z.string().min(1, 'Placa do cavalo é obrigatória'),
-  placaCarreta: z.string().optional(),
-  motorista: z.string().optional(),
-  proprietario: z.string().optional(),
-});
-
-export type DadosContratoFormData = z.infer<typeof dadosContratoSchema>;
+export interface DadosContratoFormData {
+  idContrato: string;
+  dataSaida: string;
+  cidadeOrigem: string;
+  estadoOrigem: string;
+  cidadeDestino: string;
+  estadoDestino: string;
+  clienteDestino: string;
+  tipo: 'frota' | 'terceiro';
+  placaCavalo: string;
+  placaCarreta: string;
+  motorista: string;
+  proprietario: string;
+}
 
 interface FormularioDadosContratoProps {
   onSave: (data: DadosContratoFormData) => void;
-  initialData?: Partial<DadosContratoFormData>;
-  onCancel?: () => void;
-}
-
-interface Motorista {
-  id: number;
-  nome: string;
-}
-
-interface CidadeEstado {
-  cidade: string;
-  estado: string;
+  initialData?: DadosContratoFormData;
+  onNext?: () => void;
 }
 
 const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({ 
-  onSave,
+  onSave, 
   initialData,
-  onCancel 
+  onNext 
 }) => {
-  const [loading, setLoading] = useState(false);
-  const [date, setDate] = useState<Date | undefined>(
-    initialData?.dataSaida ? new Date(initialData.dataSaida) : new Date()
+  const [idContrato, setIdContrato] = useState<string>(initialData?.idContrato || '');
+  const [dataSaida, setDataSaida] = useState<Date | undefined>(
+    initialData?.dataSaida ? new Date(initialData.dataSaida) : undefined
   );
-  const [motoristas, setMotoristas] = useState<Motorista[]>([]);
-  const [placasCavalo, setPlacasCavalo] = useState<string[]>([]);
-  const [placasCarreta, setPlacasCarreta] = useState<string[]>([]);
-  const [dialogPlacaCavalo, setDialogPlacaCavalo] = useState(false);
-  const [dialogPlacaCarreta, setDialogPlacaCarreta] = useState(false);
-  const [dialogMotorista, setDialogMotorista] = useState(false);
-  const [cidadesOrigem, setCidadesOrigem] = useState<CidadeEstado[]>([]);
-  const [cidadesDestino, setCidadesDestino] = useState<CidadeEstado[]>([]);
-  const [proprietarioInfo, setProprietarioInfo] = useState<any>(null);
-  const [erro, setErro] = useState<string | null>(null);
+  const [cidadeOrigem, setCidadeOrigem] = useState<string>(initialData?.cidadeOrigem || '');
+  const [estadoOrigem, setEstadoOrigem] = useState<string>(initialData?.estadoOrigem || '');
+  const [cidadeDestino, setCidadeDestino] = useState<string>(initialData?.cidadeDestino || '');
+  const [estadoDestino, setEstadoDestino] = useState<string>(initialData?.estadoDestino || '');
+  const [clienteDestino, setClienteDestino] = useState<string>(initialData?.clienteDestino || '');
+  const [tipo, setTipo] = useState<'frota' | 'terceiro'>(initialData?.tipo || 'frota');
+  const [placaCavalo, setPlacaCavalo] = useState<string>(initialData?.placaCavalo || '');
+  const [placaCarreta, setPlacaCarreta] = useState<string>(initialData?.placaCarreta || '');
+  const [motorista, setMotorista] = useState<string>(initialData?.motorista || '');
+  const [proprietario, setProprietario] = useState<string>(initialData?.proprietario || '');
+
+  const [veiculos, setVeiculos] = useState<any[]>([]);
+  const [motoristas, setMotoristas] = useState<any[]>([]);
+  const [proprietarios, setProprietarios] = useState<any[]>([]);
+  const [carregando, setCarregando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  // Gerar um novo ID de contrato se não existir
-  const gerarIdContrato = async () => {
-    if (initialData?.idContrato) return initialData.idContrato;
-    
-    try {
-      // Pegar o último contrato
-      const { data, error } = await supabase
-        .from('Contratos')
-        .select('id')
-        .order('id', { ascending: false })
-        .limit(1);
-        
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        const ultimoId = parseInt(data[0].id);
-        return (ultimoId + 1).toString();
-      } else {
-        return "1";
-      }
-    } catch (error) {
-      console.error('Erro ao gerar ID:', error);
-      return (new Date().getTime()).toString();
-    }
-  };
-  
-  const form = useForm<DadosContratoFormData>({
-    resolver: zodResolver(dadosContratoSchema),
-    defaultValues: async () => {
-      const idContrato = await gerarIdContrato();
-      return {
-        idContrato,
-        dataSaida: initialData?.dataSaida || format(new Date(), 'yyyy-MM-dd'),
-        cidadeOrigem: initialData?.cidadeOrigem || '',
-        estadoOrigem: initialData?.estadoOrigem || '',
-        cidadeDestino: initialData?.cidadeDestino || '',
-        estadoDestino: initialData?.estadoDestino || '',
-        clienteDestino: initialData?.clienteDestino || '',
-        tipo: initialData?.tipo || 'frota',
-        placaCavalo: initialData?.placaCavalo || '',
-        placaCarreta: initialData?.placaCarreta || '',
-        motorista: initialData?.motorista || '',
-        proprietario: initialData?.proprietario || '',
-      };
-    }
-  });
-  
-  const tipoFrota = form.watch('tipo');
-  const placaCavaloValue = form.watch('placaCavalo');
-  
-  // Carregar listas de cidades (simulado)
+  // Dialogs para cadastro
+  const [showNovaPlacaDialog, setShowNovaPlacaDialog] = useState(false);
+  const [showNovoMotoristaDialog, setShowNovoMotoristaDialog] = useState(false);
+  const [showNovoProprietarioDialog, setShowNovoProprietarioDialog] = useState(false);
+
   useEffect(() => {
-    // Aqui você carregaria de uma API real
-    const todasCidades: CidadeEstado[] = [
-      { cidade: 'São Paulo', estado: 'SP' },
-      { cidade: 'Rio de Janeiro', estado: 'RJ' },
-      { cidade: 'Belo Horizonte', estado: 'MG' },
-      { cidade: 'Curitiba', estado: 'PR' },
-      { cidade: 'Porto Alegre', estado: 'RS' },
-      { cidade: 'Salvador', estado: 'BA' },
-      { cidade: 'Recife', estado: 'PE' },
-      { cidade: 'Fortaleza', estado: 'CE' }
-    ];
-    
-    setCidadesOrigem(todasCidades);
-    setCidadesDestino(todasCidades);
-  }, []);
-  
-  // Carregar dados iniciais
-  useEffect(() => {
-    const carregarDados = async () => {
-      setLoading(true);
-      try {
-        // Carregar motoristas
-        const { data: motoristasData, error: motoristasError } = await supabase
-          .from('Motoristas')
-          .select('id, nome')
-          .eq('status', 'active');
-          
-        if (motoristasError) throw motoristasError;
-        
-        if (motoristasData) {
-          setMotoristas(motoristasData);
-        }
-        
-        // Carregar placas de cavalo
-        const { data: cavalosData, error: cavalosError } = await supabase
-          .from('Veiculos')
-          .select('placa_cavalo')
-          .eq('status_veiculo', 'Ativo');
-          
-        if (cavalosError) throw cavalosError;
-        
-        if (cavalosData) {
-          const placas = cavalosData.map(v => v.placa_cavalo).filter(Boolean);
-          setPlacasCavalo(placas);
-        }
-        
-        // Carregar placas de carreta
-        const { data: carretasData, error: carretasError } = await supabase
-          .from('Veiculos')
-          .select('placa_carreta')
-          .not('placa_carreta', 'is', null);
-          
-        if (carretasError) throw carretasError;
-        
-        if (carretasData) {
-          const placas = carretasData.map(v => v.placa_carreta).filter(Boolean);
-          setPlacasCarreta(placas);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        toast.error('Erro ao carregar dados necessários');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     carregarDados();
   }, []);
-  
-  // Buscar proprietário da placa quando a placa do cavalo mudar (para frete terceirizado)
-  useEffect(() => {
-    const buscarProprietario = async () => {
-      if (!placaCavaloValue || tipoFrota !== 'terceiro') return;
-      
-      try {
-        // Buscar associação veículo-proprietário
-        const { data: proprietarioData, error: proprietarioError } = await supabase
-          .from('VeiculoProprietarios')
-          .select('proprietario_nome')
-          .eq('placa_cavalo', placaCavaloValue)
-          .single();
-          
-        if (proprietarioError) {
-          if (proprietarioError.code !== 'PGRST116') { // Não é erro "no rows" 
-            console.error('Erro ao buscar proprietário:', proprietarioError);
-          }
-          return;
-        }
-        
-        if (proprietarioData && proprietarioData.proprietario_nome) {
-          form.setValue('proprietario', proprietarioData.proprietario_nome);
-          
-          // Buscar dados completos do proprietário
-          const { data: propInfo, error: propError } = await supabase
-            .from('Proprietarios')
-            .select('*')
-            .eq('nome', proprietarioData.proprietario_nome)
-            .single();
-            
-          if (!propError && propInfo) {
-            setProprietarioInfo(propInfo);
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao buscar proprietário:', error);
-      }
-    };
-    
-    buscarProprietario();
-  }, [placaCavaloValue, tipoFrota, form]);
-  
-  // Atualizar estado automaticamente quando cidade for selecionada
-  const handleCidadeOrigemChange = (cidade: string) => {
-    form.setValue('cidadeOrigem', cidade);
-    
-    // Encontrar o estado correspondente
-    const cidadeInfo = cidadesOrigem.find(c => c.cidade === cidade);
-    if (cidadeInfo) {
-      form.setValue('estadoOrigem', cidadeInfo.estado);
-    }
-  };
-  
-  const handleCidadeDestinoChange = (cidade: string) => {
-    form.setValue('cidadeDestino', cidade);
-    
-    // Encontrar o estado correspondente
-    const cidadeInfo = cidadesDestino.find(c => c.cidade === cidade);
-    if (cidadeInfo) {
-      form.setValue('estadoDestino', cidadeInfo.estado);
-    }
-  };
-  
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setDate(date);
-      form.setValue('dataSaida', format(date, 'yyyy-MM-dd'));
-    }
-  };
-  
-  const handlePlacaCavaloSaved = (data: { 
-    placaCavalo?: string; 
-    tipoFrota: 'frota' | 'terceiro'; 
-    proprietario?: string;
-    proprietarioInfo?: any;
-  }) => {
-    if (data.placaCavalo) {
-      form.setValue('placaCavalo', data.placaCavalo);
-      
-      // Atualizar tipo de frota se necessário
-      if (data.tipoFrota === 'terceiro' && data.proprietario) {
-        form.setValue('tipo', 'terceiro');
-        form.setValue('proprietario', data.proprietario);
-        
-        if (data.proprietarioInfo) {
-          setProprietarioInfo(data.proprietarioInfo);
-        }
-      } else {
-        // Se não for terceirizado, limpar proprietário
-        form.setValue('proprietario', '');
-      }
-      
-      // Recarregar placas de cavalo
-      setPlacasCavalo(prev => [...prev, data.placaCavalo!]);
-    }
-    
-    setDialogPlacaCavalo(false);
-  };
-  
-  const handlePlacaCarretaSaved = (data: any) => {
-    if (data.placaCarreta) {
-      form.setValue('placaCarreta', data.placaCarreta);
-      // Recarregar placas de carreta
-      setPlacasCarreta(prev => [...prev, data.placaCarreta]);
-    }
-    
-    setDialogPlacaCarreta(false);
-  };
-  
-  const handleMotoristaSaved = (data: any) => {
-    if (data && data.id && data.nome) {
-      form.setValue('motorista', data.id.toString());
-      setMotoristas(prev => [...prev, { id: data.id, nome: data.nome }]);
-    }
-    
-    setDialogMotorista(false);
-  };
-  
-  const onSubmit = async (data: DadosContratoFormData) => {
-    setLoading(true);
-    setErro(null);
-    
+
+  const carregarDados = async () => {
+    setCarregando(true);
     try {
-      if (tipoFrota === 'terceiro' && !data.proprietario) {
-        setErro('Para frota terceirizada, é obrigatório informar o proprietário');
-        setLoading(false);
-        return;
+      // Carregar veículos
+      const { data: veiculosData } = await supabase
+        .from('Veiculos')
+        .select('*')
+        .order('placa_cavalo', { ascending: true });
+      
+      if (veiculosData) {
+        setVeiculos(veiculosData);
       }
       
-      // Formatar placa do cavalo
-      if (data.placaCavalo) {
-        data.placaCavalo = formatarPlaca(data.placaCavalo);
+      // Carregar motoristas
+      const { data: motoristasData } = await supabase
+        .from('Motoristas')
+        .select('*')
+        .order('nome', { ascending: true });
+      
+      if (motoristasData) {
+        setMotoristas(motoristasData);
       }
       
-      // Formatar placa da carreta
-      if (data.placaCarreta) {
-        data.placaCarreta = formatarPlaca(data.placaCarreta);
+      // Carregar proprietários
+      const { data: proprietariosData } = await supabase
+        .from('Proprietarios')
+        .select('*')
+        .order('nome', { ascending: true });
+      
+      if (proprietariosData) {
+        setProprietarios(proprietariosData);
       }
-      
-      // Adicionar proprietarioInfo para ser usado no próximo passo
-      const dataCompleta = {
-        ...data,
-        proprietarioInfo
-      };
-      
-      onSave(dataCompleta);
     } catch (error) {
-      console.error('Erro ao processar dados:', error);
-      setErro('Ocorreu um erro ao processar os dados do contrato');
+      console.error('Erro ao carregar dados:', error);
+      setError('Ocorreu um erro ao carregar os dados. Por favor, tente novamente.');
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
   };
 
+  const handleCidadeOrigemChange = (value: string) => {
+    setCidadeOrigem(value);
+    
+    // Extrair o estado se a cidade estiver no formato "Cidade/UF"
+    const partes = value.split('/');
+    if (partes.length > 1) {
+      setEstadoOrigem(partes[1].trim());
+    }
+  };
+
+  const handleCidadeDestinoChange = (value: string) => {
+    setCidadeDestino(value);
+    
+    // Extrair o estado se a cidade estiver no formato "Cidade/UF"
+    const partes = value.split('/');
+    if (partes.length > 1) {
+      setEstadoDestino(partes[1].trim());
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!idContrato || !dataSaida || !cidadeOrigem || !estadoOrigem || !cidadeDestino || !estadoDestino || !clienteDestino || !placaCavalo) {
+      setError('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    // Se for terceirizado, proprietário é obrigatório
+    if (tipo === 'terceiro' && !proprietario) {
+      setError('Para veículos terceirizados, o proprietário é obrigatório.');
+      return;
+    }
+
+    const contratoData: DadosContratoFormData = {
+      idContrato,
+      dataSaida: dataSaida.toISOString().split('T')[0],
+      cidadeOrigem,
+      estadoOrigem,
+      cidadeDestino,
+      estadoDestino,
+      clienteDestino,
+      tipo,
+      placaCavalo,
+      placaCarreta,
+      motorista,
+      proprietario
+    };
+    
+    onSave(contratoData);
+    
+    if (onNext) {
+      onNext();
+    }
+  };
+
+  const handleNovaPlaca = (data: any) => {
+    setShowNovaPlacaDialog(false);
+    carregarDados();
+    toast.success('Veículo cadastrado com sucesso!');
+  };
+  
+  const handleNovoMotorista = (data: any) => {
+    setShowNovoMotoristaDialog(false);
+    carregarDados();
+    toast.success('Motorista cadastrado com sucesso!');
+  };
+  
+  const handleNovoProprietario = (data: any) => {
+    setShowNovoProprietarioDialog(false);
+    carregarDados();
+    toast.success('Proprietário cadastrado com sucesso!');
+  };
+
   return (
-    <Card>
-      <CardContent className="p-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {erro && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{erro}</AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="idContrato"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Número do Contrato</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="dataSaida"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Data de Saída</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? format(new Date(field.value), "dd/MM/yyyy") : (
-                              <span>Selecione uma data</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={date}
-                          onSelect={handleDateSelect}
-                          locale={ptBR}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="cidadeOrigem"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cidade de Origem</FormLabel>
-                    <Select
-                      onValueChange={handleCidadeOrigemChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a cidade de origem" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {cidadesOrigem.map((cidade) => (
-                          <SelectItem key={cidade.cidade} value={cidade.cidade}>
-                            {cidade.cidade}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="estadoOrigem"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estado de Origem</FormLabel>
-                    <FormControl>
-                      <Input {...field} readOnly />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="cidadeDestino"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cidade de Destino</FormLabel>
-                    <Select
-                      onValueChange={handleCidadeDestinoChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a cidade de destino" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {cidadesDestino.map((cidade) => (
-                          <SelectItem key={cidade.cidade} value={cidade.cidade}>
-                            {cidade.cidade}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="estadoDestino"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estado de Destino</FormLabel>
-                    <FormControl>
-                      <Input {...field} readOnly />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="clienteDestino"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cliente Destinatário</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Nome do cliente destinatário" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="tipo"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Tipo de Frota</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex space-x-4"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="frota" id="frota" />
-                          <FormLabel htmlFor="frota" className="font-normal cursor-pointer">
-                            Própria
-                          </FormLabel>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="terceiro" id="terceiro" />
-                          <FormLabel htmlFor="terceiro" className="font-normal cursor-pointer">
-                            Terceirizada
-                          </FormLabel>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+    <>
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          <div>
+            <Label htmlFor="idContrato">Número do Contrato</Label>
+            <Input
+              id="idContrato"
+              value={idContrato}
+              onChange={(e) => setIdContrato(e.target.value)}
+              className="mt-1"
+              placeholder="Número do contrato"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="dataSaida">Data de Saída</Label>
+            <div className="mt-1">
+              <DatePicker
+                date={dataSaida}
+                onDateChange={setDataSaida}
+                placeholder="Selecione a data de saída"
               />
             </div>
-            
-            <div className="border-t border-gray-200 pt-6 my-6"></div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <FormLabel>Placa do Cavalo</FormLabel>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDialogPlacaCavalo(true)}
-                  >
-                    <Plus size={14} className="mr-1" />
-                    Nova Placa
-                  </Button>
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="placaCavalo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a placa do cavalo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {placasCavalo.map((placa) => (
-                            <SelectItem key={placa} value={placa}>
-                              {placa}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <FormLabel>Placa da Carreta</FormLabel>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDialogPlacaCarreta(true)}
-                  >
-                    <Plus size={14} className="mr-1" />
-                    Nova Placa
-                  </Button>
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="placaCarreta"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a placa da carreta (opcional)" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {placasCarreta.map((placa) => (
-                            <SelectItem key={placa} value={placa}>
-                              {placa}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <FormLabel>Motorista</FormLabel>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDialogMotorista(true)}
-                  >
-                    <Plus size={14} className="mr-1" />
-                    Novo Motorista
-                  </Button>
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="motorista"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o motorista" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {motoristas.map((motorista) => (
-                            <SelectItem key={motorista.id} value={motorista.id.toString()}>
-                              {motorista.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              {tipoFrota === 'terceiro' && (
-                <FormField
-                  control={form.control}
-                  name="proprietario"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Proprietário</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly={!!placaCavaloValue} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="cidadeOrigem">Cidade de Origem</Label>
+              <Input
+                id="cidadeOrigem"
+                value={cidadeOrigem}
+                onChange={(e) => handleCidadeOrigemChange(e.target.value)}
+                className="mt-1"
+                placeholder="Cidade/UF"
+              />
             </div>
-            
-            <div className="flex justify-between pt-4">
-              {onCancel && (
-                <Button type="button" variant="outline" onClick={onCancel}>
-                  Cancelar
+            <div>
+              <Label htmlFor="estadoOrigem">Estado de Origem</Label>
+              <Select
+                value={estadoOrigem}
+                onValueChange={setEstadoOrigem}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecione o estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {estadosBrasileiros.map((estado) => (
+                    <SelectItem key={estado.sigla} value={estado.sigla}>
+                      {estado.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="cidadeDestino">Cidade de Destino</Label>
+              <Input
+                id="cidadeDestino"
+                value={cidadeDestino}
+                onChange={(e) => handleCidadeDestinoChange(e.target.value)}
+                className="mt-1"
+                placeholder="Cidade/UF"
+              />
+            </div>
+            <div>
+              <Label htmlFor="estadoDestino">Estado de Destino</Label>
+              <Select
+                value={estadoDestino}
+                onValueChange={setEstadoDestino}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecione o estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {estadosBrasileiros.map((estado) => (
+                    <SelectItem key={estado.sigla} value={estado.sigla}>
+                      {estado.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="clienteDestino">Cliente Destinatário</Label>
+            <Input
+              id="clienteDestino"
+              value={clienteDestino}
+              onChange={(e) => setClienteDestino(e.target.value)}
+              className="mt-1"
+              placeholder="Nome do cliente destinatário"
+            />
+          </div>
+
+          <div>
+            <Label>Tipo de Frota</Label>
+            <RadioGroup
+              value={tipo}
+              onValueChange={(value) => setTipo(value as 'frota' | 'terceiro')}
+              className="flex space-x-4 mt-1"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="frota" id="frota" />
+                <Label htmlFor="frota" className="cursor-pointer">Própria</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="terceiro" id="terceiro" />
+                <Label htmlFor="terceiro" className="cursor-pointer">Terceirizada</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <div className="flex justify-between">
+                <Label htmlFor="placaCavalo">Placa do Cavalo</Label>
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  className="h-6 p-0 text-blue-600"
+                  onClick={() => setShowNovaPlacaDialog(true)}
+                >
+                  + Novo
                 </Button>
-              )}
-              <Button type="submit" disabled={loading}>
-                {loading ? "Processando..." : "Avançar"}
+              </div>
+              <Select
+                value={placaCavalo}
+                onValueChange={setPlacaCavalo}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecione a placa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {veiculos.map((veiculo) => (
+                    <SelectItem key={veiculo.placa_cavalo} value={veiculo.placa_cavalo}>
+                      {veiculo.placa_cavalo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="placaCarreta">Placa da Carreta</Label>
+              <Input
+                id="placaCarreta"
+                value={placaCarreta}
+                onChange={(e) => setPlacaCarreta(e.target.value)}
+                className="mt-1"
+                placeholder="Placa da carreta (opcional)"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex justify-between">
+              <Label htmlFor="motorista">Motorista</Label>
+              <Button 
+                type="button" 
+                variant="link" 
+                className="h-6 p-0 text-blue-600"
+                onClick={() => setShowNovoMotoristaDialog(true)}
+              >
+                + Novo
               </Button>
             </div>
-          </form>
-        </Form>
-      </CardContent>
-      
-      {/* Dialog para cadastro de nova placa de cavalo */}
-      <Dialog open={dialogPlacaCavalo} onOpenChange={setDialogPlacaCavalo}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cadastrar Nova Placa de Cavalo</DialogTitle>
-          </DialogHeader>
-          <CadastroPlacaForm 
-            onSave={handlePlacaCavaloSaved}
-            onCancel={() => setDialogPlacaCavalo(false)}
-          />
-        </DialogContent>
-      </Dialog>
-      
-      {/* Dialog para cadastro de nova placa de carreta */}
-      <Dialog open={dialogPlacaCarreta} onOpenChange={setDialogPlacaCarreta}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cadastrar Nova Placa de Carreta</DialogTitle>
-          </DialogHeader>
-          {/* Implementar o form de cadastro de carreta */}
-          <div className="py-4">
-            <p>Funcionalidade em desenvolvimento</p>
+            <Select
+              value={motorista}
+              onValueChange={setMotorista}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Selecione o motorista" />
+              </SelectTrigger>
+              <SelectContent>
+                {motoristas.map((mot) => (
+                  <SelectItem key={mot.id} value={mot.id.toString()}>
+                    {mot.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Dialog para cadastro de novo motorista */}
-      <Dialog open={dialogMotorista} onOpenChange={setDialogMotorista}>
-        <DialogContent>
+
+          {tipo === 'terceiro' && (
+            <div>
+              <div className="flex justify-between">
+                <Label htmlFor="proprietario">Proprietário</Label>
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  className="h-6 p-0 text-blue-600"
+                  onClick={() => setShowNovoProprietarioDialog(true)}
+                >
+                  + Novo
+                </Button>
+              </div>
+              <Select
+                value={proprietario}
+                onValueChange={setProprietario}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecione o proprietário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {proprietarios.map((prop) => (
+                    <SelectItem key={prop.id} value={prop.nome}>
+                      {prop.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button
+            type="button"
+            variant="outline"
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+          >
+            {onNext ? 'Próximo' : 'Salvar'}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      {/* Diálogo para cadastro de nova placa */}
+      <Dialog open={showNovaPlacaDialog} onOpenChange={setShowNovaPlacaDialog}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Cadastrar Novo Motorista</DialogTitle>
+            <DialogTitle>Cadastro de Novo Veículo</DialogTitle>
           </DialogHeader>
-          <CadastroMotoristaForm 
-            onSave={handleMotoristaSaved}
-            onCancel={() => setDialogMotorista(false)}
-          />
+          <CadastroPlacaForm onSave={handleNovaPlaca} onCancel={() => setShowNovaPlacaDialog(false)} />
         </DialogContent>
       </Dialog>
-    </Card>
+
+      {/* Diálogo para cadastro de novo motorista */}
+      <Dialog open={showNovoMotoristaDialog} onOpenChange={setShowNovoMotoristaDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cadastro de Novo Motorista</DialogTitle>
+          </DialogHeader>
+          <CadastroMotoristaForm onSave={handleNovoMotorista} onCancel={() => setShowNovoMotoristaDialog(false)} />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
