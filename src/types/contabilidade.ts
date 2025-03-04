@@ -42,11 +42,14 @@ export interface DREData {
   receita_bruta: number;
   deducoes?: number;
   receita_liquida: number;
-  custos_operacionais?: number;
+  custos_operacionais: number;
   despesas_administrativas: number;
+  despesas_operacionais?: number;
+  resultado_operacional?: number;
   resultado_periodo: number;
   receita_financeira?: number;
   despesa_financeira?: number;
+  resultado_financeiro?: number;
   resultado_antes_ir_csll?: number;
   provisao_ir_csll?: number;
   resultado_liquido?: number;
@@ -95,3 +98,5 @@ export interface SaldoPagarItem {
   documento?: string;
   dados_bancarios?: string;
 }
+
+export type TipoMovimento = 'entrada' | 'saida';

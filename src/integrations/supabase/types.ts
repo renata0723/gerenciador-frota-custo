@@ -167,6 +167,27 @@ export type Database = {
         }
         Relationships: []
       }
+      Centros_Custo: {
+        Row: {
+          codigo: string
+          nome: string
+          responsavel: string | null
+          status: string
+        }
+        Insert: {
+          codigo: string
+          nome: string
+          responsavel?: string | null
+          status?: string
+        }
+        Update: {
+          codigo?: string
+          nome?: string
+          responsavel?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       Contratos: {
         Row: {
           cidade_destino: string | null
@@ -223,23 +244,38 @@ export type Database = {
       }
       "Despesas Gerais": {
         Row: {
+          categoria: string | null
+          conta_contabil: string | null
+          contabilizado: boolean | null
+          contrato_id: string | null
           data_despesa: string | null
           descricao_detalhada: string | null
           id: number | null
+          rateio: boolean | null
           tipo_despesa: string | null
           valor_despesa: number | null
         }
         Insert: {
+          categoria?: string | null
+          conta_contabil?: string | null
+          contabilizado?: boolean | null
+          contrato_id?: string | null
           data_despesa?: string | null
           descricao_detalhada?: string | null
           id?: number | null
+          rateio?: boolean | null
           tipo_despesa?: string | null
           valor_despesa?: number | null
         }
         Update: {
+          categoria?: string | null
+          conta_contabil?: string | null
+          contabilizado?: boolean | null
+          contrato_id?: string | null
           data_despesa?: string | null
           descricao_detalhada?: string | null
           id?: number | null
+          rateio?: boolean | null
           tipo_despesa?: string | null
           valor_despesa?: number | null
         }
@@ -286,6 +322,123 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      Lancamentos_Contabeis: {
+        Row: {
+          centro_custo: string | null
+          conta_credito: string
+          conta_debito: string
+          created_at: string | null
+          data_competencia: string
+          data_lancamento: string
+          documento_referencia: string | null
+          historico: string
+          id: number
+          periodo_fiscal_fechado: boolean | null
+          status: string
+          tipo_documento: string | null
+          valor: number
+        }
+        Insert: {
+          centro_custo?: string | null
+          conta_credito: string
+          conta_debito: string
+          created_at?: string | null
+          data_competencia: string
+          data_lancamento: string
+          documento_referencia?: string | null
+          historico: string
+          id?: number
+          periodo_fiscal_fechado?: boolean | null
+          status?: string
+          tipo_documento?: string | null
+          valor: number
+        }
+        Update: {
+          centro_custo?: string | null
+          conta_credito?: string
+          conta_debito?: string
+          created_at?: string | null
+          data_competencia?: string
+          data_lancamento?: string
+          documento_referencia?: string | null
+          historico?: string
+          id?: number
+          periodo_fiscal_fechado?: boolean | null
+          status?: string
+          tipo_documento?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Lancamentos_Contabeis_centro_custo_fkey"
+            columns: ["centro_custo"]
+            isOneToOne: false
+            referencedRelation: "Centros_Custo"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "Lancamentos_Contabeis_conta_credito_fkey"
+            columns: ["conta_credito"]
+            isOneToOne: false
+            referencedRelation: "Plano_Contas"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "Lancamentos_Contabeis_conta_debito_fkey"
+            columns: ["conta_debito"]
+            isOneToOne: false
+            referencedRelation: "Plano_Contas"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      Livro_Caixa: {
+        Row: {
+          created_at: string | null
+          data_movimento: string
+          descricao: string
+          documento_referencia: string | null
+          id: number
+          lancamento_contabil_id: number | null
+          saldo: number
+          status: string
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_movimento: string
+          descricao: string
+          documento_referencia?: string | null
+          id?: number
+          lancamento_contabil_id?: number | null
+          saldo: number
+          status?: string
+          tipo: string
+          valor: number
+        }
+        Update: {
+          created_at?: string | null
+          data_movimento?: string
+          descricao?: string
+          documento_referencia?: string | null
+          id?: number
+          lancamento_contabil_id?: number | null
+          saldo?: number
+          status?: string
+          tipo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Livro_Caixa_lancamento_contabil_id_fkey"
+            columns: ["lancamento_contabil_id"]
+            isOneToOne: false
+            referencedRelation: "Lancamentos_Contabeis"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       Manutenção: {
         Row: {
@@ -406,6 +559,7 @@ export type Database = {
           peso_total: number | null
           quantidade_paletes: number | null
           senha_agendamento: string | null
+          status_nota: string | null
           tipo_veiculo: string | null
           valor_cotacao: number | null
           valor_nota_fiscal: number | null
@@ -424,6 +578,7 @@ export type Database = {
           peso_total?: number | null
           quantidade_paletes?: number | null
           senha_agendamento?: string | null
+          status_nota?: string | null
           tipo_veiculo?: string | null
           valor_cotacao?: number | null
           valor_nota_fiscal?: number | null
@@ -442,6 +597,7 @@ export type Database = {
           peso_total?: number | null
           quantidade_paletes?: number | null
           senha_agendamento?: string | null
+          status_nota?: string | null
           tipo_veiculo?: string | null
           valor_cotacao?: number | null
           valor_nota_fiscal?: number | null
@@ -470,6 +626,39 @@ export type Database = {
           descricao?: string | null
           id?: number
           modulo?: string
+        }
+        Relationships: []
+      }
+      Plano_Contas: {
+        Row: {
+          codigo: string
+          codigo_reduzido: string
+          conta_pai: string | null
+          natureza: string
+          nivel: number
+          nome: string
+          status: string
+          tipo: string
+        }
+        Insert: {
+          codigo: string
+          codigo_reduzido: string
+          conta_pai?: string | null
+          natureza: string
+          nivel: number
+          nome: string
+          status?: string
+          tipo: string
+        }
+        Update: {
+          codigo?: string
+          codigo_reduzido?: string
+          conta_pai?: string | null
+          natureza?: string
+          nivel?: number
+          nome?: string
+          status?: string
+          tipo?: string
         }
         Relationships: []
       }
@@ -526,7 +715,10 @@ export type Database = {
           data_pagamento: string | null
           id: number | null
           parceiro: string | null
+          saldo_restante: number | null
+          valor_pago: number | null
           valor_total: number | null
+          vencimento: string | null
         }
         Insert: {
           banco_pagamento?: string | null
@@ -535,7 +727,10 @@ export type Database = {
           data_pagamento?: string | null
           id?: number | null
           parceiro?: string | null
+          saldo_restante?: number | null
+          valor_pago?: number | null
           valor_total?: number | null
+          vencimento?: string | null
         }
         Update: {
           banco_pagamento?: string | null
@@ -544,7 +739,10 @@ export type Database = {
           data_pagamento?: string | null
           id?: number | null
           parceiro?: string | null
+          saldo_restante?: number | null
+          valor_pago?: number | null
           valor_total?: number | null
+          vencimento?: string | null
         }
         Relationships: []
       }

@@ -1,302 +1,398 @@
 
 import React, { useState, useEffect } from 'react';
-import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
+import { Plus, FileDown, Filter, DollarSign } from 'lucide-react';
+import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { format } from 'date-fns';
+import { formataMoeda } from '@/utils/constants';
 import NovaDespesaForm from '@/components/despesas/NovaDespesaForm';
-import { DespesaFormData, Despesa, TipoDespesa } from '@/types/despesa';
+import { Despesa, TipoDespesa } from '@/types/despesa';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { useNavigate } from 'react-router-dom';
-import { logOperation } from '@/utils/logOperations';
-import { DialogContabilizacao } from '@/components/contabilidade/DialogContabilizacao';
+import { ContaContabil } from '@/types/contabilidade';
+import { contabilizarDespesa, getContasDespesa } from '@/services/contabilidadeService';
 
 const DespesasGerais = () => {
-  const navigate = useNavigate();
   const [despesas, setDespesas] = useState<Despesa[]>([]);
-  const [loading, setLoading] = useState(false);
-  
-  // Filtros
-  const [filtroTipo, setFiltroTipo] = useState<string>('todos');
-  const [filtroCategoria, setFiltroCategoria] = useState<string>('todos');
-  const [filtroData, setFiltroData] = useState<string>('');
-  
-  // Modal de contabilização
-  const [modalContabilizacaoOpen, setModalContabilizacaoOpen] = useState(false);
-  const [operacaoConcluida, setOperacaoConcluida] = useState<{tipo: string, dados: any} | null>(null);
-  
-  useEffect(() => {
-    carregarDespesas();
-  }, []);
-  
-  const carregarDespesas = async () => {
+  const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [contabilizacaoOpen, setContabilizacaoOpen] = useState(false);
+  const [contasSelecionadas, setContasSelecionadas] = useState<Record<number, string>>({});
+  const [despesaSelecionada, setDespesaSelecionada] = useState<Despesa | null>(null);
+  const [contasContabeis, setContasContabeis] = useState<ContaContabil[]>([]);
+
+  const fetchDespesas = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('Despesas Gerais')
-        .select('*')
-        .order('data_despesa', { ascending: false });
-        
-      if (error) {
-        console.error('Erro ao carregar despesas:', error);
-        toast.error('Erro ao carregar despesas');
-        return;
-      }
+        .select('*');
       
-      const despesasConvertidas: Despesa[] = (data || []).map(item => ({
-        ...item,
-        tipo_despesa: item.tipo_despesa as TipoDespesa,
-        categoria: (item.categoria as "viagem" | "administrativa") || "viagem",
-        rateio: Boolean(item.rateio)
-      }));
-      
-      setDespesas(despesasConvertidas);
+      if (error) throw error;
+      setDespesas(data || []);
     } catch (error) {
-      console.error('Erro ao processar dados de despesas:', error);
+      console.error('Erro ao carregar despesas:', error);
+      toast.error('Erro ao carregar despesas.');
     } finally {
       setLoading(false);
     }
   };
-  
-  const handleSaveDespesa = async (data: DespesaFormData) => {
-    try {
-      // Transformar os dados para o formato da tabela
-      const despesaData: Despesa = {
-        data_despesa: data.data,
-        tipo_despesa: data.tipo,
-        descricao_detalhada: data.descricao,
-        valor_despesa: data.valor,
-        contrato_id: data.categoria === 'viagem' ? data.contrato : null,
-        categoria: data.categoria,
-        rateio: data.categoria === 'administrativa' ? data.rateio : false
-      };
-      
-      const { error } = await supabase
-        .from('Despesas Gerais')
-        .insert(despesaData);
-        
-      if (error) {
-        console.error('Erro ao salvar despesa:', error);
-        toast.error('Erro ao salvar despesa');
-        return;
-      }
-      
-      toast.success('Despesa registrada com sucesso!');
-      carregarDespesas();
-      
-      logOperation('Despesas Gerais', `Registrada nova despesa: ${data.descricao.substring(0, 30)}...`);
-      
-      // Armazenar informações da operação para possível contabilização
-      setOperacaoConcluida({
-        tipo: 'despesa',
-        dados: despesaData
-      });
-      
-      // Perguntar se deseja contabilizar
-      setModalContabilizacaoOpen(true);
-    } catch (error) {
-      console.error('Erro ao processar:', error);
-      toast.error('Ocorreu um erro ao registrar a despesa');
-    }
-  };
-  
-  const handleVoltarMenu = () => {
-    navigate('/');
-  };
-  
-  // Formatar data para exibição
-  const formatarData = (dataString: string | null) => {
-    if (!dataString) return 'N/A';
-    try {
-      return format(parseISO(dataString), 'dd/MM/yyyy', { locale: ptBR });
-    } catch (error) {
-      return dataString;
-    }
-  };
-  
-  // Formatar valores monetários
-  const formatarValor = (valor: number) => {
-    return valor.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    });
-  };
-  
-  // Filtrar despesas
-  const despesasFiltradas = despesas.filter(despesa => {
-    // Filtro por tipo
-    if (filtroTipo !== 'todos' && despesa.tipo_despesa !== filtroTipo) {
-      return false;
-    }
-    
-    // Filtro por categoria
-    if (filtroCategoria !== 'todos' && despesa.categoria !== filtroCategoria) {
-      return false;
-    }
-    
-    // Filtro por data
-    if (filtroData && despesa.data_despesa !== filtroData) {
-      return false;
-    }
-    
-    return true;
-  });
 
-  // Obter total das despesas filtradas
-  const totalDespesas = despesasFiltradas.reduce((total, despesa) => total + (despesa.valor_despesa || 0), 0);
-  
+  const fetchContasContabeis = async () => {
+    try {
+      const contas = await getContasDespesa();
+      setContasContabeis(contas);
+    } catch (error) {
+      console.error('Erro ao carregar contas contábeis:', error);
+      toast.error('Erro ao carregar contas contábeis.');
+    }
+  };
+
+  useEffect(() => {
+    fetchDespesas();
+    fetchContasContabeis();
+  }, []);
+
+  const handleDespesaAdicionada = () => {
+    setFormOpen(false);
+    fetchDespesas();
+    toast.success('Despesa adicionada com sucesso!');
+  };
+
+  const abrirContabilizacao = (despesa: Despesa) => {
+    setDespesaSelecionada(despesa);
+    setContabilizacaoOpen(true);
+  };
+
+  const handleContabilizar = async () => {
+    if (!despesaSelecionada || !contasSelecionadas[despesaSelecionada.id || 0]) {
+      toast.error('Selecione uma conta contábil');
+      return;
+    }
+
+    try {
+      const sucesso = await contabilizarDespesa(
+        despesaSelecionada.id || 0, 
+        contasSelecionadas[despesaSelecionada.id || 0]
+      );
+      
+      if (sucesso) {
+        toast.success('Despesa contabilizada com sucesso!');
+        setContabilizacaoOpen(false);
+        fetchDespesas();
+      } else {
+        toast.error('Erro ao contabilizar despesa');
+      }
+    } catch (error) {
+      console.error('Erro ao contabilizar despesa:', error);
+      toast.error('Erro ao contabilizar despesa');
+    }
+  };
+
+  const handleSelectConta = (conta: string) => {
+    if (despesaSelecionada) {
+      setContasSelecionadas({
+        ...contasSelecionadas,
+        [despesaSelecionada.id || 0]: conta
+      });
+    }
+  };
+
   return (
     <PageLayout>
-      <div className="flex justify-between items-center">
-        <PageHeader 
-          title="Despesas Gerais" 
-          description="Gerenciamento de despesas de viagem e outras despesas"
-        />
-        <Button variant="outline" onClick={handleVoltarMenu}>Voltar ao Menu Principal</Button>
+      <PageHeader
+        title="Despesas Gerais"
+        description="Gerencie todas as despesas da operação"
+      />
+
+      <div className="flex justify-between mb-6">
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex items-center gap-2">
+            <FileDown size={18} />
+            Exportar
+          </Button>
+          <Button variant="outline" className="flex items-center gap-2">
+            <Filter size={18} />
+            Filtros
+          </Button>
+        </div>
+
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <Plus size={18} />
+              Nova Despesa
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[700px]">
+            <DialogHeader>
+              <DialogTitle>Nova Despesa</DialogTitle>
+            </DialogHeader>
+            <NovaDespesaForm onDespesaAdicionada={handleDespesaAdicionada} />
+          </DialogContent>
+        </Dialog>
       </div>
-      
-      <Tabs defaultValue="registros" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-8">
-          <TabsTrigger value="registros">Registros</TabsTrigger>
-          <TabsTrigger value="novo">Nova Despesa</TabsTrigger>
+
+      <Tabs defaultValue="todas" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsTrigger value="todas">Todas</TabsTrigger>
+          <TabsTrigger value="viagem">Despesas de Viagem</TabsTrigger>
+          <TabsTrigger value="administrativas">Despesas Administrativas</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="registros" className="space-y-4">
+
+        <TabsContent value="todas" className="space-y-4">
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Despesas Registradas</h2>
-            
-            {/* Filtros */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div>
-                <Select 
-                  value={filtroTipo} 
-                  onValueChange={setFiltroTipo}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filtrar por tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os tipos</SelectItem>
-                    <SelectItem value="descarga">Descarga</SelectItem>
-                    <SelectItem value="reentrega">Reentrega</SelectItem>
-                    <SelectItem value="no-show">No-Show</SelectItem>
-                    <SelectItem value="administrativa">Administrativa</SelectItem>
-                    <SelectItem value="outros">Outros</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Select 
-                  value={filtroCategoria} 
-                  onValueChange={setFiltroCategoria}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filtrar por categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todas as categorias</SelectItem>
-                    <SelectItem value="viagem">Viagem</SelectItem>
-                    <SelectItem value="administrativa">Administrativa</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Input
-                  type="date"
-                  value={filtroData}
-                  onChange={(e) => setFiltroData(e.target.value)}
-                  placeholder="Filtrar por data"
-                />
-              </div>
+            <h2 className="text-xl font-semibold mb-4">Todas as Despesas</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contabilizada</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-4 text-center">Carregando...</td>
+                    </tr>
+                  ) : despesas.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-4 text-center">Nenhuma despesa registrada</td>
+                    </tr>
+                  ) : (
+                    despesas.map((despesa) => (
+                      <tr key={despesa.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">{format(new Date(despesa.data_despesa), 'dd/MM/yyyy')}</td>
+                        <td className="px-6 py-4 whitespace-nowrap capitalize">{despesa.tipo_despesa}</td>
+                        <td className="px-6 py-4">{despesa.descricao_detalhada}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{formataMoeda(despesa.valor_despesa)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap capitalize">{despesa.categoria || 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {despesa.contabilizado ? (
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              Sim
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                              Não
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {!despesa.contabilizado && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => abrirContabilizacao(despesa)}
+                              className="flex items-center gap-1"
+                            >
+                              <DollarSign size={14} />
+                              Contabilizar
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-            
-            {loading ? (
-              <p className="text-center py-4">Carregando despesas...</p>
-            ) : despesasFiltradas.length === 0 ? (
-              <p className="text-center py-4">Nenhuma despesa encontrada.</p>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Categoria</TableHead>
-                        <TableHead>Contrato</TableHead>
-                        <TableHead>Descrição</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead>Rateio</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {despesasFiltradas.map((despesa, index) => (
-                        <TableRow key={despesa.id || index}>
-                          <TableCell>{formatarData(despesa.data_despesa)}</TableCell>
-                          <TableCell>
-                            <Badge variant={
-                              despesa.tipo_despesa === 'administrativa' ? 'secondary' :
-                              despesa.tipo_despesa === 'descarga' ? 'default' :
-                              despesa.tipo_despesa === 'reentrega' ? 'destructive' :
-                              despesa.tipo_despesa === 'no-show' ? 'outline' : 'default'
-                            }>
-                              {despesa.tipo_despesa}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{despesa.categoria || '-'}</TableCell>
-                          <TableCell>{despesa.contrato_id || '-'}</TableCell>
-                          <TableCell className="max-w-xs truncate">{despesa.descricao_detalhada}</TableCell>
-                          <TableCell>{formatarValor(despesa.valor_despesa)}</TableCell>
-                          <TableCell>{despesa.rateio ? 'Sim' : 'Não'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                
-                <div className="mt-4 p-4 bg-gray-50 rounded-md flex justify-between items-center">
-                  <span className="font-medium">Total de despesas:</span>
-                  <span className="font-bold text-lg">{formatarValor(totalDespesas)}</span>
-                </div>
-              </>
-            )}
           </div>
         </TabsContent>
-        
-        <TabsContent value="novo">
+
+        <TabsContent value="viagem">
           <div className="bg-white p-6 rounded-lg shadow">
-            <NovaDespesaForm onSave={handleSaveDespesa} />
+            <h2 className="text-xl font-semibold mb-4">Despesas de Viagem</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contabilizada</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-4 text-center">Carregando...</td>
+                    </tr>
+                  ) : despesas.filter(d => d.categoria === 'viagem').length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-4 text-center">Nenhuma despesa de viagem registrada</td>
+                    </tr>
+                  ) : (
+                    despesas
+                      .filter(d => d.categoria === 'viagem')
+                      .map((despesa) => (
+                        <tr key={despesa.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">{format(new Date(despesa.data_despesa), 'dd/MM/yyyy')}</td>
+                          <td className="px-6 py-4 whitespace-nowrap capitalize">{despesa.tipo_despesa}</td>
+                          <td className="px-6 py-4">{despesa.descricao_detalhada}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{formataMoeda(despesa.valor_despesa)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {despesa.contabilizado ? (
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                Sim
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                Não
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {!despesa.contabilizado && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => abrirContabilizacao(despesa)}
+                                className="flex items-center gap-1"
+                              >
+                                <DollarSign size={14} />
+                                Contabilizar
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="administrativas">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">Despesas Administrativas</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contabilizada</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-4 text-center">Carregando...</td>
+                    </tr>
+                  ) : despesas.filter(d => d.categoria === 'administrativa').length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-4 text-center">Nenhuma despesa administrativa registrada</td>
+                    </tr>
+                  ) : (
+                    despesas
+                      .filter(d => d.categoria === 'administrativa')
+                      .map((despesa) => (
+                        <tr key={despesa.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">{format(new Date(despesa.data_despesa), 'dd/MM/yyyy')}</td>
+                          <td className="px-6 py-4 whitespace-nowrap capitalize">{despesa.tipo_despesa}</td>
+                          <td className="px-6 py-4">{despesa.descricao_detalhada}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{formataMoeda(despesa.valor_despesa)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {despesa.contabilizado ? (
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                Sim
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                Não
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {!despesa.contabilizado && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => abrirContabilizacao(despesa)}
+                                className="flex items-center gap-1"
+                              >
+                                <DollarSign size={14} />
+                                Contabilizar
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
-      
-      {/* Modal de contabilização */}
-      <DialogContabilizacao 
-        open={modalContabilizacaoOpen} 
-        onOpenChange={setModalContabilizacaoOpen}
-        tipo={operacaoConcluida?.tipo}
-        dados={operacaoConcluida?.dados}
-        onContabilizar={(contabilizado) => {
-          if (contabilizado) {
-            toast.success("Operação contabilizada com sucesso!");
-          }
-          setModalContabilizacaoOpen(false);
-          // Perguntar se deseja voltar ao menu principal
-          const deveVoltar = window.confirm('Deseja voltar ao menu principal?');
-          if (deveVoltar) {
-            navigate('/');
-          }
-        }}
-      />
+
+      {/* Dialog para contabilização */}
+      <Dialog open={contabilizacaoOpen} onOpenChange={setContabilizacaoOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Contabilizar Despesa</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-4 gap-4 items-center">
+              <span className="text-sm font-medium col-span-1">Descrição:</span>
+              <span className="col-span-3">{despesaSelecionada?.descricao_detalhada}</span>
+            </div>
+            
+            <div className="grid grid-cols-4 gap-4 items-center">
+              <span className="text-sm font-medium col-span-1">Valor:</span>
+              <span className="col-span-3">{despesaSelecionada ? formataMoeda(despesaSelecionada.valor_despesa) : '-'}</span>
+            </div>
+            
+            <div className="grid grid-cols-4 gap-4 items-center">
+              <span className="text-sm font-medium col-span-1">Tipo:</span>
+              <span className="col-span-3 capitalize">{despesaSelecionada?.tipo_despesa}</span>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Conta Contábil</label>
+              <Select onValueChange={handleSelectConta}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione a conta contábil" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contasContabeis.map(conta => (
+                    <SelectItem key={conta.codigo} value={conta.codigo}>
+                      {conta.codigo_reduzido} - {conta.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setContabilizacaoOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleContabilizar}>
+              Contabilizar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };

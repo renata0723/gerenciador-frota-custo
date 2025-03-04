@@ -1,257 +1,202 @@
 
-import React, { useState, useEffect } from "react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { toast } from "sonner";
-import { format } from "date-fns";
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
-import { DespesaFormData, TipoDespesa } from "@/types/despesa";
+import { toast } from 'sonner';
+import { DespesaFormData, TipoDespesa } from '@/types/despesa';
+import { tiposDespesa } from '@/utils/constants';
 
 interface NovaDespesaFormProps {
-  onSave: (data: DespesaFormData) => void;
-  initialData?: Partial<DespesaFormData>;
+  onDespesaAdicionada: () => void;
 }
 
-const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({
-  onSave,
-  initialData
-}) => {
-  const [formData, setFormData] = useState<DespesaFormData>({
-    data: initialData?.data || format(new Date(), 'yyyy-MM-dd'),
-    tipo: initialData?.tipo || "descarga",
-    descricao: initialData?.descricao || "",
-    valor: initialData?.valor || 0,
-    contrato: initialData?.contrato || "",
-    categoria: initialData?.categoria || "viagem",
-    rateio: initialData?.rateio || false
+const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({ onDespesaAdicionada }) => {
+  const { register, handleSubmit, setValue, watch, formState: { errors }, reset } = useForm<DespesaFormData>({
+    defaultValues: {
+      data: new Date().toISOString().split('T')[0],
+      tipo: 'outros',
+      descricao: '',
+      valor: 0,
+      categoria: 'administrativa',
+      rateio: false,
+      contabilizar: false
+    }
   });
 
-  const [contratos, setContratos] = useState<{id: number, cliente_destino: string}[]>([]);
-  const [loading, setLoading] = useState(false);
+  const rateioAtivo = watch('rateio');
+  const categoria = watch('categoria');
+  const contabilizar = watch('contabilizar');
 
-  useEffect(() => {
-    carregarContratos();
-  }, []);
+  React.useEffect(() => {
+    register('tipo');
+    register('categoria');
+    register('rateio');
+    register('contabilizar');
+    register('conta_contabil');
+  }, [register]);
 
-  const carregarContratos = async () => {
-    setLoading(true);
+  const onSubmit = async (data: DespesaFormData) => {
     try {
-      const { data, error } = await supabase
-        .from('Contratos')
-        .select('id, cliente_destino')
-        .eq('status_contrato', 'Ativo');
-        
-      if (error) {
-        console.error('Erro ao carregar contratos:', error);
-        toast.error('Erro ao carregar contratos disponíveis');
-        return;
-      }
+      const { error } = await supabase
+        .from('Despesas Gerais')
+        .insert([{
+          data_despesa: data.data,
+          tipo_despesa: data.tipo,
+          descricao_detalhada: data.descricao,
+          valor_despesa: data.valor,
+          categoria: data.categoria,
+          rateio: data.rateio,
+          contrato_id: data.contrato || null,
+          contabilizado: data.contabilizar || false,
+          conta_contabil: data.contabilizar ? data.conta_contabil : null
+        }]);
+
+      if (error) throw error;
       
-      setContratos(data || []);
+      reset();
+      onDespesaAdicionada();
     } catch (error) {
-      console.error('Erro ao processar dados de contratos:', error);
-    } finally {
-      setLoading(false);
+      console.error('Erro ao adicionar despesa:', error);
+      toast.error('Erro ao adicionar despesa. Verifique os dados e tente novamente.');
     }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target as HTMLInputElement;
-    setFormData({
-      ...formData,
-      [name]: type === "number" ? Number(value) : value
-    });
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    if (name === "tipo") {
-      setFormData({
-        ...formData,
-        tipo: value as TipoDespesa,
-        // Se mudar para administrativa, remove o contrato e define categoria como administrativa
-        ...(value === "administrativa" ? { 
-          categoria: "administrativa", 
-          contrato: undefined 
-        } : {})
-      });
-    } else if (name === "categoria") {
-      setFormData({
-        ...formData,
-        categoria: value as "viagem" | "administrativa",
-        // Se mudar para administrativa, remove o contrato
-        ...(value === "administrativa" ? { contrato: undefined } : {})
-      });
-    } else if (name === "contrato") {
-      setFormData({
-        ...formData,
-        contrato: value
-      });
-    }
-  };
-
-  const handleSwitchChange = (checked: boolean) => {
-    setFormData({
-      ...formData,
-      rateio: checked
-    });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.data) {
-      toast.error("Por favor, informe a data da despesa");
-      return;
-    }
-    
-    if (!formData.descricao) {
-      toast.error("Por favor, informe a descrição da despesa");
-      return;
-    }
-    
-    if (formData.valor <= 0) {
-      toast.error("Por favor, informe um valor válido para a despesa");
-      return;
-    }
-    
-    // Validar contrato para despesas de viagem
-    if (formData.categoria === "viagem" && !formData.contrato) {
-      toast.error("Por favor, selecione um contrato para essa despesa de viagem");
-      return;
-    }
-    
-    onSave(formData);
   };
 
   return (
-    <div>
-      <DialogHeader>
-        <DialogTitle>Registrar Nova Despesa</DialogTitle>
-      </DialogHeader>
-      
-      <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="data">Data</Label>
-            <Input
-              id="data"
-              name="data"
-              type="date"
-              value={formData.data}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="categoria">Categoria da Despesa</Label>
-            <Select 
-              value={formData.categoria} 
-              onValueChange={(value) => handleSelectChange("categoria", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="viagem">Despesa de Viagem</SelectItem>
-                <SelectItem value="administrativa">Despesa Administrativa</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="tipo">Tipo de Despesa</Label>
-            <Select 
-              value={formData.tipo} 
-              onValueChange={(value) => handleSelectChange("tipo", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                {formData.categoria === "viagem" ? (
-                  <>
-                    <SelectItem value="descarga">Descarga</SelectItem>
-                    <SelectItem value="reentrega">Reentrega</SelectItem>
-                    <SelectItem value="no-show">No-Show</SelectItem>
-                    <SelectItem value="outros">Outros</SelectItem>
-                  </>
-                ) : (
-                  <SelectItem value="administrativa">Administrativa</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="valor">Valor (R$)</Label>
-            <Input
-              id="valor"
-              name="valor"
-              type="number"
-              step="0.01"
-              value={formData.valor}
-              onChange={handleChange}
-              required
-            />
-          </div>
-        </div>
-        
-        {formData.categoria === "viagem" && (
-          <div>
-            <Label htmlFor="contrato">Contrato Relacionado</Label>
-            <Select 
-              value={formData.contrato || ""} 
-              onValueChange={(value) => handleSelectChange("contrato", value)}
-              disabled={loading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={loading ? "Carregando contratos..." : "Selecione o contrato"} />
-              </SelectTrigger>
-              <SelectContent>
-                {contratos.map((contrato) => (
-                  <SelectItem key={contrato.id} value={String(contrato.id)}>
-                    {contrato.id} - {contrato.cliente_destino}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-        
-        {formData.categoria === "administrativa" && (
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="rateio" 
-              checked={formData.rateio}
-              onCheckedChange={handleSwitchChange}
-            />
-            <Label htmlFor="rateio">Aplicar rateio em contratos</Label>
-          </div>
-        )}
-        
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
+      <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="descricao">Descrição Detalhada</Label>
-          <Textarea
-            id="descricao"
-            name="descricao"
-            value={formData.descricao}
-            onChange={handleChange}
-            rows={3}
-            required
+          <Label htmlFor="data">Data</Label>
+          <Input
+            id="data"
+            type="date"
+            {...register('data', { required: 'Data é obrigatória' })}
+          />
+          {errors.data && <p className="text-sm text-red-500 mt-1">{errors.data.message}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="tipo">Tipo de Despesa</Label>
+          <Select
+            onValueChange={(value) => setValue('tipo', value as TipoDespesa)}
+            defaultValue="outros"
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              {tiposDespesa.map((tipo) => (
+                <SelectItem key={tipo.toLowerCase()} value={tipo.toLowerCase()}>
+                  {tipo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.tipo && <p className="text-sm text-red-500 mt-1">{errors.tipo.message}</p>}
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="descricao">Descrição Detalhada</Label>
+        <Textarea
+          id="descricao"
+          placeholder="Descreva a despesa detalhadamente"
+          {...register('descricao', { required: 'Descrição é obrigatória' })}
+        />
+        {errors.descricao && <p className="text-sm text-red-500 mt-1">{errors.descricao.message}</p>}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="valor">Valor (R$)</Label>
+          <Input
+            id="valor"
+            type="number"
+            step="0.01"
+            {...register('valor', {
+              required: 'Valor é obrigatório',
+              min: { value: 0.01, message: 'Valor deve ser maior que zero' }
+            })}
+          />
+          {errors.valor && <p className="text-sm text-red-500 mt-1">{errors.valor.message}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="categoria">Categoria</Label>
+          <Select
+            onValueChange={(value) => setValue('categoria', value as 'viagem' | 'administrativa')}
+            defaultValue="administrativa"
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione a categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="viagem">Despesa de Viagem</SelectItem>
+              <SelectItem value="administrativa">Despesa Administrativa</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {categoria === 'viagem' && (
+        <div>
+          <Label htmlFor="contrato">Contrato (opcional)</Label>
+          <Input
+            id="contrato"
+            type="text"
+            placeholder="ID do contrato relacionado"
+            {...register('contrato')}
           />
         </div>
-        
-        <Button type="submit" className="w-full">Registrar Despesa</Button>
-      </form>
-    </div>
+      )}
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="rateio"
+          checked={rateioAtivo}
+          onCheckedChange={(checked) => setValue('rateio', checked)}
+        />
+        <Label htmlFor="rateio">Aplicar rateio entre centros de custo</Label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="contabilizar"
+          checked={contabilizar}
+          onCheckedChange={(checked) => setValue('contabilizar', checked)}
+        />
+        <Label htmlFor="contabilizar">Contabilizar despesa automaticamente</Label>
+      </div>
+
+      {contabilizar && (
+        <div>
+          <Label htmlFor="conta_contabil">Conta Contábil</Label>
+          <Input
+            id="conta_contabil"
+            type="text"
+            placeholder="Código da conta contábil"
+            {...register('conta_contabil', { 
+              required: contabilizar ? 'Conta contábil é obrigatória quando contabilização automática está ativada' : false 
+            })}
+          />
+          {errors.conta_contabil && <p className="text-sm text-red-500 mt-1">{errors.conta_contabil.message}</p>}
+        </div>
+      )}
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={() => reset()}>
+          Cancelar
+        </Button>
+        <Button type="submit">
+          Salvar Despesa
+        </Button>
+      </div>
+    </form>
   );
 };
 
