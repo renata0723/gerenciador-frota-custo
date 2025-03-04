@@ -1,4 +1,12 @@
 
+export interface ParceiroInfo {
+  nome: string;
+  documento: string;
+  dados_bancarios?: string;
+  created_at?: string;
+  id?: number;
+}
+
 export interface SaldoPagar {
   id?: number;
   parceiro?: string;
@@ -12,6 +20,7 @@ export interface SaldoPagar {
   dados_bancarios?: string;
   status?: string;
   ids_contratos?: string[];
+  observacoes?: string;
 }
 
 export interface PagamentoSaldo {
@@ -27,4 +36,5 @@ export interface PagamentoSaldo {
   dados_bancarios?: string;
   status?: string;
   ids_contratos?: string[];
+  observacoes?: string;
 }

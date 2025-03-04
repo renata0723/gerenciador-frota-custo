@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -9,10 +10,15 @@ export interface AbastecimentoData {
   motorista_solicitante: string;
   tipo_combustivel: string;
   quilometragem: number;
+  quantidade?: number;
   posto: string;
   valor_abastecimento: number;
   itens_abastecidos: string;
   valor_total: number;
+  contrato_id?: string;
+  contabilizado?: boolean;
+  conta_debito?: string;
+  conta_credito?: string;
 }
 
 export interface TipoCombustivel {
@@ -62,6 +68,28 @@ export const listarTiposCombustivel = async (): Promise<TipoCombustivel[]> => {
 
 export const addAbastecimento = async (abastecimento: AbastecimentoData): Promise<AbastecimentoData | null> => {
   try {
+    // Se contabilizado, cria o lançamento contábil
+    if (abastecimento.contabilizado && abastecimento.conta_debito && abastecimento.conta_credito) {
+      const lancamentoContabil = {
+        data_lancamento: abastecimento.data_abastecimento,
+        data_competencia: abastecimento.data_abastecimento,
+        conta_debito: abastecimento.conta_debito,
+        conta_credito: abastecimento.conta_credito,
+        valor: abastecimento.valor_total,
+        historico: `Abastecimento - Veículo ${abastecimento.placa_veiculo} - Posto ${abastecimento.posto}`,
+        status: 'ativo'
+      };
+      
+      const { error: lancamentoError } = await supabase
+        .from('Lancamentos_Contabeis')
+        .insert([lancamentoContabil]);
+        
+      if (lancamentoError) {
+        console.error('Erro ao criar lançamento contábil:', lancamentoError);
+        toast.error('Erro ao contabilizar abastecimento.');
+      }
+    }
+
     const { data, error } = await supabase
       .from('Abastecimentos')
       .insert([abastecimento])
@@ -95,7 +123,13 @@ export const listarAbastecimentos = async (): Promise<AbastecimentoData[]> => {
       return [];
     }
 
-    return data || [];
+    // Garantir que os dados retornados estejam no formato esperado
+    const validData: AbastecimentoData[] = (data || []).map(item => ({
+      ...item,
+      quantidade: item.quantidade || 0 // Adicionar quantidade se não existir
+    }));
+
+    return validData;
   } catch (error) {
     console.error('Erro ao listar abastecimentos:', error);
     return [];
@@ -124,6 +158,38 @@ export const getAbastecimentoById = async (id: number): Promise<AbastecimentoDat
 
 export const updateAbastecimento = async (id: number, updates: Partial<AbastecimentoData>): Promise<AbastecimentoData | null> => {
   try {
+    // Se a contabilização mudou para true e tem contas definidas
+    if (updates.contabilizado && updates.conta_debito && updates.conta_credito) {
+      // Buscar o abastecimento atual para verificar se já está contabilizado
+      const { data: abastecimentoAtual } = await supabase
+        .from('Abastecimentos')
+        .select('contabilizado, data_abastecimento')
+        .eq('id', id)
+        .single();
+        
+      // Se não estava contabilizado antes, cria o lançamento contábil
+      if (abastecimentoAtual && !abastecimentoAtual.contabilizado) {
+        const lancamentoContabil = {
+          data_lancamento: updates.data_abastecimento || abastecimentoAtual.data_abastecimento,
+          data_competencia: updates.data_abastecimento || abastecimentoAtual.data_abastecimento,
+          conta_debito: updates.conta_debito,
+          conta_credito: updates.conta_credito,
+          valor: updates.valor_total || 0,
+          historico: `Abastecimento ID ${id} - Veículo ${updates.placa_veiculo || ''}`,
+          status: 'ativo'
+        };
+        
+        const { error: lancamentoError } = await supabase
+          .from('Lancamentos_Contabeis')
+          .insert([lancamentoContabil]);
+          
+        if (lancamentoError) {
+          console.error('Erro ao criar lançamento contábil:', lancamentoError);
+          toast.error('Erro ao contabilizar abastecimento.');
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from('Abastecimentos')
       .update(updates)
@@ -165,5 +231,26 @@ export const deleteAbastecimento = async (id: number): Promise<boolean> => {
     console.error('Erro ao excluir abastecimento:', error);
     toast.error('Erro ao excluir abastecimento.');
     return false;
+  }
+};
+
+// Função para buscar abastecimentos por contrato
+export const buscarAbastecimentosPorContrato = async (contratoId: string): Promise<AbastecimentoData[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('Abastecimentos')
+      .select('*')
+      .eq('contrato_id', contratoId)
+      .order('data_abastecimento', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar abastecimentos por contrato:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao buscar abastecimentos por contrato:', error);
+    return [];
   }
 };

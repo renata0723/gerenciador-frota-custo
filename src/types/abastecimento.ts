@@ -12,6 +12,10 @@ export interface AbastecimentoItem {
   responsavel_autorizacao: string;
   itens_abastecidos: string;
   valor_total: number;
+  contrato_id?: string;
+  contabilizado?: boolean;
+  conta_debito?: string;
+  conta_credito?: string;
 }
 
 export interface TipoCombustivel {
@@ -31,6 +35,10 @@ export interface AbastecimentoFormData {
   posto: string;
   responsavel: string;
   itens: string;
+  contrato_id?: string;
+  contabilizado?: boolean;
+  conta_debito?: string;
+  conta_credito?: string;
 }
 
 export interface TipoCombustivelFormProps {

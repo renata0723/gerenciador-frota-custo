@@ -4,18 +4,20 @@ import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Plus, FileDown, Search, Filter } from 'lucide-react';
-import { formataMoeda } from '@/utils/constants';
+import { Plus, FileDown, Search, Filter, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import NovoAbastecimentoForm from '@/components/abastecimentos/NovoAbastecimentoForm';
 import TipoCombustivelForm from '@/components/abastecimentos/TipoCombustivelForm';
 import { AbastecimentoItem, TipoCombustivel, AbastecimentoFormData } from '@/types/abastecimento';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { formatarValorMonetario, formatarData } from '@/utils/formatters';
+import { Badge } from '@/components/ui/badge';
 
 const Abastecimentos = () => {
   const [abastecimentos, setAbastecimentos] = useState<AbastecimentoItem[]>([]);
   const [tiposCombustivel, setTiposCombustivel] = useState<TipoCombustivel[]>([]);
+  const [contratos, setContratos] = useState<{id: number, identificador: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [novoAbastecimentoOpen, setNovoAbastecimentoOpen] = useState(false);
   const [novoCombustivelOpen, setNovoCombustivelOpen] = useState(false);
@@ -60,10 +62,31 @@ const Abastecimentos = () => {
     }
   };
 
+  // Buscar contratos para associação
+  const fetchContratos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Contratos')
+        .select('id, identificador');
+      
+      if (error) throw error;
+      setContratos(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar contratos:', error);
+    }
+  };
+
   useEffect(() => {
     fetchAbastecimentos();
     fetchTiposCombustivel();
+    fetchContratos();
   }, []);
+
+  const getNomeContrato = (contratoId: string | undefined) => {
+    if (!contratoId) return 'N/A';
+    const contrato = contratos.find(c => c.id.toString() === contratoId);
+    return contrato ? `#${contrato.id} - ${contrato.identificador}` : `Contrato #${contratoId}`;
+  };
 
   const handleSaveAbastecimento = async (formData: AbastecimentoFormData) => {
     try {
@@ -78,8 +101,36 @@ const Abastecimentos = () => {
         posto: formData.posto,
         responsavel_autorizacao: formData.responsavel,
         itens_abastecidos: formData.itens,
-        valor_total: formData.valor // Podemos calcular baseado em outros valores se necessário
+        valor_total: formData.valor, // Valor total
+        contrato_id: formData.contrato_id || null,
+        contabilizado: formData.contabilizado || false,
+        conta_debito: formData.conta_debito || null,
+        conta_credito: formData.conta_credito || null
       };
+
+      // Se contabilizado, cria o lançamento contábil
+      if (formData.contabilizado && formData.conta_debito && formData.conta_credito) {
+        const lancamentoContabil = {
+          data_lancamento: formData.data,
+          data_competencia: formData.data,
+          conta_debito: formData.conta_debito,
+          conta_credito: formData.conta_credito,
+          valor: formData.valor,
+          historico: `Abastecimento - Veículo ${formData.placa} - Posto ${formData.posto}`,
+          status: 'ativo'
+        };
+        
+        const { error: lancamentoError } = await supabase
+          .from('Lancamentos_Contabeis')
+          .insert([lancamentoContabil]);
+          
+        if (lancamentoError) {
+          console.error('Erro ao criar lançamento contábil:', lancamentoError);
+          toast.error('Erro ao contabilizar abastecimento.');
+        } else {
+          toast.success('Lançamento contábil registrado com sucesso!');
+        }
+      }
 
       const { error } = await supabase
         .from('Abastecimentos')
@@ -104,8 +155,8 @@ const Abastecimentos = () => {
 
   // Função para calcular consumo médio
   const calcularConsumoMedio = (abastecimento: AbastecimentoItem) => {
-    if (!abastecimento.quilometragem || !abastecimento.valor_abastecimento) return 'N/A';
-    const consumo = abastecimento.quilometragem / abastecimento.valor_abastecimento;
+    if (!abastecimento.quilometragem || !abastecimento.quantidade) return 'N/A';
+    const consumo = abastecimento.quilometragem / abastecimento.quantidade;
     return `${consumo.toFixed(2)} km/L`;
   };
 
@@ -185,28 +236,38 @@ const Abastecimentos = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posto</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contrato</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contabilizado</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consumo Médio</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {loading ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-4 text-center">Carregando...</td>
+                      <td colSpan={10} className="px-6 py-4 text-center">Carregando...</td>
                     </tr>
                   ) : abastecimentos.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-4 text-center">Nenhum abastecimento registrado</td>
+                      <td colSpan={10} className="px-6 py-4 text-center">Nenhum abastecimento registrado</td>
                     </tr>
                   ) : (
                     abastecimentos.map((abastecimento, index) => (
                       <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap">{abastecimento.data_abastecimento}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{formatarData(abastecimento.data_abastecimento)}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{abastecimento.placa_veiculo}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{abastecimento.tipo_combustivel}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{abastecimento.quilometragem}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{formataMoeda(abastecimento.valor_total || 0)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{formatarValorMonetario(abastecimento.valor_total || 0)}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{abastecimento.posto}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{abastecimento.motorista_solicitante}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{getNomeContrato(abastecimento.contrato_id)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {abastecimento.contabilizado ? (
+                            <Badge className="bg-green-500">Sim</Badge>
+                          ) : (
+                            <Badge variant="outline">Não</Badge>
+                          )}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">{calcularConsumoMedio(abastecimento)}</td>
                       </tr>
                     ))
@@ -229,17 +290,18 @@ const Abastecimentos = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Combustível</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contrato</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consumo Médio</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-4 text-center">Carregando...</td>
+                      <td colSpan={7} className="px-6 py-4 text-center">Carregando...</td>
                     </tr>
                   ) : abastecimentos.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-4 text-center">Nenhum abastecimento recente</td>
+                      <td colSpan={7} className="px-6 py-4 text-center">Nenhum abastecimento recente</td>
                     </tr>
                   ) : (
                     // Aqui podemos filtrar somente os abastecimentos recentes (30 dias)
@@ -254,11 +316,12 @@ const Abastecimentos = () => {
                       })
                       .map((abastecimento, index) => (
                         <tr key={index}>
-                          <td className="px-6 py-4 whitespace-nowrap">{abastecimento.data_abastecimento}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{formatarData(abastecimento.data_abastecimento)}</td>
                           <td className="px-6 py-4 whitespace-nowrap">{abastecimento.placa_veiculo}</td>
                           <td className="px-6 py-4 whitespace-nowrap">{abastecimento.tipo_combustivel}</td>
                           <td className="px-6 py-4 whitespace-nowrap">{abastecimento.quilometragem}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{formataMoeda(abastecimento.valor_total || 0)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{formatarValorMonetario(abastecimento.valor_total || 0)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{getNomeContrato(abastecimento.contrato_id)}</td>
                           <td className="px-6 py-4 whitespace-nowrap">{calcularConsumoMedio(abastecimento)}</td>
                         </tr>
                       ))
@@ -288,8 +351,8 @@ const Abastecimentos = () => {
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Tendência de Consumo</h2>
-              <p className="text-sm text-gray-500 mb-4">Evolução do consumo de combustível ao longo do tempo</p>
+              <h2 className="text-xl font-semibold mb-4">Gastos por Contrato</h2>
+              <p className="text-sm text-gray-500 mb-4">Total de combustível gasto por contrato</p>
               
               {loading ? (
                 <p className="text-center py-4">Carregando...</p>
@@ -297,7 +360,7 @@ const Abastecimentos = () => {
                 <p className="text-center py-4">Sem dados disponíveis</p>
               ) : (
                 <div className="space-y-4">
-                  {/* Aqui poderia ter um gráfico de linha mostrando a evolução do consumo */}
+                  {/* Aqui poderia ter um gráfico mostrando os gastos por contrato */}
                   <p className="text-center">Os gráficos serão implementados em breve</p>
                 </div>
               )}

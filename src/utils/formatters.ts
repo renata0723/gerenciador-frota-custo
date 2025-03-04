@@ -48,3 +48,41 @@ export const formatarNumero = (valor: number | string | null | undefined): strin
   
   return new Intl.NumberFormat('pt-BR').format(valorNumerico);
 };
+
+/**
+ * Formata CPF ou CNPJ para exibição
+ * @param documento CPF ou CNPJ a ser formatado
+ * @returns CPF ou CNPJ formatado
+ */
+export const formatCPFCNPJ = (documento: string | null | undefined): string => {
+  if (!documento) return '';
+  
+  // Remove caracteres não numéricos
+  const numeros = documento.replace(/\D/g, '');
+  
+  // CPF
+  if (numeros.length === 11) {
+    return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  }
+  
+  // CNPJ
+  if (numeros.length === 14) {
+    return numeros.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  }
+  
+  return documento;
+};
+
+/**
+ * Formata um valor para moeda
+ * @param valor Valor a ser formatado
+ * @returns String formatada no padrão de moeda
+ */
+export const formatCurrency = (valor: number | string | null | undefined): string => {
+  return formatarValorMonetario(valor);
+};
+
+/**
+ * Alias para formatarData para compatibilidade
+ */
+export const formatDate = formatarData;
