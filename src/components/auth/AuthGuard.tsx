@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { getUsuarioAutenticado, checkAuthStatus } from '@/services/auth/authService';
+import { checkAuthStatus, getUsuarioAutenticado } from '@/services/auth/authService';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -16,17 +16,20 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   useEffect(() => {
     const verificarAutenticacao = async () => {
       try {
-        // Verificar se o usuário está autenticado via Supabase
-        const session = await checkAuthStatus();
+        toast.dismiss('auth-redirect');
+        
+        // Verificar se o usuário está autenticado
+        const authenticated = await checkAuthStatus();
         const usuarioString = localStorage.getItem('userData');
         const userToken = localStorage.getItem('userToken');
         
         console.log('Verificando autenticação:');
         console.log('- usuarioString:', !!usuarioString);
         console.log('- userToken:', !!userToken);
+        console.log('- authenticated:', authenticated);
         
-        // Para desenvolvimento, vamos criar uma sessão de teste se não existir
-        if (!usuarioString && !userToken && process.env.NODE_ENV === 'development') {
+        // Para desenvolvimento, vamos considerar a autorização mais flexível
+        if (!authenticated && !usuarioString && process.env.NODE_ENV === 'development') {
           console.log('Criando sessão de desenvolvimento');
           
           // Criar um usuário administrador de teste para desenvolvimento
@@ -42,6 +45,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           localStorage.setItem('userData', JSON.stringify(adminTestUser));
           localStorage.setItem('userToken', 'token-simulado-dev');
           localStorage.setItem('userName', adminTestUser.nome);
+          localStorage.setItem('userId', String(adminTestUser.id));
+          localStorage.setItem('userEmail', adminTestUser.email);
           
           setIsAuthenticated(true);
           setLoading(false);
@@ -49,7 +54,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         }
         
         // Verificar se é usuário válido
-        if (session || (usuarioString && userToken)) {
+        if (authenticated) {
           try {
             const usuario = getUsuarioAutenticado();
             

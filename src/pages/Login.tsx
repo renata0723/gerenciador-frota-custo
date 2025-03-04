@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +37,12 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error('Por favor, preencha todos os campos');
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -44,6 +51,24 @@ const Login = () => {
       navigate('/');
     } catch (error: any) {
       console.error('Erro de login:', error);
+      toast.error(error.message || 'Falha no login, tente novamente');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Login automático para desenvolvimento
+  const handleFastLogin = async (preset: 'admin') => {
+    setLoading(true);
+    try {
+      if (preset === 'admin') {
+        await signIn({ email: 'admin@slog.com.br', password: 'admin123' });
+        toast.success('Login realizado com sucesso!');
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Erro no login automático:', error);
+      toast.error('Falha no login automático, tente manualmente');
     } finally {
       setLoading(false);
     }
@@ -108,10 +133,22 @@ const Login = () => {
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
             
-            <div className="mt-4 text-sm text-gray-500 text-center">
-              <p>Credenciais para teste:</p>
-              <p>Email: admin@slog.com.br</p>
-              <p>Senha: admin123</p>
+            <div className="mt-4 space-y-4">
+              <div className="text-sm text-gray-500 text-center">
+                <p>Credenciais para teste:</p>
+                <p>Email: admin@slog.com.br</p>
+                <p>Senha: admin123</p>
+              </div>
+              
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full"
+                onClick={() => handleFastLogin('admin')}
+                disabled={loading}
+              >
+                Entrar como Administrador
+              </Button>
             </div>
           </form>
         </CardContent>
