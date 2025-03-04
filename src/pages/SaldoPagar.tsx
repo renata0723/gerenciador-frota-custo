@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import NewPageLayout from '@/components/layout/NewPageLayout';
 import PageHeader from '@/components/ui/PageHeader';
@@ -7,27 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Banknote, 
-  Calendar, 
-  DollarSign, 
-  Download, 
-  Edit2, 
-  Filter, 
-  Loader2, 
-  Search, 
-  Trash, 
-  UserCheck 
-} from 'lucide-react';
+import { Banknote, Calendar, DollarSign, Download, Edit2, Filter, Loader2, Search, Trash, UserCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -38,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 const SaldoPagar = () => {
   const [saldos, setSaldos] = useState<SaldoPagarItem[]>([]);
   const [filteredSaldos, setFilteredSaldos] = useState<SaldoPagarItem[]>([]);
+  const [selectedContratos, setSelectedContratos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -69,8 +51,6 @@ const SaldoPagar = () => {
   const carregarSaldos = async () => {
     setLoading(true);
     try {
-      // Em um ambiente real, isso viria do backend
-      // Simulando dados de exemplo
       const dadosExemplo: SaldoPagarItem[] = [
         {
           id: 1,
@@ -103,7 +83,6 @@ const SaldoPagar = () => {
           vencimento: '2024-05-20',
           status: 'pendente'
         },
-        // Mais exemplos para paginação
         {
           id: 4,
           parceiro: '',
@@ -150,14 +129,12 @@ const SaldoPagar = () => {
   const filtrarSaldos = () => {
     let filtrados = [...saldos];
     
-    // Filtrar por termo de busca
     if (searchTerm) {
       filtrados = filtrados.filter(saldo => 
         saldo.parceiro?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
-    // Filtrar por status
     if (statusFilter !== 'todos') {
       filtrados = filtrados.filter(saldo => saldo.status === statusFilter);
     }
@@ -173,7 +150,6 @@ const SaldoPagar = () => {
   const handleExcluir = (id: number) => {
     const confirmed = window.confirm('Tem certeza que deseja excluir este saldo a pagar?');
     if (confirmed) {
-      // Em um ambiente real, enviaríamos para o backend
       setSaldos(saldos.filter(s => s.id !== id));
       toast.success('Saldo a pagar excluído com sucesso!');
     }
@@ -192,7 +168,6 @@ const SaldoPagar = () => {
       return;
     }
     
-    // Em um ambiente real, enviaríamos para o backend
     const bancoPagamento = bancos.find(b => b.id === bancoSelecionado)?.nome || bancoSelecionado;
     
     setSaldos(saldos.map(s => {
@@ -212,6 +187,39 @@ const SaldoPagar = () => {
     
     setIsPagamentoDialogOpen(false);
     toast.success('Pagamento registrado com sucesso!');
+  };
+
+  const handleSelectContrato = (contratoId: string) => {
+    setSelectedContratos(prev => {
+      if (prev.includes(contratoId)) {
+        return prev.filter(id => id !== contratoId);
+      }
+      return [...prev, contratoId];
+    });
+  };
+
+  const calcularTotalSelecionado = () => {
+    return selectedContratos.reduce((total, contratoId) => {
+      const saldo = saldos.find(s => s.id?.toString() === contratoId);
+      return total + (saldo?.saldo_restante || 0);
+    }, 0);
+  };
+
+  const handleRegistrarPagamentoMultiplo = () => {
+    if (!selectedContratos.length) {
+      toast.error('Selecione pelo menos um contrato para pagamento');
+      return;
+    }
+
+    setPagandoSaldo({
+      id: 0,
+      parceiro: saldos.find(s => s.id?.toString() === selectedContratos[0])?.parceiro || '',
+      valor_total: calcularTotalSelecionado(),
+      saldo_restante: calcularTotalSelecionado(),
+      vencimento: new Date().toISOString().split('T')[0],
+      contratos_associados: selectedContratos.join(',')
+    });
+    setIsPagamentoDialogOpen(true);
   };
 
   const formatarValor = (valor?: number) => {
@@ -307,6 +315,9 @@ const SaldoPagar = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[50px]">
+                      Selecionar
+                    </TableHead>
                     <TableHead>Parceiro</TableHead>
                     <TableHead>Valor Total</TableHead>
                     <TableHead>Valor Pago</TableHead>
@@ -326,6 +337,12 @@ const SaldoPagar = () => {
                   ) : (
                     filteredSaldos.map((saldo) => (
                       <TableRow key={saldo.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedContratos.includes(saldo.id?.toString() || '')}
+                            onCheckedChange={() => handleSelectContrato(saldo.id?.toString() || '')}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{saldo.parceiro || '-'}</TableCell>
                         <TableCell>{formatarValor(saldo.valor_total)}</TableCell>
                         <TableCell>{formatarValor(saldo.valor_pago)}</TableCell>
@@ -375,7 +392,18 @@ const SaldoPagar = () => {
         </CardContent>
       </Card>
 
-      {/* Diálogo de Registro de Pagamento */}
+      <div className="flex justify-end mb-4">
+        {selectedContratos.length > 0 && (
+          <Button 
+            onClick={handleRegistrarPagamentoMultiplo}
+            className="gap-2"
+          >
+            <Banknote className="h-4 w-4" />
+            Pagar Selecionados ({selectedContratos.length})
+          </Button>
+        )}
+      </div>
+
       <Dialog open={isPagamentoDialogOpen} onOpenChange={setIsPagamentoDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>

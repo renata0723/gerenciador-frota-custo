@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, FileText, DollarSign, TrendingUp, Package, Activity, Truck, User, Settings, BarChart2, Calendar, Database, Warehouse } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SidebarItem {
   label: string;
@@ -21,20 +20,18 @@ interface CollapsibleSidebarProps {
 }
 
 const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({ children, defaultCollapsed = false }) => {
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
-  const [showMenu, setShowMenu] = useState(false);
-  const isMobile = useMobile();
+  const [collapsed, setCollapsed] = useState(false);
+  const [showMenu, setShowMenu] = useState(true);
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Em dispositivos móveis, sempre começar colapsado
     if (isMobile) {
       setCollapsed(true);
     }
   }, [isMobile]);
 
-  // Fechar o menu quando a rota mudar em dispositivos móveis
   useEffect(() => {
     if (isMobile) {
       setShowMenu(false);
@@ -68,7 +65,6 @@ const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({ children, defau
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Overlay para dispositivos móveis */}
       {isMobile && showMenu && (
         <div 
           className="fixed inset-0 bg-black/50 z-40"
@@ -76,7 +72,6 @@ const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({ children, defau
         />
       )}
 
-      {/* Sidebar */}
       <aside 
         className={cn(
           "bg-white border-r border-border transition-all duration-300 z-50",
@@ -90,7 +85,7 @@ const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({ children, defau
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={toggleCollapsed}
+              onClick={() => setCollapsed(!collapsed)}
               className="h-8 w-8"
             >
               {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
@@ -135,22 +130,10 @@ const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({ children, defau
         </div>
       </aside>
 
-      {/* Conteúdo principal */}
       <main className={cn(
         "flex-1 overflow-y-auto transition-all duration-300",
         isMobile && "w-full"
       )}>
-        {/* Botão de menu para dispositivos móveis quando colapsado */}
-        {isMobile && collapsed && !showMenu && (
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={toggleCollapsed} 
-            className="fixed top-4 left-4 z-30 h-10 w-10 rounded-full shadow-lg bg-white"
-          >
-            <ChevronRight size={20} />
-          </Button>
-        )}
         {children}
       </main>
     </div>
