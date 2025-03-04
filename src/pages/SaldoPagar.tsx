@@ -1,13 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
-import { PageHeader } from "@/components/ui/page-header"
-import { PageLayout } from "@/components/layout/PageLayout"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import PageHeader from "@/components/ui/PageHeader";
+import PageLayout from "@/components/layout/PageLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, FileCheck } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from '@/utils/formatters';
 
 import { SaldoPagarItem } from '@/types/contabilidade';
@@ -87,7 +88,7 @@ const SaldoPagar = () => {
 
   const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setEditandoSaldo(prev => ({ ...prev, [name]: value }));
+    setEditandoSaldo(prev => prev ? ({ ...prev, [name]: value }) : null);
   };
 
   const handleUpdate = () => {

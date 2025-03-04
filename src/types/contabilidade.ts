@@ -1,4 +1,3 @@
-
 export type StatusItem = 'ativo' | 'inativo' | 'pendente' | 'concluido' | 'cancelado' | 'aberto' | 'fechado';
 export type TipoMovimento = 'entrada' | 'saida';
 export type TipoConta = 'ativo' | 'passivo' | 'receita' | 'despesa' | 'patrimonio';
@@ -118,10 +117,9 @@ export interface SaldoPagarItem {
   valor_total: number;
   valor_pago?: number;
   saldo_restante?: number;
-  contratos_associados?: string;
-  dados_bancarios?: string;
+  vencimento: string;
+  status?: 'pendente' | 'concluido' | 'cancelado';
   data_pagamento?: string;
   banco_pagamento?: string;
-  vencimento?: string;
-  status?: StatusItem;
+  observacoes?: string;
 }
