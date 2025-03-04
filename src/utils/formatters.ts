@@ -29,6 +29,19 @@ export function formatarData(data: string | Date | null | undefined): string {
   }
 }
 
+// Função para formatar CPF
+export function formatarCPF(cpf: string): string {
+  if (!cpf) return '';
+  
+  // Remove caracteres não numéricos
+  cpf = cpf.replace(/\D/g, '');
+  
+  // Adiciona a formatação
+  return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
 // Aliases para compatibilidade
 export const formatCurrency = formatarValorMonetario;
 export const formatDate = formatarData;
+export const formataMoeda = formatarValorMonetario;
+export const formatCPF = formatarCPF;

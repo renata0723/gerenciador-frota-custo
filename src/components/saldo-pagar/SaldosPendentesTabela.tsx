@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -9,174 +9,246 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Ban, CheckSquare, ArrowRightSquare, Receipt, DollarSign } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  CheckCircle2,
+  ChevronDown,
+  Coins,
+  DollarSign,
+  EyeIcon,
+  Filter,
+  MoreHorizontal,
+  Printer,
+  Search,
+} from 'lucide-react';
 import { SaldoItem } from '@/types/saldoPagar';
-import { StatusItem } from '@/types/status';
-import { formatCurrency, formatDate, STATUS_SALDO_PAGAR } from '@/utils/constants';
+import { formatCurrency, formatDate } from '@/utils/formatters';
+import { STATUS_SALDO_PAGAR } from '@/utils/constants';
 
 interface SaldosPendentesProps {
   saldos: SaldoItem[];
-  isLoading: boolean;
-  somenteLeitura?: boolean;
-  onPagar?: (saldo: SaldoItem) => void;
-  onCancelar?: (saldo: SaldoItem) => void;
-  onLiberar?: (saldo: SaldoItem) => void;
-  onVerDetalhes?: (saldo: SaldoItem) => void;
+  onVisualizarClick: (saldo: SaldoItem) => void;
+  onRealizarPagamento: (saldo: SaldoItem) => void;
+  onFiltraStatus?: (status: string) => void;
+  onSearch?: (term: string) => void;
 }
-
-const statusColors = {
-  pendente: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  parcial: 'bg-blue-100 text-blue-800 border-blue-200',
-  pago: 'bg-green-100 text-green-800 border-green-200',
-  cancelado: 'bg-red-100 text-red-800 border-red-200',
-  liberado: 'bg-purple-100 text-purple-800 border-purple-200'
-};
 
 const SaldosPendentesTabela: React.FC<SaldosPendentesProps> = ({
   saldos,
-  isLoading,
-  somenteLeitura = false,
-  onPagar,
-  onCancelar,
-  onLiberar,
-  onVerDetalhes
+  onVisualizarClick,
+  onRealizarPagamento,
+  onFiltraStatus,
+  onSearch,
 }) => {
-  // Função para obter cor baseada no status
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleSearch = () => {
+    if (onSearch) {
+      onSearch(searchTerm);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     if (status === STATUS_SALDO_PAGAR.PENDENTE.value) {
-      return statusColors.pendente;
+      return 'bg-yellow-100 text-yellow-800';
+    } else if (status === STATUS_SALDO_PAGAR.PARCIAL.value) {
+      return 'bg-blue-100 text-blue-800';
+    } else if (status === STATUS_SALDO_PAGAR.PAGO.value) {
+      return 'bg-green-100 text-green-800';
+    } else if (status === STATUS_SALDO_PAGAR.CANCELADO.value) {
+      return 'bg-red-100 text-red-800';
+    } else if (status === STATUS_SALDO_PAGAR.LIBERADO.value) {
+      return 'bg-purple-100 text-purple-800';
     }
-    if (status === STATUS_SALDO_PAGAR.PARCIAL.value) {
-      return statusColors.parcial;
-    }
-    if (status === STATUS_SALDO_PAGAR.PAGO.value) {
-      return statusColors.pago;
-    }
-    if (status === STATUS_SALDO_PAGAR.CANCELADO.value) {
-      return statusColors.cancelado;
-    }
-    if (status === STATUS_SALDO_PAGAR.LIBERADO.value) {
-      return statusColors.liberado;
-    }
-    
-    return 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-  
-  // Função para obter o label do status
-  const getStatusLabel = (status: string) => {
-    if (status === STATUS_SALDO_PAGAR.PENDENTE.value) {
-      return STATUS_SALDO_PAGAR.PENDENTE.label;
-    }
-    if (status === STATUS_SALDO_PAGAR.PARCIAL.value) {
-      return STATUS_SALDO_PAGAR.PARCIAL.label;
-    }
-    if (status === STATUS_SALDO_PAGAR.PAGO.value) {
-      return STATUS_SALDO_PAGAR.PAGO.label;
-    }
-    if (status === STATUS_SALDO_PAGAR.CANCELADO.value) {
-      return STATUS_SALDO_PAGAR.CANCELADO.label;
-    }
-    if (status === STATUS_SALDO_PAGAR.LIBERADO.value) {
-      return STATUS_SALDO_PAGAR.LIBERADO.label;
-    }
-    
-    return 'Desconhecido';
+    return 'bg-gray-100 text-gray-800';
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Carregando saldos...</span>
-      </div>
+  const getStatusLabel = (statusValue: string) => {
+    const status = Object.values(STATUS_SALDO_PAGAR).find(
+      s => s.value === statusValue
     );
-  }
+    return status ? status.label : statusValue;
+  };
 
-  if (saldos.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <DollarSign className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-        <h3 className="text-lg font-medium text-gray-900">Nenhum saldo encontrado</h3>
-        <p className="text-gray-500 mt-1">Não há saldos a pagar registrados no momento.</p>
-      </div>
-    );
-  }
-
+  const totalPendente = saldos
+    .filter(s => s.status === STATUS_SALDO_PAGAR.PENDENTE.value || s.status === STATUS_SALDO_PAGAR.PARCIAL.value)
+    .reduce((acc, curr) => acc + curr.saldo_restante, 0);
+    
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[120px]">Vencimento</TableHead>
-            <TableHead>Parceiro</TableHead>
-            <TableHead>Valor Total</TableHead>
-            <TableHead>Valor Pago</TableHead>
-            <TableHead>Saldo Restante</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {saldos.map((saldo) => (
-            <TableRow key={saldo.id} className="hover:bg-gray-50">
-              <TableCell className="font-medium">
-                {formatDate(saldo.vencimento)}
-              </TableCell>
-              <TableCell>{saldo.parceiro}</TableCell>
-              <TableCell>{formatCurrency(saldo.valor_total)}</TableCell>
-              <TableCell>{formatCurrency(saldo.valor_pago)}</TableCell>
-              <TableCell className="font-medium">{formatCurrency(saldo.saldo_restante)}</TableCell>
-              <TableCell>
-                <Badge className={getStatusColor(saldo.status)}>
-                  {getStatusLabel(saldo.status)}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end space-x-1">
-                  {saldo.status === STATUS_SALDO_PAGAR.PENDENTE.value && !somenteLeitura && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onPagar && onPagar(saldo)}
-                        title="Pagar"
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex justify-between items-center">
+          <span>Saldos a Pagar</span>
+          <span className="text-xl font-bold text-blue-600">
+            Total Pendente: {formatCurrency(totalPendente)}
+          </span>
+        </CardTitle>
+        <CardDescription>
+          Gerencie os pagamentos pendentes aos parceiros e motoristas.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+          <div className="w-full md:w-auto flex gap-2">
+            <div className="relative flex-1 md:w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                placeholder="Buscar parceiro..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+            </div>
+            <Button variant="outline" size="icon" onClick={handleSearch}>
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="flex gap-2 w-full md:w-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex gap-1">
+                  <Filter size={16} />
+                  <span className="hidden md:inline">Status</span>
+                  <ChevronDown size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onFiltraStatus && onFiltraStatus('')}>
+                  Todos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onFiltraStatus && onFiltraStatus(STATUS_SALDO_PAGAR.PENDENTE.value)}>
+                  Pendente
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onFiltraStatus && onFiltraStatus(STATUS_SALDO_PAGAR.PARCIAL.value)}>
+                  Parcial
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onFiltraStatus && onFiltraStatus(STATUS_SALDO_PAGAR.PAGO.value)}>
+                  Pago
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onFiltraStatus && onFiltraStatus(STATUS_SALDO_PAGAR.LIBERADO.value)}>
+                  Liberado
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button variant="outline" className="flex gap-1">
+              <Printer size={16} />
+              <span className="hidden md:inline">Imprimir</span>
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-md border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Parceiro</TableHead>
+                <TableHead>Valor Total</TableHead>
+                <TableHead>Pago</TableHead>
+                <TableHead>Restante</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {saldos.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-6 text-gray-500">
+                    Nenhum saldo a pagar encontrado
+                  </TableCell>
+                </TableRow>
+              ) : (
+                saldos.map((saldo) => (
+                  <TableRow key={saldo.id}>
+                    <TableCell className="font-medium">{saldo.id}</TableCell>
+                    <TableCell>{saldo.parceiro}</TableCell>
+                    <TableCell>{formatCurrency(saldo.valor_total)}</TableCell>
+                    <TableCell>{formatCurrency(saldo.valor_pago)}</TableCell>
+                    <TableCell className="font-semibold">
+                      {formatCurrency(saldo.saldo_restante)}
+                    </TableCell>
+                    <TableCell>{formatDate(saldo.vencimento)}</TableCell>
+                    <TableCell>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          saldo.status
+                        )}`}
                       >
-                        <CheckSquare className="h-4 w-4 text-green-600" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onCancelar && onCancelar(saldo)}
-                        title="Cancelar"
-                      >
-                        <Ban className="h-4 w-4 text-red-600" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onLiberar && onLiberar(saldo)}
-                        title="Liberar"
-                      >
-                        <ArrowRightSquare className="h-4 w-4 text-purple-600" />
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onVerDetalhes && onVerDetalhes(saldo)}
-                    title="Ver detalhes"
-                  >
-                    <Receipt className="h-4 w-4 text-blue-600" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+                        {getStatusLabel(saldo.status)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onVisualizarClick(saldo)}
+                        >
+                          <EyeIcon className="h-4 w-4 mr-1" />
+                          <span className="hidden sm:inline">Detalhes</span>
+                        </Button>
+                        {(saldo.status === STATUS_SALDO_PAGAR.PENDENTE.value || 
+                          saldo.status === STATUS_SALDO_PAGAR.PARCIAL.value) && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => onRealizarPagamento(saldo)}
+                          >
+                            <Coins className="h-4 w-4 mr-1" />
+                            <span className="hidden sm:inline">Pagar</span>
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onVisualizarClick(saldo)}>
+                              <EyeIcon className="h-4 w-4 mr-2" />
+                              Detalhes
+                            </DropdownMenuItem>
+                            {(saldo.status === STATUS_SALDO_PAGAR.PENDENTE.value || 
+                              saldo.status === STATUS_SALDO_PAGAR.PARCIAL.value) && (
+                              <DropdownMenuItem onClick={() => onRealizarPagamento(saldo)}>
+                                <Coins className="h-4 w-4 mr-2" />
+                                Registrar Pagamento
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem>
+                              <Printer className="h-4 w-4 mr-2" />
+                              Imprimir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

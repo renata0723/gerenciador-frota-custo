@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { formataMoeda } from '@/utils/constants';
+import { formatCurrency } from '@/utils/formatters';
 import Placeholder, { LoadingPlaceholder } from '@/components/ui/Placeholder';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -157,7 +157,7 @@ const DespesasGerais = () => {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-sm font-medium text-gray-500">Total de Despesas</p>
-              <h3 className="text-2xl font-bold text-gray-900">{formataMoeda(totalDespesas)}</h3>
+              <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(totalDespesas)}</h3>
             </div>
             <div className="p-3 rounded-full bg-red-100">
               <DollarSign size={20} className="text-red-600" />
@@ -169,7 +169,7 @@ const DespesasGerais = () => {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-sm font-medium text-gray-500">Despesas Contabilizadas</p>
-              <h3 className="text-2xl font-bold text-green-600">{formataMoeda(totalDespesasContabilizadas)}</h3>
+              <h3 className="text-2xl font-bold text-green-600">{formatCurrency(totalDespesasContabilizadas)}</h3>
             </div>
             <div className="p-3 rounded-full bg-green-100">
               <FileText size={20} className="text-green-600" />
@@ -181,7 +181,7 @@ const DespesasGerais = () => {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-sm font-medium text-gray-500">Despesas Pendentes</p>
-              <h3 className="text-2xl font-bold text-yellow-600">{formataMoeda(totalDespesasPendentes)}</h3>
+              <h3 className="text-2xl font-bold text-yellow-600">{formatCurrency(totalDespesasPendentes)}</h3>
             </div>
             <div className="p-3 rounded-full bg-yellow-100">
               <DollarSign size={20} className="text-yellow-600" />
@@ -258,7 +258,7 @@ const DespesasGerais = () => {
                     <TableCell className="max-w-[300px] truncate">{despesa.descricao_detalhada}</TableCell>
                     <TableCell>{despesa.contrato_id || 'N/A'}</TableCell>
                     <TableCell>{despesa.conta_contabil || 'Não atribuído'}</TableCell>
-                    <TableCell className="text-right font-medium">{formataMoeda(despesa.valor_despesa)}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(despesa.valor_despesa)}</TableCell>
                     <TableCell>
                       <div className={`px-2 py-1 text-xs rounded-full inline-flex items-center ${
                         despesa.contabilizado 
@@ -331,7 +331,7 @@ const DespesasGerais = () => {
                 </div>
                 <div>
                   <Label className="text-sm text-gray-500">Valor</Label>
-                  <p className="font-medium">{formataMoeda(despesaSelecionada.valor_despesa)}</p>
+                  <p className="font-medium">{formatCurrency(despesaSelecionada.valor_despesa)}</p>
                 </div>
               </div>
               

@@ -24,7 +24,15 @@ export const CONTAS_CONTABEIS = {
 };
 
 // Exportamos as funções de formatação diretamente
-export { formatarValorMonetario, formatarData, formatCurrency, formatDate } from './formatters';
+export { 
+  formatarValorMonetario, 
+  formatarData, 
+  formatCurrency, 
+  formatDate, 
+  formataMoeda,
+  formatarCPF,
+  formatCPF
+} from './formatters';
 
 // Status para saldo a pagar
 export const STATUS_SALDO_PAGAR = {

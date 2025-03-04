@@ -1,83 +1,62 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CreditCard, AlertCircle } from 'lucide-react';
-import { ParceiroInfo, DadosBancarios } from '@/types/saldoPagar';
+import { Card, CardContent } from '@/components/ui/card';
+import { bancos } from '@/utils/constants';
+import { DadosBancarios } from '@/types/saldoPagar';
 
-interface DadosBancariosParceirosProps {
-  parceiro: ParceiroInfo;
+interface DadosBancariosParceiroProps {
+  dadosBancarios: DadosBancarios | string;
 }
 
-const DadosBancariosParceiro: React.FC<DadosBancariosParceirosProps> = ({ parceiro }) => {
-  // Verificar se os dados bancários existem
-  const temDadosBancarios = parceiro.dadosBancarios !== undefined && 
-                           parceiro.dadosBancarios !== null && 
-                           parceiro.dadosBancarios !== '';
+const DadosBancariosParceiro: React.FC<DadosBancariosParceiroProps> = ({ dadosBancarios }) => {
+  // Se for uma string, tentar converter para objeto
+  let dados: DadosBancarios = { banco: '', agencia: '', conta: '', tipo_conta: '', pix: '' };
   
-  // Preparar o objeto de dados bancários
-  let dadosBancariosObj: DadosBancarios | null = null;
-  
-  if (temDadosBancarios) {
-    if (typeof parceiro.dadosBancarios === 'string') {
-      try {
-        dadosBancariosObj = JSON.parse(parceiro.dadosBancarios as string);
-      } catch (e) {
-        console.error('Erro ao fazer parse dos dados bancários:', e);
-      }
-    } else {
-      dadosBancariosObj = parceiro.dadosBancarios as DadosBancarios;
+  if (typeof dadosBancarios === 'string' && dadosBancarios !== '') {
+    try {
+      dados = JSON.parse(dadosBancarios);
+    } catch (e) {
+      console.error('Erro ao parsear dados bancários:', e);
     }
+  } else if (typeof dadosBancarios === 'object') {
+    dados = dadosBancarios;
   }
 
-  // Se não há dados bancários ou ocorreu erro no parse
-  if (!temDadosBancarios || !dadosBancariosObj) {
-    return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold">Dados Bancários</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Este parceiro não possui dados bancários cadastrados.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Buscar nome do banco baseado no código
+  const nomeBanco = dados.banco 
+    ? bancos.find(b => b.codigo === dados.banco)?.nome || dados.banco
+    : 'Não informado';
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">Dados Bancários</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex items-center">
-            <CreditCard className="h-5 w-5 text-blue-500 mr-2" />
-            <span className="font-medium">Banco:</span>
-            <span className="ml-2">{dadosBancariosObj.banco}</span>
+    <Card className="mt-4">
+      <CardContent className="pt-4">
+        <h3 className="text-lg font-semibold mb-3">Dados Bancários</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-500">Banco</p>
+            <p>{nomeBanco}</p>
           </div>
           
-          <div className="flex items-center">
-            <span className="font-medium ml-7">Agência:</span>
-            <span className="ml-2">{dadosBancariosObj.agencia}</span>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Agência</p>
+            <p>{dados.agencia || 'Não informado'}</p>
           </div>
           
-          <div className="flex items-center">
-            <span className="font-medium ml-7">Conta:</span>
-            <span className="ml-2">{dadosBancariosObj.conta} ({dadosBancariosObj.tipo_conta})</span>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Conta</p>
+            <p>{dados.conta || 'Não informado'}</p>
           </div>
           
-          {dadosBancariosObj.pix && (
-            <div className="flex items-center">
-              <span className="font-medium ml-7">PIX:</span>
-              <span className="ml-2">{dadosBancariosObj.pix}</span>
-            </div>
-          )}
+          <div>
+            <p className="text-sm font-medium text-gray-500">Tipo de Conta</p>
+            <p>{dados.tipo_conta || 'Não informado'}</p>
+          </div>
+          
+          <div className="col-span-2">
+            <p className="text-sm font-medium text-gray-500">Chave PIX</p>
+            <p>{dados.pix || 'Não informado'}</p>
+          </div>
         </div>
       </CardContent>
     </Card>
