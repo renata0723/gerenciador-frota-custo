@@ -1,3 +1,4 @@
+
 export const formataMoeda = (valor: number) => {
   return valor.toLocaleString('pt-BR', {
     style: 'currency',
@@ -25,7 +26,7 @@ export const tiposDespesa = [
 ];
 
 // Atualização do nome da aplicação
-export const APP_NAME = "ControlFrota | Sistema de Controle de Frota e Logística";
+export const APP_NAME = "SSLOG TRANSPORTES LTDA | Sistema de Controle de Frota e Logística";
 export const APP_SUBTITLE = "Controladoria";
 
 // Remover números de versão
@@ -54,3 +55,10 @@ export const localRealizacao = [
 ];
 
 export type LocalRealizacao = "patio" | "externa";
+
+// Ano atual do sistema
+export const ANO_ATUAL = 2025;
+
+// Informações da empresa
+export const EMPRESA_CNPJ = "44.712.877/0001-80";
+export const EMPRESA_NOME = "SSLOG Transportes LTDA";

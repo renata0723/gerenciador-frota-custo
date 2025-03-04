@@ -4,102 +4,107 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { autenticarUsuario } from '@/services/usuarioService';
-import { verificarAdministrador } from '@/services/administradorService';
+import { supabase } from '@/integrations/supabase/client';
+import { EMPRESA_NOME, EMPRESA_CNPJ, ANO_ATUAL } from '@/utils/constants';
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Autenticar o usuário
-      const usuario = await autenticarUsuario(email, senha);
-      
-      if (!usuario) {
-        toast.error('Email ou senha incorretos');
-        setLoading(false);
+      // Esta implementação é simplificada. Em um sistema real, usaríamos autenticação segura.
+      const { data, error } = await supabase
+        .from('Usuarios')
+        .select('*')
+        .eq('email', email)
+        .eq('senha', password)
+        .eq('status', 'ativo')
+        .single();
+
+      if (error || !data) {
+        toast.error('Credenciais inválidas. Verifique seu email e senha.');
         return;
       }
-      
-      // Verificar se é administrador
-      const admin = await verificarAdministrador(usuario.id!);
-      
-      // Armazenar dados do usuário na sessão
-      sessionStorage.setItem('usuarioLogado', JSON.stringify(usuario));
-      if (admin) {
-        sessionStorage.setItem('adminGeral', 'true');
-      }
-      
-      toast.success(`Bem-vindo, ${usuario.nome}!`);
+
+      // Registrar o último acesso
+      await supabase
+        .from('Usuarios')
+        .update({ ultimo_acesso: new Date().toISOString() })
+        .eq('id', data.id);
+
+      // Guardar informações do usuário em localStorage (em um sistema real usaríamos métodos mais seguros)
+      localStorage.setItem('auth_user', JSON.stringify(data));
+      localStorage.setItem('auth_token', 'simulated-jwt-token');
+
+      toast.success('Login realizado com sucesso!');
       navigate('/');
     } catch (error) {
-      console.error('Erro no login:', error);
-      toast.error('Ocorreu um erro ao tentar fazer login');
+      console.error('Erro ao fazer login:', error);
+      toast.error('Ocorreu um erro ao fazer login. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-gray-100">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4">
-            <img 
-              src="/lovable-uploads/68e7fc7b-e539-487a-bfbe-aad068171fbd.png" 
-              alt="SSlog Transportes" 
-              className="h-24 mx-auto"
-            />
-          </div>
-          <CardTitle className="text-2xl font-bold text-blue-700">SSLOG TRANSPORTES LTDA</CardTitle>
-          <CardDescription>
-            Sistema de Controle de Frotas e Logística
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="senha">Senha</Label>
-                </div>
-                <Input
-                  id="senha"
-                  type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
-                {loading ? 'Entrando...' : 'Entrar'}
-              </Button>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-3">
+            <div className="bg-gray-200 rounded p-2 inline-block">
+              <h1 className="text-2xl font-bold text-gray-800">SSLOG TRANSPORTES LTDA</h1>
             </div>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-center text-sm text-gray-500">
-          © {new Date().getFullYear()} Sslog Transportes LTDA - CNPJ: 44.712.877/0001-80 - Todos os direitos reservados
-        </CardFooter>
-      </Card>
+          </div>
+          <h2 className="text-lg text-gray-600">Sistema de Controle de Frotas e Logística</h2>
+        </div>
+        
+        <form onSubmit={handleLogin}>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@controlfrota.com.br"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-500 hover:bg-blue-600"
+              disabled={loading}
+            >
+              {loading ? 'Entrando...' : 'Entrar'}
+            </Button>
+          </div>
+        </form>
+        
+        <div className="mt-8 text-center text-sm text-gray-600">
+          <p>© {ANO_ATUAL} {EMPRESA_NOME} - CNPJ: {EMPRESA_CNPJ} - Todos os direitos reservados</p>
+        </div>
+      </div>
     </div>
   );
 };

@@ -6,7 +6,7 @@ export interface AbastecimentoItem {
   motorista_solicitante: string;
   tipo_combustivel: string;
   valor_abastecimento: number;
-  quantidade: number;
+  quantidade?: number;
   quilometragem: number;
   posto: string;
   responsavel_autorizacao: string;
@@ -34,11 +34,12 @@ export interface AbastecimentoFormData {
 }
 
 export interface TipoCombustivelFormProps {
-  onTipoCombustivelAdded: (tipoCombustivel: TipoCombustivel) => void;
+  onSuccess: (tipoCombustivel: TipoCombustivel) => void;
 }
 
 export interface NovoAbastecimentoFormProps {
   tiposCombustivel: TipoCombustivel[];
   onSave: (data: AbastecimentoFormData) => void;
   initialData?: Partial<AbastecimentoFormData>;
+  onCancel?: () => void;
 }

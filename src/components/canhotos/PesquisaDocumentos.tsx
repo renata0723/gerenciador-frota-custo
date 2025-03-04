@@ -1,221 +1,161 @@
 
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Search, Download, Filter, FileText } from 'lucide-react';
+import { toast } from 'sonner';
+import { Canhoto } from '@/types/canhoto';
 import { supabase } from '@/integrations/supabase/client';
-import { CanhotoPendente } from "@/types/canhoto";
+import { formatDate } from '@/utils/constants';
 
-export interface PesquisaDocumentosProps {
-  onResultadoEncontrado: (resultado: CanhotoPendente) => void;
+interface PesquisaDocumentosProps {
+  onSelect: (documento: Canhoto) => void;
+  initialFilter?: string;
 }
 
-const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({ onResultadoEncontrado }) => {
-  const [numeroContrato, setNumeroContrato] = useState("");
-  const [numeroManifesto, setNumeroManifesto] = useState("");
-  const [numeroCTe, setNumeroCTe] = useState("");
-  const [numeroNotaFiscal, setNumeroNotaFiscal] = useState("");
+const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({ onSelect, initialFilter }) => {
+  const [searchTerm, setSearchTerm] = useState(initialFilter || '');
+  const [documentos, setDocumentos] = useState<Canhoto[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   const handleSearch = async () => {
-    setLoading(true);
-    
-    // Verificar se pelo menos um campo foi preenchido
-    if (!numeroContrato && !numeroManifesto && !numeroCTe && !numeroNotaFiscal) {
-      toast.error("Preencha pelo menos um dos campos de pesquisa");
-      setLoading(false);
+    if (!searchTerm.trim()) {
+      toast.warning('Digite um termo para pesquisar');
       return;
     }
-    
+
+    setLoading(true);
     try {
-      let query = supabase
-        .from('Contratos')
-        .select('id, cliente_destino, motorista_id');
-      
-      if (numeroContrato) {
-        // Convertendo para número apenas se for um valor numérico válido
-        const contratoId = isNaN(Number(numeroContrato)) ? numeroContrato : Number(numeroContrato);
-        query = query.eq('id', contratoId);
+      const { data, error } = await supabase
+        .from('Canhoto')
+        .select('*')
+        .or(`contrato_id.ilike.%${searchTerm}%,numero_nota_fiscal.ilike.%${searchTerm}%,numero_manifesto.ilike.%${searchTerm}%,numero_cte.ilike.%${searchTerm}%,cliente.ilike.%${searchTerm}%`);
+
+      if (error) {
+        throw error;
       }
 
-      // Buscar pelo contrato primeiro
-      const { data: contratoData, error: contratoError } = await query;
-      
-      if (contratoError) {
-        throw contratoError;
-      }
-      
-      if (contratoData && contratoData.length > 0) {
-        // Buscar nome do motorista
-        const { data: motoristasData } = await supabase
-          .from('Motoristas')
-          .select('nome')
-          .eq('id', contratoData[0].motorista_id)
-          .single();
-          
-        const resultado: CanhotoPendente = {
-          id: 0, // Atribuímos um ID temporário
-          contrato_id: contratoData[0].id.toString(),
-          cliente: contratoData[0].cliente_destino,
-          motorista: motoristasData?.nome || 'Não identificado'
-        };
-        
-        onResultadoEncontrado(resultado);
-        return;
-      }
-      
-      // Se não encontrou por contrato, tentar pelos outros campos
-      if (numeroManifesto || numeroCTe || numeroNotaFiscal) {
-        let queryCanhotos = supabase.from('Canhoto').select('*');
-        
-        if (numeroManifesto) {
-          queryCanhotos = queryCanhotos.eq('numero_manifesto', numeroManifesto);
-        }
-        
-        if (numeroCTe) {
-          queryCanhotos = queryCanhotos.eq('numero_cte', numeroCTe);
-        }
-        
-        if (numeroNotaFiscal) {
-          queryCanhotos = queryCanhotos.eq('numero_nota_fiscal', numeroNotaFiscal);
-        }
-        
-        const { data: canhotosData, error: canhotosError } = await queryCanhotos;
-        
-        if (canhotosError) {
-          throw canhotosError;
-        }
-        
-        if (canhotosData && canhotosData.length > 0) {
-          // Verifique se algum documento já teve o canhoto recebido
-          const canhotosRecebidos = canhotosData.filter(c => c.status === 'Recebido');
-          
-          if (canhotosRecebidos.length > 0) {
-            toast.warning("Este documento já teve seu canhoto registrado");
-            setLoading(false);
-            return;
-          }
-          
-          // Pegar o primeiro canhoto pendente
-          const canhotoPendente = canhotosData[0];
-          
-          const resultado: CanhotoPendente = {
-            id: canhotoPendente.id || 0,
-            contrato_id: canhotoPendente.contrato_id,
-            cliente: canhotoPendente.cliente,
-            motorista: canhotoPendente.motorista,
-            data_entrega: canhotoPendente.data_entrega_cliente,
-            numero_nota_fiscal: canhotoPendente.numero_nota_fiscal
-          };
-          
-          onResultadoEncontrado(resultado);
-          return;
-        }
+      // Converter os IDs para número de forma segura
+      const formattedData = (data || []).map(doc => ({
+        ...doc,
+        id: typeof doc.id === 'string' ? parseInt(doc.id, 10) : doc.id
+      }));
 
-        // Tentar buscar pelos documentos nas Notas Fiscais
-        if (numeroNotaFiscal) {
-          const notaId = isNaN(Number(numeroNotaFiscal)) ? numeroNotaFiscal : Number(numeroNotaFiscal);
-          
-          const { data: notasData, error: notasError } = await supabase
-            .from('Notas Fiscais')
-            .select('*')
-            .eq('numero_nota_fiscal', notaId);
-            
-          if (notasError) {
-            throw notasError;
-          }
-          
-          if (notasData && notasData.length > 0) {
-            const nota = notasData[0];
-            
-            const resultado: CanhotoPendente = {
-              id: 0, // ID temporário
-              cliente: nota.cliente_destinatario,
-              contrato_id: '',  // Será preenchido posteriormente
-              motorista: 'A ser associado',
-              data_entrega: nota.data_prevista_entrega,
-              numero_nota_fiscal: nota.numero_nota_fiscal.toString()
-            };
-            
-            onResultadoEncontrado(resultado);
-            return;
-          }
-        }
-        
-        toast.error("Nenhum documento encontrado com os critérios informados");
+      setDocumentos(formattedData);
+      if (formattedData.length === 0) {
+        toast.info('Nenhum documento encontrado com os critérios informados');
       }
     } catch (error) {
-      console.error('Erro ao pesquisar documento:', error);
-      toast.error("Ocorreu um erro ao pesquisar o documento");
+      console.error('Erro ao pesquisar documentos:', error);
+      toast.error('Erro ao pesquisar documentos');
     } finally {
       setLoading(false);
     }
   };
-  
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const handleSelectDocumento = (documento: Canhoto) => {
+    if (typeof documento.id === 'string') {
+      documento.id = parseInt(documento.id, 10);
+    }
+    onSelect(documento);
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="numeroContrato">Número do Contrato</Label>
-          <Input
-            id="numeroContrato"
-            placeholder="Digite o número do contrato"
-            value={numeroContrato}
-            onChange={(e) => setNumeroContrato(e.target.value)}
-          />
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <FileText className="mr-2 h-5 w-5 text-sistema-primary" />
+          Pesquisa de Documentos
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center space-x-2 mb-4">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search size={18} className="text-gray-400" />
+            </div>
+            <Input
+              type="text"
+              placeholder="Buscar por Nº Nota, Contrato, CTe, Manifesto ou Cliente..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
+          <Button 
+            variant="default" 
+            onClick={handleSearch}
+            disabled={loading}
+          >
+            {loading ? "Buscando..." : "Buscar"}
+          </Button>
         </div>
-        
-        <div>
-          <Label htmlFor="numeroManifesto">Número do Manifesto</Label>
-          <Input
-            id="numeroManifesto"
-            placeholder="Digite o número do manifesto"
-            value={numeroManifesto}
-            onChange={(e) => setNumeroManifesto(e.target.value)}
-          />
+
+        <div className="border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Contrato</TableHead>
+                <TableHead>Nota Fiscal</TableHead>
+                <TableHead>CTe</TableHead>
+                <TableHead>Manifesto</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documentos.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
+                    {loading ? 'Carregando...' : 'Nenhum documento encontrado'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                documentos.map((doc) => (
+                  <TableRow key={doc.id}>
+                    <TableCell>{doc.contrato_id || '—'}</TableCell>
+                    <TableCell>{doc.numero_nota_fiscal || '—'}</TableCell>
+                    <TableCell>{doc.numero_cte || '—'}</TableCell>
+                    <TableCell>{doc.numero_manifesto || '—'}</TableCell>
+                    <TableCell>{doc.cliente || '—'}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        doc.status === 'Recebido' 
+                          ? 'bg-green-100 text-green-800' 
+                          : doc.status === 'Cancelado'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {doc.status || 'Pendente'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => handleSelectDocumento(doc)}
+                      >
+                        Selecionar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="numeroCTe">Número do CT-e</Label>
-          <Input
-            id="numeroCTe"
-            placeholder="Digite o número do CT-e"
-            value={numeroCTe}
-            onChange={(e) => setNumeroCTe(e.target.value)}
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="numeroNotaFiscal">Número da Nota Fiscal</Label>
-          <Input
-            id="numeroNotaFiscal"
-            placeholder="Digite o número da nota fiscal"
-            value={numeroNotaFiscal}
-            onChange={(e) => setNumeroNotaFiscal(e.target.value)}
-          />
-        </div>
-      </div>
-      
-      <div className="flex justify-center">
-        <Button 
-          type="button" 
-          onClick={handleSearch} 
-          disabled={loading}
-          className="w-full sm:w-auto"
-        >
-          {loading ? "Pesquisando..." : "Buscar Documento"}
-        </Button>
-      </div>
-      
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <p className="text-sm text-blue-800">
-          <strong>Dica:</strong> Preencha apenas um dos campos para realizar a pesquisa. O sistema irá encontrar o documento relacionado.
-        </p>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

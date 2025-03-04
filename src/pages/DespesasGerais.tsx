@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import PageLayout from '../components/layout/PageLayout';
 import PageHeader from '../components/ui/PageHeader';
 import { DollarSign, Plus, Search, Filter, Download, BarChart2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -18,14 +18,13 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { formataMoeda } from '@/utils/constants';
-import NovaDespesaForm from '@/components/despesas/NovaDespesaForm';
 import Placeholder, { LoadingPlaceholder } from '@/components/ui/Placeholder';
 
 const DespesasGerais = () => {
   const [despesas, setDespesas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     carregarDespesas();
@@ -53,12 +52,6 @@ const DespesasGerais = () => {
     }
   };
 
-  const handleDespesaAdicionada = () => {
-    setShowForm(false);
-    carregarDespesas();
-    toast.success("Despesa registrada com sucesso!");
-  };
-
   const filteredDespesas = despesas.filter(despesa => 
     despesa.tipo_despesa.toLowerCase().includes(searchTerm.toLowerCase()) ||
     despesa.descricao_detalhada?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,7 +71,7 @@ const DespesasGerais = () => {
           { label: 'Despesas Gerais' }
         ]}
         actions={
-          <Button onClick={() => setShowForm(true)}>
+          <Button onClick={() => navigate('/despesas/nova')}>
             <Plus size={16} className="mr-2" />
             Nova Despesa
           </Button>
@@ -98,16 +91,6 @@ const DespesasGerais = () => {
           </div>
         </Card>
       </div>
-
-      {showForm ? (
-        <Card className="p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">Registrar Nova Despesa</h2>
-          <NovaDespesaForm 
-            onDespesaAdicionada={handleDespesaAdicionada} 
-            onCancel={() => setShowForm(false)}
-          />
-        </Card>
-      ) : null}
 
       <Card className="shadow-sm border">
         <div className="p-4 border-b">
@@ -149,7 +132,7 @@ const DespesasGerais = () => {
             title="Nenhuma despesa encontrada" 
             description="Você ainda não possui nenhuma despesa registrada. Clique no botão acima para adicionar."
             buttonText="Adicionar Nova Despesa"
-            onButtonClick={() => setShowForm(true)}
+            onButtonClick={() => navigate('/despesas/nova')}
             className="m-4"
           />
         ) : (

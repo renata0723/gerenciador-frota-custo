@@ -10,6 +10,7 @@ import Motoristas from "./pages/Motoristas";
 import Contratos from "./pages/Contratos";
 import Abastecimentos from "./pages/Abastecimentos";
 import DespesasGerais from "./pages/DespesasGerais";
+import NovaDespesaForm from "./pages/NovaDespesaForm";
 import Manutencao from "./pages/Manutencao";
 import BuscarContrato from "./pages/BuscarContrato";
 import Canhotos from "./pages/Canhotos";
@@ -53,6 +54,7 @@ function App() {
         <Route path="/contratos/editar/:id" element={<AuthGuard><NovoContratoForm /></AuthGuard>} />
         <Route path="/abastecimentos" element={<AuthGuard><Abastecimentos /></AuthGuard>} />
         <Route path="/despesas" element={<AuthGuard><DespesasGerais /></AuthGuard>} />
+        <Route path="/despesas/nova" element={<AuthGuard><NovaDespesaForm /></AuthGuard>} />
         <Route path="/manutencao" element={<AuthGuard><Manutencao /></AuthGuard>} />
         <Route path="/buscar-contrato" element={<AuthGuard><BuscarContrato /></AuthGuard>} />
         <Route path="/canhotos" element={<AuthGuard><Canhotos /></AuthGuard>} />

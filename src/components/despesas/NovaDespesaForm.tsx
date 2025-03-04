@@ -14,9 +14,10 @@ import { tiposDespesa } from '@/utils/constants';
 
 interface NovaDespesaFormProps {
   onDespesaAdicionada: () => void;
+  onCancel?: () => void;
 }
 
-const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({ onDespesaAdicionada }) => {
+const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({ onDespesaAdicionada, onCancel }) => {
   const { register, handleSubmit, setValue, watch, formState: { errors }, reset } = useForm<DespesaFormData>({
     defaultValues: {
       data: new Date().toISOString().split('T')[0],
@@ -43,18 +44,21 @@ const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({ onDespesaAdicionada }
 
   const onSubmit = async (data: DespesaFormData) => {
     try {
+      // Converter valores para maiúsculas
+      const descricaoUpper = data.descricao.toUpperCase();
+      
       const { error } = await supabase
         .from('Despesas Gerais')
         .insert([{
           data_despesa: data.data,
-          tipo_despesa: data.tipo,
-          descricao_detalhada: data.descricao,
+          tipo_despesa: data.tipo.toUpperCase(),
+          descricao_detalhada: descricaoUpper,
           valor_despesa: data.valor,
-          categoria: data.categoria,
+          categoria: data.categoria.toUpperCase(),
           rateio: data.rateio,
-          contrato_id: data.contrato || null,
+          contrato_id: data.contrato ? data.contrato.toUpperCase() : null,
           contabilizado: data.contabilizar || false,
-          conta_contabil: data.contabilizar ? data.conta_contabil : null
+          conta_contabil: data.contabilizar ? data.conta_contabil?.toUpperCase() : null
         }]);
 
       if (error) throw error;
@@ -67,9 +71,16 @@ const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({ onDespesaAdicionada }
     }
   };
 
+  const handleCancel = () => {
+    reset();
+    if (onCancel) {
+      onCancel();
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="data">Data</Label>
           <Input
@@ -111,7 +122,7 @@ const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({ onDespesaAdicionada }
         {errors.descricao && <p className="text-sm text-red-500 mt-1">{errors.descricao.message}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="valor">Valor (R$)</Label>
           <Input
@@ -189,7 +200,7 @@ const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({ onDespesaAdicionada }
       )}
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={() => reset()}>
+        <Button type="button" variant="outline" onClick={handleCancel}>
           Cancelar
         </Button>
         <Button type="submit">

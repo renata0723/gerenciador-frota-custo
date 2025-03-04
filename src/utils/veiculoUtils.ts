@@ -7,24 +7,26 @@
 export const validarPlaca = (placa: string): boolean => {
   if (!placa || typeof placa !== 'string') return false;
   
+  const placaUpperCase = placa.toUpperCase().trim();
+  
   const regexAntigoMercosul = /^[A-Z]{3}-\d{4}$/;
   const regexNovoMercosul = /^[A-Z]{3}\d[A-Z]\d{2}$/;
   const regexAntigoSemHifen = /^[A-Z]{3}\d{4}$/;
   
-  return regexAntigoMercosul.test(placa) || 
-         regexNovoMercosul.test(placa) || 
-         regexAntigoSemHifen.test(placa);
+  return regexAntigoMercosul.test(placaUpperCase) || 
+         regexNovoMercosul.test(placaUpperCase) || 
+         regexAntigoSemHifen.test(placaUpperCase);
 };
 
 /**
- * Formata a placa para o padrão correto
+ * Formata a placa para o padrão correto e converte para maiúsculas
  * @param placa 
  * @returns 
  */
 export const formatarPlaca = (placa: string): string => {
   if (!placa || typeof placa !== 'string') return '';
   
-  // Remover espaços e caracteres especiais
+  // Remover espaços e caracteres especiais e converter para maiúsculas
   const placaLimpa = placa.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
   
   // Formatar placa no padrão antigo (ABC1234 -> ABC-1234)
@@ -33,4 +35,34 @@ export const formatarPlaca = (placa: string): string => {
   }
   
   return placaLimpa;
+};
+
+/**
+ * Verifica se uma placa já existe no banco de dados
+ * @param placa Placa a ser verificada
+ * @param tipo Tipo do veículo (cavalo ou carreta)
+ * @returns true se a placa já existe, false caso contrário
+ */
+export const verificarPlacaExistente = async (placa: string, tipo: 'cavalo' | 'carreta'): Promise<boolean> => {
+  const { supabase } = await import('@/integrations/supabase/client');
+  
+  const placaFormatada = formatarPlaca(placa);
+  const campoPlaca = tipo === 'cavalo' ? 'placa_cavalo' : 'placa_carreta';
+  
+  const { data } = await supabase
+    .from('Veiculos')
+    .select('*')
+    .eq(campoPlaca, placaFormatada);
+  
+  return data !== null && data.length > 0;
+};
+
+/**
+ * Converte qualquer string para MAIÚSCULAS independente de como foi digitada
+ * @param text String a ser convertida
+ * @returns String em MAIÚSCULAS
+ */
+export const converterParaMaiusculas = (text: string): string => {
+  if (!text) return '';
+  return text.toUpperCase().trim();
 };
