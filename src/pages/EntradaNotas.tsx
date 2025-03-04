@@ -25,6 +25,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from 'sonner';
+import RelatorioMensalNotas from '@/components/notas/RelatorioMensalNotas';
+import { getPermissoesUsuario } from '@/services/usuarioService';
 
 interface NotaFiscal {
   id: string;
@@ -56,6 +58,7 @@ const EntradaNotas = () => {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NotaFiscal | null>(null);
   const [isDuplicateWarningOpen, setIsDuplicateWarningOpen] = useState(false);
+  const [permissoes, setPermissoes] = useState<string[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -72,6 +75,23 @@ const EntradaNotas = () => {
       setNotesData(dadosIniciaisNotas);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dadosIniciaisNotas));
     }
+  }, []);
+
+  useEffect(() => {
+    const carregarPermissoes = async () => {
+      try {
+        const usuarioData = localStorage.getItem('userData');
+        if (usuarioData) {
+          const usuario = JSON.parse(usuarioData);
+          const permissoesUsuario = await getPermissoesUsuario(usuario.id);
+          setPermissoes(permissoesUsuario.map(p => p.acao));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar permissões:', error);
+      }
+    };
+
+    carregarPermissoes();
   }, []);
 
   useEffect(() => {
@@ -266,6 +286,8 @@ const EntradaNotas = () => {
         }
       />
 
+      <RelatorioMensalNotas permissoes={permissoes} />
+      
       <div className="bg-white dark:bg-sistema-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden mb-8 animate-fade-in">
         <div className="p-5 border-b border-gray-100 dark:border-gray-800">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
