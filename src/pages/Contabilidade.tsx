@@ -1,140 +1,106 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calculator, BookOpen, LineChart, BarChart4, PiggyBank, Users } from 'lucide-react';
+import {
+  FileText,
+  BarChart2,
+  BookOpen,
+  DollarSign,
+  CreditCard,
+  Calculator,
+  TrendingUp,
+  FilePlus,
+  Users,
+  FileSpreadsheet
+} from 'lucide-react';
 
 const Contabilidade = () => {
+  const navigate = useNavigate();
+
+  const menuItems = [
+    {
+      title: 'Plano de Contas',
+      description: 'Gerencie o plano de contas contábil da empresa',
+      icon: <BookOpen className="h-8 w-8 text-blue-500" />,
+      onClick: () => navigate('/contabilidade/plano-contas')
+    },
+    {
+      title: 'Lançamentos Contábeis',
+      description: 'Registre e consulte lançamentos contábeis',
+      icon: <FileText className="h-8 w-8 text-indigo-500" />,
+      onClick: () => navigate('/contabilidade/lancamentos')
+    },
+    {
+      title: 'Livro Caixa',
+      description: 'Movimentações de entrada e saída do caixa',
+      icon: <CreditCard className="h-8 w-8 text-emerald-500" />,
+      onClick: () => navigate('/contabilidade/livro-caixa')
+    },
+    {
+      title: 'DRE',
+      description: 'Demonstração do Resultado do Exercício',
+      icon: <BarChart2 className="h-8 w-8 text-purple-500" />,
+      onClick: () => navigate('/contabilidade/dre')
+    },
+    {
+      title: 'Apuração de Custos e Resultados',
+      description: 'Análise detalhada de custos, receitas e resultados',
+      icon: <Calculator className="h-8 w-8 text-rose-500" />,
+      onClick: () => navigate('/contabilidade/apuracao-custo-resultado')
+    },
+    {
+      title: 'Balanço Patrimonial',
+      description: 'Visualize ativos, passivos e patrimônio líquido',
+      icon: <TrendingUp className="h-8 w-8 text-amber-500" />,
+      onClick: () => navigate('/contabilidade/balanco-patrimonial')
+    },
+    {
+      title: 'Folha de Pagamento',
+      description: 'Gerencie salários e encargos dos funcionários',
+      icon: <Users className="h-8 w-8 text-cyan-500" />,
+      onClick: () => navigate('/contabilidade/folha-pagamento')
+    },
+    {
+      title: 'Relatórios',
+      description: 'Acesse e gere relatórios contábeis',
+      icon: <FileSpreadsheet className="h-8 w-8 text-orange-500" />,
+      onClick: () => navigate('/contabilidade/relatorios')
+    }
+  ];
+
   return (
     <PageLayout>
-      <PageHeader 
-        title="Contabilidade" 
-        description="Gerenciamento contábil e fiscal - Regime de Competência (Lucro Real)"
+      <PageHeader
+        title="Contabilidade"
+        description="Gerenciamento financeiro e contábil da empresa"
+        icon={<DollarSign className="h-6 w-6" />}
       />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-6">
-        <Link to="/contabilidade/lancamentos">
-          <Card className="h-full hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Calculator className="mr-2 h-6 w-6 text-blue-600" />
-                Lançamentos Contábeis
-              </CardTitle>
-              <CardDescription>
-                Registre e consulte todos os lançamentos contábeis
-              </CardDescription>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+        {menuItems.map((item, index) => (
+          <Card 
+            key={index} 
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={item.onClick}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-xl">{item.title}</CardTitle>
+                {item.icon}
+              </div>
+              <CardDescription>{item.description}</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Realize lançamentos de débito e crédito nas contas contábeis, com histórico e referência documental.
-              </p>
-              <Button className="mt-4 w-full" variant="outline">Acessar</Button>
+            <CardContent className="pt-2">
+              <Button variant="ghost" className="p-0 h-auto">
+                Acessar <FilePlus className="ml-2 h-4 w-4" />
+              </Button>
             </CardContent>
           </Card>
-        </Link>
-        
-        <Link to="/contabilidade/plano-contas">
-          <Card className="h-full hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <BookOpen className="mr-2 h-6 w-6 text-green-600" />
-                Plano de Contas
-              </CardTitle>
-              <CardDescription>
-                Gerencie o plano de contas da empresa
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Configure e mantenha atualizado o plano de contas contábil, com hierarquia e classificações.
-              </p>
-              <Button className="mt-4 w-full" variant="outline">Acessar</Button>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link to="/contabilidade/livro-caixa">
-          <Card className="h-full hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <PiggyBank className="mr-2 h-6 w-6 text-purple-600" />
-                Livro Caixa
-              </CardTitle>
-              <CardDescription>
-                Controle de entradas e saídas financeiras
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Registre movimentações financeiras e acompanhe o fluxo de caixa da empresa.
-              </p>
-              <Button className="mt-4 w-full" variant="outline">Acessar</Button>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link to="/contabilidade/dre">
-          <Card className="h-full hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <LineChart className="mr-2 h-6 w-6 text-red-600" />
-                DRE
-              </CardTitle>
-              <CardDescription>
-                Demonstração do Resultado do Exercício
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Gere e analise relatórios de resultado com receitas, custos e despesas por período.
-              </p>
-              <Button className="mt-4 w-full" variant="outline">Acessar</Button>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link to="/contabilidade/balanco">
-          <Card className="h-full hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <BarChart4 className="mr-2 h-6 w-6 text-amber-600" />
-                Balanço Patrimonial
-              </CardTitle>
-              <CardDescription>
-                Posição patrimonial da empresa
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Consulte a posição patrimonial com ativos, passivos e patrimônio líquido.
-              </p>
-              <Button className="mt-4 w-full" variant="outline">Acessar</Button>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link to="/contabilidade/folha-pagamento">
-          <Card className="h-full hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="mr-2 h-6 w-6 text-indigo-600" />
-                Folha de Pagamento
-              </CardTitle>
-              <CardDescription>
-                Gerencie pagamentos de funcionários
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Registre e controle a folha de pagamento com cálculos de proventos e descontos.
-              </p>
-              <Button className="mt-4 w-full" variant="outline">Acessar</Button>
-            </CardContent>
-          </Card>
-        </Link>
+        ))}
       </div>
     </PageLayout>
   );

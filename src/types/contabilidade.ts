@@ -1,3 +1,4 @@
+
 export type StatusItem = 'ativo' | 'inativo' | 'pendente' | 'concluido' | 'cancelado' | 'aberto' | 'fechado';
 export type TipoMovimento = 'entrada' | 'saida';
 export type TipoConta = 'ativo' | 'passivo' | 'receita' | 'despesa' | 'patrimonio';
@@ -122,4 +123,26 @@ export interface SaldoPagarItem {
   data_pagamento?: string;
   banco_pagamento?: string;
   observacoes?: string;
+}
+
+export interface ApuracaoCustoResultado {
+  id?: number;
+  periodo_inicio: string;
+  periodo_fim: string;
+  receita_fretes: number;
+  custo_combustivel: number;
+  custo_manutencao: number;
+  custo_pneus: number;
+  custo_salarios: number;
+  despesas_administrativas: number;
+  despesas_financeiras: number;
+  outros_custos: number;
+  resultado_bruto?: number;
+  resultado_liquido?: number;
+  margem_lucro?: number;
+  custo_km?: number;
+  km_rodados: number;
+  observacoes?: string;
+  status: StatusItem;
+  created_at?: string;
 }

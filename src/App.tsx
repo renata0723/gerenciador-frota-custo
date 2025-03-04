@@ -1,4 +1,3 @@
-
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import Index from "./pages/Index";
 import EntradaNotas from "./pages/EntradaNotas";
@@ -33,6 +32,9 @@ import AuthGuard from "./components/auth/AuthGuard";
 import FolhaPagamento from "./pages/FolhaPagamento";
 
 import "./App.css";
+
+const LazyApuracaoCustoResultado = React.lazy(() => import('./pages/contabilidade/ApuracaoCustoResultado'));
+const LazyApuracaoCustoResultadoDetalhes = React.lazy(() => import('./pages/contabilidade/ApuracaoCustoResultadoDetalhes'));
 
 function App() {
   return (
@@ -74,6 +76,8 @@ function App() {
         <Route path="/contabilidade/dre" element={<AuthGuard><DRE /></AuthGuard>} />
         <Route path="/contabilidade/livro-caixa" element={<AuthGuard><LivroCaixa /></AuthGuard>} />
         <Route path="/contabilidade/folha-pagamento" element={<AuthGuard><FolhaPagamento /></AuthGuard>} />
+        <Route path="/contabilidade/apuracao-custo-resultado" element={<React.Suspense fallback={<div>Carregando...</div>}><LazyApuracaoCustoResultado /></React.Suspense>} />
+        <Route path="/contabilidade/apuracao/:id" element={<React.Suspense fallback={<div>Carregando...</div>}><LazyApuracaoCustoResultadoDetalhes /></React.Suspense>} />
         
         {/* Página de erro */}
         <Route path="*" element={<NotFound />} />
