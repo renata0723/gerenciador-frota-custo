@@ -5,7 +5,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calculator, BookOpen, LineChart, BarChart4, PiggyBank } from 'lucide-react';
+import { Calculator, BookOpen, LineChart, BarChart4, PiggyBank, Users } from 'lucide-react';
 
 const Contabilidade = () => {
   return (
@@ -110,6 +110,26 @@ const Contabilidade = () => {
             <CardContent>
               <p className="text-sm text-gray-600">
                 Consulte a posição patrimonial com ativos, passivos e patrimônio líquido.
+              </p>
+              <Button className="mt-4 w-full" variant="outline">Acessar</Button>
+            </CardContent>
+          </Card>
+        </Link>
+        
+        <Link to="/contabilidade/folha-pagamento">
+          <Card className="h-full hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Users className="mr-2 h-6 w-6 text-indigo-600" />
+                Folha de Pagamento
+              </CardTitle>
+              <CardDescription>
+                Gerencie pagamentos de funcionários
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600">
+                Registre e controle a folha de pagamento com cálculos de proventos e descontos.
               </p>
               <Button className="mt-4 w-full" variant="outline">Acessar</Button>
             </CardContent>

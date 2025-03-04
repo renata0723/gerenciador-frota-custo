@@ -1,4 +1,3 @@
-
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import Index from "./pages/Index";
 import EntradaNotas from "./pages/EntradaNotas";
@@ -30,6 +29,7 @@ import LivroCaixa from "./pages/contabilidade/LivroCaixa";
 import Login from "./pages/Login";
 import Usuarios from "./pages/Usuarios";
 import AuthGuard from "./components/auth/AuthGuard";
+import FolhaPagamento from "./pages/FolhaPagamento";
 
 import "./App.css";
 
@@ -72,6 +72,11 @@ function App() {
         <Route path="/contabilidade/balanco" element={<AuthGuard><BalancoPatrimonial /></AuthGuard>} />
         <Route path="/contabilidade/dre" element={<AuthGuard><DRE /></AuthGuard>} />
         <Route path="/contabilidade/livro-caixa" element={<AuthGuard><LivroCaixa /></AuthGuard>} />
+        <Route path="/contabilidade/folha-pagamento" element={
+          <AuthGuard>
+            <FolhaPagamento />
+          </AuthGuard>
+        } />
         
         {/* Página de erro */}
         <Route path="*" element={<NotFound />} />

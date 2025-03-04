@@ -1,165 +1,201 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
+import { TruckType } from '@/components/veiculos/TruckType';
 
 export interface VeiculoData {
-  id: string | number;
+  id?: number; 
   placa: string;
-  tipo: 'Cavalo' | 'Carreta';
+  tipo: "Cavalo" | "Carreta";
   modelo: string;
   ano: number;
-  status: 'Ativo' | 'Inativo';
-  frota: 'Própria' | 'Terceirizada';
+  status: string;
+  frota: string;
   inativacao?: {
-    data: string;
-    motivo: string;
-  } | null;
+    data?: string;
+    motivo?: string;
+  };
 }
 
-/**
- * Carrega todos os veículos do banco de dados
- * @returns Lista de veículos formatados
- */
-export const carregarVeiculos = async (): Promise<{ veiculos: VeiculoData[]; error: string | null }> => {
-  console.log('Carregando veículos...');
-  
+export const listarVeiculos = async (): Promise<VeiculoData[]> => {
   try {
     const { data, error } = await supabase
       .from('Veiculos')
       .select('*');
 
-    console.log('Resposta do Supabase:', { data, error });
-
     if (error) {
-      console.error("Erro ao carregar veículos:", error);
-      return { veiculos: [], error: "Erro ao carregar a lista de veículos" };
+      console.error('Erro ao buscar veículos:', error);
+      throw error;
     }
 
-    // Mapear dados para o formato esperado
-    const veiculosFormatados = (data || []).map(veiculo => {
-      console.log('Processando veículo:', veiculo);
-      return {
-        id: veiculo.id || Math.random().toString(36).substr(2, 9),
-        placa: veiculo.placa_cavalo || veiculo.placa_carreta || 'Sem placa',
-        tipo: veiculo.placa_cavalo ? 'Cavalo' : 'Carreta',
-        modelo: 'Não especificado', // Valor padrão
-        ano: new Date().getFullYear(), // Valor padrão
+    // Transformar os dados no formato esperado pelo componente
+    const veiculos = data.map((veiculo) => {
+      // Determinar qual placa usar como ID principal
+      const placa = veiculo.placa_cavalo || veiculo.placa_carreta;
+      
+      // Determinar o tipo baseado em qual placa está presente
+      const tipo = veiculo.placa_cavalo ? "Cavalo" as const : "Carreta" as const;
+      
+      // Modelo mockado - em um sistema real, viria do banco
+      const modelo = tipo === "Cavalo" ? "Volvo FH 460" : "Randon Carga Seca";
+      
+      // Ano mockado - em um sistema real, viria do banco
+      const ano = 2021;
+      
+      const veiculoFormatado: VeiculoData = {
+        placa, 
+        tipo,
+        modelo,
+        ano,
         status: veiculo.status_veiculo || 'Ativo',
         frota: veiculo.tipo_frota || 'Própria',
-        inativacao: veiculo.status_veiculo === 'Inativo' ? {
-          data: veiculo.data_inativacao || '2023-01-01',
-          motivo: veiculo.motivo_inativacao || 'Não especificado'
-        } : null
+        inativacao: {
+          data: veiculo.data_inativacao,
+          motivo: veiculo.motivo_inativacao
+        }
       };
+      
+      return veiculoFormatado;
     });
 
-    console.log('Veículos formatados:', veiculosFormatados);
-    return { veiculos: veiculosFormatados, error: null };
-  } catch (err) {
-    console.error("Erro ao processar dados:", err);
-    return { veiculos: [], error: "Ocorreu um erro ao processar os dados dos veículos" };
+    return veiculos;
+  } catch (error) {
+    console.error('Erro ao listar veículos:', error);
+    throw error;
   }
 };
 
-/**
- * Inativa um veículo no sistema
- * @param id ID do veículo
- * @param motivo Motivo da inativação
- * @param data Data da inativação
- * @param veiculoPlaca Placa do veículo
- * @param tipoVeiculo Tipo do veículo (Cavalo ou Carreta)
- */
-export const inativarVeiculo = async (
-  id: string | number,
-  motivo: string,
-  data: string,
-  veiculoPlaca: string,
-  tipoVeiculo: 'Cavalo' | 'Carreta'
+export const cadastrarVeiculo = async (
+  tipo: TruckType,
+  dadosGerais: any,
+  dadosEspecificos: any
 ): Promise<boolean> => {
   try {
-    console.log('Inativando veículo:', { id, placa: veiculoPlaca, motivo, data });
-
-    // Atualiza no banco de dados
+    const { placa, tipoFrota, status } = dadosGerais;
+    
+    // Preparar os dados comuns para inserção
+    const dadosVeiculo: {
+      [key: string]: any;
+      placa_cavalo?: string;
+      placa_carreta?: string;
+      tipo_frota: string;
+      status_veiculo: string;
+    } = {
+      tipo_frota: tipoFrota,
+      status_veiculo: status
+    };
+    
+    // Adicionar placa ao campo correto baseado no tipo
+    if (tipo === 'cavalo') {
+      dadosVeiculo.placa_cavalo = placa;
+    } else {
+      dadosVeiculo.placa_carreta = placa;
+    }
+    
+    // Inserir no banco de dados
     const { error } = await supabase
       .from('Veiculos')
-      .update({
+      .insert([dadosVeiculo]);
+    
+    if (error) {
+      console.error('Erro ao cadastrar veículo:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Erro ao cadastrar veículo:', error);
+    return false;
+  }
+};
+
+export const inativarVeiculo = async (placa: string, motivo: string): Promise<boolean> => {
+  try {
+    // Verificar se a placa é de cavalo ou carreta
+    let campo: 'placa_cavalo' | 'placa_carreta' = 'placa_cavalo';
+    
+    // Primeiro, tenta encontrar a placa
+    let { data, error } = await supabase
+      .from('Veiculos')
+      .select('*')
+      .eq('placa_cavalo', placa);
+    
+    // Se não encontrou como cavalo, tenta como carreta
+    if (error || !data || data.length === 0) {
+      campo = 'placa_carreta';
+      
+      ({ data, error } = await supabase
+        .from('Veiculos')
+        .select('*')
+        .eq('placa_carreta', placa));
+      
+      if (error || !data || data.length === 0) {
+        console.error('Veículo não encontrado:', placa);
+        return false;
+      }
+    }
+    
+    // Agora que sabemos qual campo usar, atualizamos o registro
+    const { error: updateError } = await supabase
+      .from('Veiculos')
+      .update({ 
         status_veiculo: 'Inativo',
-        data_inativacao: data,
+        data_inativacao: new Date().toISOString(),
         motivo_inativacao: motivo
       })
-      .eq(tipoVeiculo === 'Cavalo' ? 'placa_cavalo' : 'placa_carreta', veiculoPlaca);
-
-    if (error) {
-      console.error("Erro ao inativar veículo:", error);
-      toast.error("Erro ao inativar veículo");
+      .eq(campo, placa);
+    
+    if (updateError) {
+      console.error('Erro ao inativar veículo:', updateError);
       return false;
     }
     
-    toast.success("Veículo inativado com sucesso!");
     return true;
-  } catch (err) {
-    console.error("Erro ao processar inativação:", err);
-    toast.error("Ocorreu um erro ao inativar o veículo");
+  } catch (error) {
+    console.error('Erro ao inativar veículo:', error);
     return false;
   }
 };
 
-/**
- * Exclui um veículo do sistema
- * @param id ID do veículo
- * @param veiculoPlaca Placa do veículo
- * @param tipoVeiculo Tipo do veículo (Cavalo ou Carreta)
- */
-export const excluirVeiculo = async (
-  id: string | number, 
-  veiculoPlaca: string,
-  tipoVeiculo: 'Cavalo' | 'Carreta'
-): Promise<boolean> => {
+export const excluirVeiculo = async (placa: string): Promise<boolean> => {
   try {
-    console.log('Excluindo veículo:', { id, placa: veiculoPlaca });
-
-    // Exclui do banco de dados
-    const { error } = await supabase
+    // Verificar se a placa é de cavalo ou carreta
+    let campo: 'placa_cavalo' | 'placa_carreta' = 'placa_cavalo';
+    
+    // Primeiro, tenta encontrar a placa
+    let { data, error } = await supabase
+      .from('Veiculos')
+      .select('*')
+      .eq('placa_cavalo', placa);
+    
+    // Se não encontrou como cavalo, tenta como carreta
+    if (error || !data || data.length === 0) {
+      campo = 'placa_carreta';
+      
+      ({ data, error } = await supabase
+        .from('Veiculos')
+        .select('*')
+        .eq('placa_carreta', placa));
+      
+      if (error || !data || data.length === 0) {
+        console.error('Veículo não encontrado:', placa);
+        return false;
+      }
+    }
+    
+    // Agora que sabemos qual campo usar, excluímos o registro
+    const { error: deleteError } = await supabase
       .from('Veiculos')
       .delete()
-      .eq(tipoVeiculo === 'Cavalo' ? 'placa_cavalo' : 'placa_carreta', veiculoPlaca);
-
-    if (error) {
-      console.error("Erro ao excluir veículo:", error);
-      toast.error("Erro ao excluir veículo");
+      .eq(campo, placa);
+    
+    if (deleteError) {
+      console.error('Erro ao excluir veículo:', deleteError);
       return false;
     }
     
-    toast.success("Veículo excluído com sucesso!");
     return true;
-  } catch (err) {
-    console.error("Erro ao processar exclusão:", err);
-    toast.error("Ocorreu um erro ao excluir o veículo");
-    return false;
-  }
-};
-
-/**
- * Exclui todos os veículos do sistema
- */
-export const excluirTodosVeiculos = async (): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('Veiculos')
-      .delete()
-      .neq('id', -1); // Condição que sempre será verdadeira, para excluir todos
-
-    if (error) {
-      console.error("Erro ao excluir todos os veículos:", error);
-      toast.error("Erro ao excluir todos os veículos");
-      return false;
-    }
-
-    toast.success("Todos os veículos foram excluídos com sucesso!");
-    return true;
-  } catch (err) {
-    console.error("Erro ao processar exclusão em massa:", err);
-    toast.error("Ocorreu um erro ao excluir os veículos");
+  } catch (error) {
+    console.error('Erro ao excluir veículo:', error);
     return false;
   }
 };

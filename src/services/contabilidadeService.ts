@@ -1,80 +1,73 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 import { 
   LancamentoContabil, 
   ContaContabil, 
   CentroCusto, 
-  BalancoPatrimonial, 
-  DREData, 
+  BalancoPatrimonialData,
   LivroCaixaItem,
-  TipoMovimento,
-  StatusItem
-} from "@/types/contabilidade";
+  DREData
+} from '@/types/contabilidade';
 
-// Buscar lançamentos contábeis
+// Funções para Lançamentos Contábeis
 export const buscarLancamentosContabeis = async (): Promise<LancamentoContabil[]> => {
   try {
     const { data, error } = await supabase
       .from('Lancamentos_Contabeis')
-      .select('*');
-    
-    if (error) throw error;
+      .select('*')
+      .order('data_lancamento', { ascending: false });
 
-    // Converter tipos
-    return data.map(item => ({
-      ...item,
-      status: item.status as StatusItem
-    }));
+    if (error) {
+      console.error('Erro ao buscar lançamentos contábeis:', error);
+      throw error;
+    }
+
+    return data || [];
   } catch (error) {
     console.error('Erro ao buscar lançamentos contábeis:', error);
-    return [];
+    throw error;
   }
 };
 
-// Buscar plano de contas
+// Alias para compatibilidade
+export const getLancamentosContabeis = buscarLancamentosContabeis;
+
+// Funções para Plano de Contas
 export const buscarPlanoContas = async (): Promise<ContaContabil[]> => {
   try {
     const { data, error } = await supabase
       .from('Plano_Contas')
-      .select('*');
-    
-    if (error) throw error;
+      .select('*')
+      .order('codigo');
 
-    // Converter tipos
-    return data.map(item => ({
-      ...item,
-      tipo: item.tipo as "ativo" | "passivo" | "receita" | "despesa" | "patrimonio",
-      natureza: item.natureza,
-      nivel: item.nivel,
-      status: item.status as StatusItem
-    }));
+    if (error) {
+      console.error('Erro ao buscar plano de contas:', error);
+      throw error;
+    }
+
+    // Convertendo para o formato correto
+    const contas = data?.map(conta => ({
+      codigo: conta.codigo,
+      codigo_reduzido: conta.codigo_reduzido,
+      nome: conta.nome,
+      tipo: conta.tipo,
+      natureza: conta.natureza as "devedora" | "credora",
+      nivel: conta.nivel,
+      conta_pai: conta.conta_pai,
+      status: conta.status
+    })) || [];
+
+    return contas;
   } catch (error) {
     console.error('Erro ao buscar plano de contas:', error);
-    return [];
+    throw error;
   }
 };
 
-// Buscar centros de custo
-export const buscarCentrosCusto = async (): Promise<CentroCusto[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('Centros_Custo')
-      .select('*');
-    
-    if (error) throw error;
+// Alias para compatibilidade
+export const getPlanoContas = buscarPlanoContas;
 
-    // Converter tipos
-    return data.map(item => ({
-      ...item,
-      status: item.status as StatusItem
-    }));
-  } catch (error) {
-    console.error('Erro ao buscar centros de custo:', error);
-    return [];
-  }
-};
-
-// Buscar conta contábil por código reduzido
+// Buscar conta contábil pelo código reduzido
 export const buscarContaContabilByCodigoReduzido = async (codigoReduzido: string): Promise<ContaContabil | null> => {
   try {
     const { data, error } = await supabase
@@ -82,230 +75,312 @@ export const buscarContaContabilByCodigoReduzido = async (codigoReduzido: string
       .select('*')
       .eq('codigo_reduzido', codigoReduzido)
       .single();
-    
-    if (error) throw error;
 
-    // Converter tipos
+    if (error) {
+      console.error('Erro ao buscar conta pelo código reduzido:', error);
+      return null;
+    }
+
+    if (!data) return null;
+
     return {
-      ...data,
-      tipo: data.tipo as "ativo" | "passivo" | "receita" | "despesa" | "patrimonio",
-      natureza: data.natureza,
+      codigo: data.codigo,
+      codigo_reduzido: data.codigo_reduzido,
+      nome: data.nome,
+      tipo: data.tipo,
+      natureza: data.natureza as "devedora" | "credora",
       nivel: data.nivel,
-      status: data.status as StatusItem
+      conta_pai: data.conta_pai,
+      status: data.status
     };
   } catch (error) {
-    console.error(`Erro ao buscar conta contábil com código reduzido ${codigoReduzido}:`, error);
+    console.error('Erro ao buscar conta pelo código reduzido:', error);
     return null;
   }
 };
 
+// Alias para compatibilidade
+export const getContaContabilByCodigoReduzido = buscarContaContabilByCodigoReduzido;
+
+// Funções para Centros de Custo
+export const buscarCentrosCusto = async (): Promise<CentroCusto[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('Centros_Custo')
+      .select('*')
+      .order('codigo');
+
+    if (error) {
+      console.error('Erro ao buscar centros de custo:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao buscar centros de custo:', error);
+    throw error;
+  }
+};
+
+// Alias para compatibilidade
+export const getCentrosCusto = buscarCentrosCusto;
+
 // Criar lançamento contábil
-export const criarLancamentoContabil = async (lancamento: Omit<LancamentoContabil, 'id' | 'created_at'>): Promise<LancamentoContabil | null> => {
+export const criarLancamentoContabil = async (lancamento: LancamentoContabil): Promise<LancamentoContabil | null> => {
   try {
     const { data, error } = await supabase
       .from('Lancamentos_Contabeis')
       .insert([lancamento])
       .select()
       .single();
-    
-    if (error) throw error;
-    
-    return data as LancamentoContabil;
+
+    if (error) {
+      console.error('Erro ao criar lançamento contábil:', error);
+      throw error;
+    }
+
+    return data;
   } catch (error) {
     console.error('Erro ao criar lançamento contábil:', error);
-    return null;
+    throw error;
   }
 };
 
-// Atualizar lançamento contábil
-export const atualizarLancamentoContabil = async (id: number, lancamento: Partial<LancamentoContabil>): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('Lancamentos_Contabeis')
-      .update(lancamento)
-      .eq('id', id);
-    
-    if (error) throw error;
-    
-    return true;
-  } catch (error) {
-    console.error(`Erro ao atualizar lançamento contábil ${id}:`, error);
-    return false;
-  }
-};
-
-// Excluir lançamento contábil
-export const excluirLancamentoContabil = async (id: number): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('Lancamentos_Contabeis')
-      .update({ status: 'inativo' })
-      .eq('id', id);
-    
-    if (error) throw error;
-    
-    return true;
-  } catch (error) {
-    console.error(`Erro ao excluir lançamento contábil ${id}:`, error);
-    return false;
-  }
-};
-
-// Criar conta contábil
-export const criarContaContabil = async (conta: Omit<ContaContabil, 'id'>): Promise<ContaContabil | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('Plano_Contas')
-      .insert([conta])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    return data as ContaContabil;
-  } catch (error) {
-    console.error('Erro ao criar conta contábil:', error);
-    return null;
-  }
-};
-
-// Atualizar conta contábil
-export const atualizarContaContabil = async (codigo: string, conta: Partial<ContaContabil>): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('Plano_Contas')
-      .update(conta)
-      .eq('codigo', codigo);
-    
-    if (error) throw error;
-    
-    return true;
-  } catch (error) {
-    console.error(`Erro ao atualizar conta contábil ${codigo}:`, error);
-    return false;
-  }
-};
-
-// Excluir conta contábil
-export const excluirContaContabil = async (codigo: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('Plano_Contas')
-      .update({ status: 'inativo' })
-      .eq('codigo', codigo);
-    
-    if (error) throw error;
-    
-    return true;
-  } catch (error) {
-    console.error(`Erro ao excluir conta contábil ${codigo}:`, error);
-    return false;
-  }
-};
-
-// Buscar balanços patrimoniais
-export const buscarBalancosPatrimoniais = async (): Promise<BalancoPatrimonial[]> => {
-  // Implementação futura - por enquanto retornamos dados simulados
-  return [
-    {
-      id: 1,
-      periodo: '2025-01',
-      data_geracao: '2025-02-10',
-      ativo_circulante: 250000,
-      ativo_nao_circulante: 750000,
-      passivo_circulante: 150000,
-      passivo_nao_circulante: 350000,
-      patrimonio_liquido: 500000,
-      status: 'publicado'
-    },
-    {
-      id: 2,
-      periodo: '2025-02',
-      data_geracao: '2025-03-10',
-      ativo_circulante: 280000,
-      ativo_nao_circulante: 720000,
-      passivo_circulante: 170000,
-      passivo_nao_circulante: 330000,
-      patrimonio_liquido: 500000,
-      status: 'publicado'
-    }
-  ];
-};
-
-// Buscar demonstrações de resultado (DRE)
-export const buscarDRE = async (): Promise<DREData[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('DRE')
-      .select('*');
-    
-    if (error) throw error;
-
-    // Converter tipos
-    return data.map(item => ({
-      ...item,
-      status: item.status as StatusItem
-    }));
-  } catch (error) {
-    console.error('Erro ao buscar DREs:', error);
-    return [];
-  }
-};
-
-// Buscar livro caixa
+// Funções para Livro Caixa
 export const buscarLivroCaixa = async (): Promise<LivroCaixaItem[]> => {
   try {
     const { data, error } = await supabase
       .from('Livro_Caixa')
-      .select('*');
-    
-    if (error) throw error;
+      .select('*')
+      .order('data_movimento', { ascending: false });
 
-    // Converter tipos
-    return data.map(item => ({
-      ...item,
-      tipo: item.tipo as TipoMovimento,
-      status: item.status as StatusItem,
-      data_movimento: new Date(item.data_movimento).toISOString()
-    }));
+    if (error) {
+      console.error('Erro ao buscar livro caixa:', error);
+      throw error;
+    }
+
+    return data || [];
   } catch (error) {
     console.error('Erro ao buscar livro caixa:', error);
-    return [];
+    throw error;
   }
 };
 
-// Criar movimento no livro caixa
-export const criarMovimentoCaixa = async (movimento: Omit<LivroCaixaItem, 'id' | 'created_at'>): Promise<LivroCaixaItem | null> => {
+// Alias para compatibilidade
+export const getLivroCaixa = buscarLivroCaixa;
+
+export const criarItemLivroCaixa = async (item: LivroCaixaItem): Promise<LivroCaixaItem | null> => {
   try {
     const { data, error } = await supabase
       .from('Livro_Caixa')
-      .insert([movimento])
+      .insert([item])
       .select()
       .single();
-    
-    if (error) throw error;
-    
-    return data as LivroCaixaItem;
+
+    if (error) {
+      console.error('Erro ao criar item no livro caixa:', error);
+      throw error;
+    }
+
+    return data;
   } catch (error) {
-    console.error('Erro ao criar movimento no livro caixa:', error);
-    return null;
+    console.error('Erro ao criar item no livro caixa:', error);
+    throw error;
   }
 };
 
-// Folha de pagamento - implementação futura
-export const gerenciarFolhaPagamento = async () => {
-  // Implementação básica para a funcionalidade de folha de pagamento
+// Alias para compatibilidade
+export const criarLivroCaixaItem = criarItemLivroCaixa;
+
+// Funções para DRE
+export const buscarDRE = async (): Promise<DREData[]> => {
   try {
-    // Esta é uma simulação, a implementação real dependerá da estrutura da tabela
     const { data, error } = await supabase
-      .from('Folha_Pagamento')
-      .select('*');
-    
-    if (error) throw error;
-    
+      .from('DRE')
+      .select('*')
+      .order('periodo_fim', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar DRE:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao buscar DRE:', error);
+    throw error;
+  }
+};
+
+// Alias para compatibilidade
+export const getDRE = buscarDRE;
+
+export const criarNovoRegistroDRE = async (dre: DREData): Promise<DREData | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('DRE')
+      .insert([dre])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao criar registro DRE:', error);
+      throw error;
+    }
+
     return data;
   } catch (error) {
-    console.error('Erro ao gerenciar folha de pagamento:', error);
-    return [];
+    console.error('Erro ao criar registro DRE:', error);
+    throw error;
+  }
+};
+
+// Alias para compatibilidade
+export const criarDRE = criarNovoRegistroDRE;
+
+// Funções para Balanço Patrimonial
+export const buscarBalancosPatrimoniais = async (): Promise<BalancoPatrimonialData[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('Balanco_Patrimonial')
+      .select('*')
+      .order('data_fechamento', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar balanços patrimoniais:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao buscar balanços patrimoniais:', error);
+    throw error;
+  }
+};
+
+// Alias para compatibilidade
+export const getBalancosPatrimoniais = buscarBalancosPatrimoniais;
+
+export const criarNovoBalancoPatrimonial = async (balanco: BalancoPatrimonialData): Promise<BalancoPatrimonialData | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('Balanco_Patrimonial')
+      .insert([balanco])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao criar balanço patrimonial:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Erro ao criar balanço patrimonial:', error);
+    throw error;
+  }
+};
+
+// Alias para compatibilidade
+export const criarBalancoPatrimonial = criarNovoBalancoPatrimonial;
+
+// Funções para Folha de Pagamento
+export interface FolhaPagamento {
+  id?: number;
+  funcionario_nome: string;
+  cargo?: string;
+  cpf?: string;
+  salario_base: number;
+  data_pagamento: string;
+  mes_referencia: string;
+  ano_referencia: number;
+  desconto_inss?: number;
+  desconto_irrf?: number;
+  outros_descontos?: number;
+  horas_extras?: number;
+  valor_hora_extra?: number;
+  adicional_periculosidade?: number;
+  adicional_insalubridade?: number;
+  outros_adicionais?: number;
+  valor_total: number;
+  status?: string;
+}
+
+export const buscarFolhaPagamento = async (): Promise<FolhaPagamento[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('Folha_Pagamento')
+      .select('*')
+      .order('data_pagamento', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar folha de pagamento:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao buscar folha de pagamento:', error);
+    throw error;
+  }
+};
+
+export const criarRegistroFolhaPagamento = async (folha: FolhaPagamento): Promise<FolhaPagamento | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('Folha_Pagamento')
+      .insert([folha])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao criar registro na folha de pagamento:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Erro ao criar registro na folha de pagamento:', error);
+    throw error;
+  }
+};
+
+export const atualizarRegistroFolhaPagamento = async (id: number, folha: Partial<FolhaPagamento>): Promise<FolhaPagamento | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('Folha_Pagamento')
+      .update(folha)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao atualizar registro na folha de pagamento:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Erro ao atualizar registro na folha de pagamento:', error);
+    throw error;
+  }
+};
+
+export const excluirRegistroFolhaPagamento = async (id: number): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('Folha_Pagamento')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao excluir registro na folha de pagamento:', error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erro ao excluir registro na folha de pagamento:', error);
+    return false;
   }
 };

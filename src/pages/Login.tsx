@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { EMPRESA_NOME, EMPRESA_CNPJ, ANO_ATUAL } from '@/utils/constants';
+import { logOperation } from '@/utils/logOperations';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ const Login = () => {
       if (error || !data) {
         console.error('Erro de login:', error);
         toast.error('Credenciais inválidas. Verifique seu email e senha.');
+        setLoading(false);
         return;
       }
 
@@ -42,9 +44,16 @@ const Login = () => {
         .update({ ultimo_acesso: new Date().toISOString() })
         .eq('id', data.id);
 
-      // Guardar informações do usuário em localStorage (em um sistema real usaríamos métodos mais seguros)
-      localStorage.setItem('auth_user', JSON.stringify(data));
-      localStorage.setItem('auth_token', 'simulated-jwt-token');
+      // Guardar informações do usuário em sessionStorage (em um sistema real usaríamos métodos mais seguros)
+      sessionStorage.setItem('usuario', JSON.stringify(data));
+      
+      // Para fins de demonstração, vamos adicionar um modo de administrador geral
+      if (data.email === 'admin@controlfrota.com.br') {
+        sessionStorage.setItem('adminGeral', 'true');
+      }
+      
+      // Registra operação de login
+      logOperation('autenticacao', `Login realizado por ${data.nome}`, true);
 
       toast.success('Login realizado com sucesso!');
       navigate('/');
@@ -55,6 +64,51 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // Verificar se já existe algum usuário cadastrado
+  const verificarUsuarios = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('Usuarios')
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) {
+        console.error('Erro ao verificar usuários:', error);
+        return;
+      }
+      
+      // Se não existir nenhum usuário, criamos um administrador padrão
+      if (count === 0) {
+        const { error: createError } = await supabase
+          .from('Usuarios')
+          .insert([{
+            nome: 'Administrador',
+            email: 'admin@controlfrota.com.br',
+            senha: 'admin123',
+            cargo: 'Administrador',
+            status: 'ativo'
+          }]);
+        
+        if (createError) {
+          console.error('Erro ao criar usuário padrão:', createError);
+        } else {
+          console.log('Usuário administrador padrão criado com sucesso');
+          toast.info('Usuário administrador padrão criado. Use admin@controlfrota.com.br / admin123 para fazer login.', {
+            duration: 10000
+          });
+          
+          // Auto-preenche o email para facilitar o login
+          setEmail('admin@controlfrota.com.br');
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar/criar usuários:', error);
+    }
+  };
+  
+  React.useEffect(() => {
+    verificarUsuarios();
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
