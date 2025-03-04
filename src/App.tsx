@@ -1,3 +1,4 @@
+
 import React, { Suspense } from "react";
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import Index from "./pages/Index";
@@ -31,13 +32,11 @@ import Login from "./pages/Login";
 import Usuarios from "./pages/Usuarios";
 import AuthGuard from "./components/auth/AuthGuard";
 import FolhaPagamento from "./pages/FolhaPagamento";
+import Balancete from "./pages/contabilidade/Balancete";
 
 // Lazy load the ApuracaoCustoResultado components
 const LazyApuracaoCustoResultado = React.lazy(() => import('./pages/contabilidade/ApuracaoCustoResultado'));
 const LazyApuracaoCustoResultadoDetalhes = React.lazy(() => import('./pages/contabilidade/ApuracaoCustoResultadoDetalhes'));
-
-// Add this import
-import Balancete from "./pages/contabilidade/Balancete";
 
 import "./App.css";
 
@@ -83,8 +82,6 @@ function App() {
         <Route path="/contabilidade/folha-pagamento" element={<AuthGuard><FolhaPagamento /></AuthGuard>} />
         <Route path="/contabilidade/apuracao-custo-resultado" element={<AuthGuard><Suspense fallback={<div>Carregando...</div>}><LazyApuracaoCustoResultado /></Suspense></AuthGuard>} />
         <Route path="/contabilidade/apuracao/:id" element={<AuthGuard><Suspense fallback={<div>Carregando...</div>}><LazyApuracaoCustoResultadoDetalhes /></Suspense></AuthGuard>} />
-        
-        {/* Add this route inside the Contabilidade section */}
         <Route path="/contabilidade/balancete" element={<AuthGuard><Balancete /></AuthGuard>} />
         
         {/* Página de erro */}

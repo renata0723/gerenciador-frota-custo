@@ -1,162 +1,147 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { autenticarUsuario } from '@/services/usuarioService';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { EMPRESA_NOME, EMPRESA_CNPJ, ANO_ATUAL } from '@/utils/constants';
-import { logOperation } from '@/utils/logOperations';
 
 const Login = () => {
-  const navigate = useNavigate();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      console.log('Tentando login com:', email);
-      
-      // Esta implementação é simplificada. Em um sistema real, usaríamos autenticação segura.
-      const { data, error } = await supabase
-        .from('Usuarios')
-        .select('*')
-        .eq('email', email)
-        .eq('senha', password)
-        .eq('status', 'ativo')
-        .single();
-
-      if (error || !data) {
-        console.error('Erro de login:', error);
-        toast.error('Credenciais inválidas. Verifique seu email e senha.');
-        setLoading(false);
-        return;
-      }
-
-      // Registrar o último acesso
-      await supabase
-        .from('Usuarios')
-        .update({ ultimo_acesso: new Date().toISOString() })
-        .eq('id', data.id);
-
-      // Guardar informações do usuário em sessionStorage (em um sistema real usaríamos métodos mais seguros)
-      sessionStorage.setItem('usuario', JSON.stringify(data));
-      
-      // Para fins de demonstração, vamos adicionar um modo de administrador geral
-      if (data.email === 'admin@controlfrota.com.br') {
-        sessionStorage.setItem('adminGeral', 'true');
-      }
-      
-      // Registra operação de login
-      logOperation('autenticacao', `Login realizado por ${data.nome}`, true);
-
-      toast.success('Login realizado com sucesso!');
+  // Verificar se o usuário já está autenticado
+  useEffect(() => {
+    const usuarioString = localStorage.getItem('auth_user');
+    if (usuarioString) {
       navigate('/');
+    }
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim() || !senha.trim()) {
+      setErro('Por favor, preencha todos os campos.');
+      return;
+    }
+    
+    setLoading(true);
+    setErro(null);
+    
+    try {
+      const usuario = await autenticarUsuario(email, senha);
+      
+      if (usuario) {
+        // Remover a senha por questões de segurança
+        const { senha, ...usuarioSemSenha } = usuario;
+        
+        // Salvar o usuário na localStorage
+        localStorage.setItem('auth_user', JSON.stringify(usuarioSemSenha));
+        
+        // Verificar se é o primeiro acesso (admin padrão)
+        if (email === 'admin@sistema.com' && senha === 'admin123') {
+          toast.warning('Você está usando o usuário padrão. Por favor, altere a senha assim que possível.', {
+            duration: 6000,
+          });
+        }
+        
+        toast.success('Login realizado com sucesso!');
+        navigate('/');
+      } else {
+        setErro('E-mail ou senha incorretos.');
+      }
     } catch (error) {
       console.error('Erro ao fazer login:', error);
-      toast.error('Ocorreu um erro ao fazer login. Tente novamente.');
+      setErro('Ocorreu um erro ao tentar fazer login. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Verificar se já existe algum usuário cadastrado
-  const verificarUsuarios = async () => {
-    try {
-      const { count, error } = await supabase
-        .from('Usuarios')
-        .select('*', { count: 'exact', head: true });
-      
-      if (error) {
-        console.error('Erro ao verificar usuários:', error);
-        return;
-      }
-      
-      // Se não existir nenhum usuário, criamos um administrador padrão
-      if (count === 0) {
-        const { error: createError } = await supabase
-          .from('Usuarios')
-          .insert([{
-            nome: 'Administrador',
-            email: 'admin@controlfrota.com.br',
-            senha: 'admin123',
-            cargo: 'Administrador',
-            status: 'ativo'
-          }]);
-        
-        if (createError) {
-          console.error('Erro ao criar usuário padrão:', createError);
-        } else {
-          console.log('Usuário administrador padrão criado com sucesso');
-          toast.info('Usuário administrador padrão criado. Use admin@controlfrota.com.br / admin123 para fazer login.', {
-            duration: 10000
-          });
-          
-          // Auto-preenche o email para facilitar o login
-          setEmail('admin@controlfrota.com.br');
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao verificar/criar usuários:', error);
-    }
-  };
-  
-  React.useEffect(() => {
-    verificarUsuarios();
-  }, []);
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-blue-500 mb-2">{EMPRESA_NOME}</h1>
-          <h2 className="text-lg text-gray-600">Sistema de Controle de Frotas e Logística</h2>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <img 
+            src="/lovable-uploads/71799dec-cc99-4b56-acca-9a51cb405da0.png" 
+            alt="SLog Controladoria" 
+            className="mx-auto h-24 mb-4" 
+          />
+          <h2 className="text-2xl font-bold text-gray-900">Sistema de Gestão de Frota</h2>
+          <p className="text-gray-600 mt-1">Faça login para acessar o sistema</p>
         </div>
         
-        <form onSubmit={handleLogin}>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                required
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full bg-blue-500 hover:bg-blue-600"
-              disabled={loading}
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </Button>
-          </div>
-        </form>
-        
-        <div className="mt-8 text-center text-sm text-gray-600">
-          <p>© {ANO_ATUAL} {EMPRESA_NOME} - CNPJ: {EMPRESA_CNPJ} - Todos os direitos reservados</p>
-        </div>
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Login</CardTitle>
+            <CardDescription>
+              Entre com suas credenciais de acesso
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {erro && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{erro}</AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  autoComplete="email"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="senha">Senha</Label>
+                  <Button variant="link" className="p-0 h-auto text-xs" type="button">
+                    Esqueceu a senha?
+                  </Button>
+                </div>
+                <Input
+                  id="senha"
+                  type="password"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={loading}
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading ? 'Entrando...' : 'Entrar'}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="flex justify-center border-t pt-4">
+            <p className="text-sm text-gray-500">
+              © {new Date().getFullYear()} SLog Controladoria - Todos os direitos reservados
+            </p>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

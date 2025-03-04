@@ -20,7 +20,9 @@ export interface CanhotoPendente {
   id: number;
   contrato_id: string;
   cliente: string;
+  motorista: string;
   data_entrega_cliente: string | null;
+  data_entrega: string | null;
   status: string;
 }
 
@@ -32,5 +34,7 @@ export interface CancelamentoDocumento {
   data_cancelamento: string;
   observacoes?: string;
   usuario_cancelamento: string;
+  numero_documento: string;
+  responsavel: string;
   status: string;
 }
