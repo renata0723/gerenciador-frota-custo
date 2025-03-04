@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -9,19 +8,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, FileSpreadsheet } from 'lucide-react';
+import { Plus, FileSpreadsheet, FileText, Download } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-
 import { buscarPlanoContas, criarContaContabil } from '@/services/contabilidadeService';
 import { ContaContabil } from '@/types/contabilidade';
+import { gerarRelatorioPlanoConta } from '@/utils/pdfGenerator';
 
 const PlanoContas = () => {
   const navigate = useNavigate();
   const [contas, setContas] = useState<ContaContabil[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Estado para a nova conta
   const [novaConta, setNovaConta] = useState<ContaContabil>({
     codigo: '',
     codigo_reduzido: '',
@@ -78,13 +76,11 @@ const PlanoContas = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação básica
     if (!novaConta.codigo || !novaConta.codigo_reduzido || !novaConta.nome) {
       toast.error('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
     
-    // Calcular o nível com base no código (número de pontos + 1)
     const nivel = calcularNivel(novaConta.codigo);
     const conta_pai = calcularContaPai(novaConta.codigo);
     
@@ -100,10 +96,8 @@ const PlanoContas = () => {
       if (response) {
         toast.success('Conta contábil registrada com sucesso.');
         
-        // Atualiza a lista de contas
         setContas(prev => [...prev, response].sort((a, b) => a.codigo.localeCompare(b.codigo)));
         
-        // Limpa o formulário
         setNovaConta({
           codigo: '',
           codigo_reduzido: '',
@@ -122,7 +116,6 @@ const PlanoContas = () => {
     }
   };
   
-  // Função para aplicar o estilo de indentação baseado no nível da conta
   const getIndentClass = (nivel: number) => {
     switch (nivel) {
       case 1: return 'font-bold text-lg';
@@ -134,15 +127,26 @@ const PlanoContas = () => {
     }
   };
   
+  const handleExportarPDF = () => {
+    gerarRelatorioPlanoConta(contas);
+    toast.success('Relatório PDF gerado com sucesso!');
+  };
+  
   return (
     <PageLayout>
       <PageHeader 
         title="Plano de Contas" 
         description="Gerencie o plano de contas contábil da empresa"
         actions={
-          <Button variant="ghost" onClick={() => navigate('/contabilidade')}>
-            Voltar
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportarPDF}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar PDF
+            </Button>
+            <Button variant="ghost" onClick={() => navigate('/contabilidade')}>
+              Voltar
+            </Button>
+          </div>
         }
       />
       

@@ -6,7 +6,7 @@ export interface AbastecimentoItem {
   motorista_solicitante: string;
   tipo_combustivel: string;
   valor_abastecimento: number;
-  quantidade?: number;
+  quantidade: number;
   quilometragem: number;
   posto: string;
   responsavel_autorizacao: string;

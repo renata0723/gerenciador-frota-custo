@@ -1,12 +1,14 @@
 
 export interface ManutencaoItem {
-  id?: number | null;
-  data_manutencao: string | null;
-  placa_veiculo: string | null;
+  id: number;
   tipo_manutencao: "preventiva" | "corretiva";
+  placa_veiculo: string;
+  data_manutencao: string;
   local_realizacao: "patio" | "externa";
-  pecas_servicos: string | null;
-  valor_total: number | null;
+  pecas_servicos: string;
+  valor_total: number;
 }
 
-export type TipoManutencao = "preventiva" | "corretiva";
+export interface NovaManutencaoFormProps {
+  onSuccess: (data: ManutencaoItem) => void;
+}
