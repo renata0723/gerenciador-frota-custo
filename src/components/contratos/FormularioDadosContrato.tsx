@@ -7,10 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { estadosBrasileiros } from '@/utils/constants';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Calendar, Truck } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { AlertCircle, Truck } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +15,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CadastroPlacaForm from './CadastroPlacaForm';
 import CadastroMotoristaForm from './CadastroMotoristaForm';
+import { DatePicker } from '@/components/ui/date-picker';
 
 export interface DadosContratoFormData {
   idContrato: string;
@@ -38,12 +36,14 @@ export interface FormularioDadosContratoProps {
   onSave: (data: DadosContratoFormData) => void;
   onNext?: () => void;
   initialData?: DadosContratoFormData;
+  readOnly?: boolean;
 }
 
 const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
   onSave,
   onNext,
-  initialData
+  initialData,
+  readOnly = false
 }) => {
   // Estados para os campos do formulário
   const [idContrato, setIdContrato] = useState(initialData?.idContrato || '');
@@ -79,7 +79,7 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
     carregarProprietarios();
     
     // Se não tiver ID do contrato, gerar um novo
-    if (!initialData?.idContrato) {
+    if (!initialData?.idContrato && !readOnly) {
       gerarNovoIdContrato();
     }
   }, []);
@@ -185,7 +185,7 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
     }
     
     // Formatar objeto de dados
-    const formattedDate = format(dataSaida || new Date(), 'yyyy-MM-dd');
+    const formattedDate = dataSaida ? format(dataSaida, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
     
     const formData: DadosContratoFormData = {
       idContrato,
@@ -224,6 +224,9 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
     toast.success('Motorista cadastrado com sucesso!');
   };
 
+  // Importação necessária para o formato de data
+  const { format } = require('date-fns');
+
   return (
     <form onSubmit={handleSave}>
       <Card>
@@ -243,37 +246,18 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
                 value={idContrato}
                 onChange={(e) => setIdContrato(e.target.value)}
                 placeholder="Número do contrato"
+                readOnly={readOnly}
               />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="dataSaida">Data de Saída*</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dataSaida && "text-muted-foreground"
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {dataSaida ? (
-                      format(dataSaida, 'PPP', { locale: ptBR })
-                    ) : (
-                      <span>Selecione a data</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dataSaida}
-                    onSelect={setDataSaida}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <DatePicker
+                value={dataSaida}
+                onChange={(date) => setDataSaida(date)}
+                disabled={readOnly}
+                placeholder="Selecione a data de saída"
+              />
             </div>
           </div>
           
@@ -286,12 +270,17 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
                   value={cidadeOrigem}
                   onChange={(e) => setCidadeOrigem(e.target.value)}
                   placeholder="Cidade de origem"
+                  readOnly={readOnly}
                 />
               </div>
               
               <div>
                 <Label htmlFor="estadoOrigem">Estado*</Label>
-                <Select value={estadoOrigem} onValueChange={setEstadoOrigem}>
+                <Select 
+                  value={estadoOrigem} 
+                  onValueChange={setEstadoOrigem}
+                  disabled={readOnly}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
@@ -314,12 +303,17 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
                   value={cidadeDestino}
                   onChange={(e) => setCidadeDestino(e.target.value)}
                   placeholder="Cidade de destino"
+                  readOnly={readOnly}
                 />
               </div>
               
               <div>
                 <Label htmlFor="estadoDestino">Estado*</Label>
-                <Select value={estadoDestino} onValueChange={setEstadoDestino}>
+                <Select 
+                  value={estadoDestino} 
+                  onValueChange={setEstadoDestino}
+                  disabled={readOnly}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
@@ -341,6 +335,7 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
                 value={clienteDestino}
                 onChange={(e) => setClienteDestino(e.target.value)}
                 placeholder="Nome do cliente destinatário"
+                readOnly={readOnly}
               />
             </div>
           </div>
@@ -352,6 +347,7 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
                 value={tipo}
                 onValueChange={(v) => setTipo(v as 'frota' | 'terceiro')}
                 className="flex space-x-4 mt-2"
+                disabled={readOnly}
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="frota" id="frota" />
@@ -368,25 +364,31 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
               <div>
                 <div className="flex justify-between items-center">
                   <Label htmlFor="placaCavalo">Placa do Cavalo*</Label>
-                  <Dialog open={modalCadastroPlaca} onOpenChange={setModalCadastroPlaca}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 text-xs">
-                        <Truck className="mr-1 h-3 w-3" />
-                        Nova Placa
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Cadastrar Nova Placa de Cavalo</DialogTitle>
-                      </DialogHeader>
-                      <CadastroPlacaForm 
-                        onSave={handleCadastroPlacaSuccess}
-                        onCancel={() => setModalCadastroPlaca(false)}
-                      />
-                    </DialogContent>
-                  </Dialog>
+                  {!readOnly && (
+                    <Dialog open={modalCadastroPlaca} onOpenChange={setModalCadastroPlaca}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <Truck className="mr-1 h-3 w-3" />
+                          Nova Placa
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Cadastrar Nova Placa de Cavalo</DialogTitle>
+                        </DialogHeader>
+                        <CadastroPlacaForm 
+                          onSave={handleCadastroPlacaSuccess}
+                          onCancel={() => setModalCadastroPlaca(false)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
-                <Select value={placaCavalo} onValueChange={setPlacaCavalo}>
+                <Select 
+                  value={placaCavalo} 
+                  onValueChange={setPlacaCavalo}
+                  disabled={readOnly}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a placa" />
                   </SelectTrigger>
@@ -407,6 +409,7 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
                   value={placaCarreta}
                   onChange={(e) => setPlacaCarreta(e.target.value)}
                   placeholder="Placa da carreta (opcional)"
+                  readOnly={readOnly}
                 />
               </div>
             </div>
@@ -415,24 +418,30 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
               <div>
                 <div className="flex justify-between items-center">
                   <Label htmlFor="motorista">Motorista*</Label>
-                  <Dialog open={modalCadastroMotorista} onOpenChange={setModalCadastroMotorista}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 text-xs">
-                        Novo Motorista
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Cadastrar Novo Motorista</DialogTitle>
-                      </DialogHeader>
-                      <CadastroMotoristaForm 
-                        onSave={handleCadastroMotoristaSuccess}
-                        onCancel={() => setModalCadastroMotorista(false)}
-                      />
-                    </DialogContent>
-                  </Dialog>
+                  {!readOnly && (
+                    <Dialog open={modalCadastroMotorista} onOpenChange={setModalCadastroMotorista}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          Novo Motorista
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Cadastrar Novo Motorista</DialogTitle>
+                        </DialogHeader>
+                        <CadastroMotoristaForm 
+                          onSave={handleCadastroMotoristaSuccess}
+                          onCancel={() => setModalCadastroMotorista(false)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
-                <Select value={motorista} onValueChange={setMotorista}>
+                <Select 
+                  value={motorista} 
+                  onValueChange={setMotorista}
+                  disabled={readOnly}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o motorista" />
                   </SelectTrigger>
@@ -449,7 +458,11 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
               {tipo === 'terceiro' && (
                 <div>
                   <Label htmlFor="proprietario">Proprietário*</Label>
-                  <Select value={proprietario} onValueChange={setProprietario}>
+                  <Select 
+                    value={proprietario} 
+                    onValueChange={setProprietario}
+                    disabled={readOnly}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o proprietário" />
                     </SelectTrigger>
@@ -466,11 +479,13 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
             </div>
           </div>
           
-          <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
-            <Button type="submit">
-              {onNext ? 'Continuar' : 'Salvar Dados'}
-            </Button>
-          </div>
+          {!readOnly && (
+            <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
+              <Button type="submit">
+                {onNext ? 'Continuar' : 'Salvar Dados'}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </form>

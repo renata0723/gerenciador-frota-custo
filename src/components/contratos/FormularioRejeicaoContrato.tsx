@@ -46,7 +46,7 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
           motivo_rejeicao: motivo,
           status_contrato: 'Rejeitado'
         })
-        .eq('id', contrato.id);
+        .eq('id', contrato.id); // Usando string como ID
         
       if (error) throw error;
       

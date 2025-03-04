@@ -27,3 +27,34 @@ export interface ParceiroInfo {
   dadosBancarios?: DadosBancarios;
   id?: number;
 }
+
+// Adicionando os tipos necessários que estavam faltando
+export type SaldoPagar = SaldoPagarItem;
+
+export interface PagamentoSaldo {
+  id: number;
+  saldo_id: number;
+  valor: number;
+  data_pagamento: string;
+  metodo_pagamento: string;
+  comprovante?: string;
+  observacoes?: string;
+}
+
+export interface ProprietarioFormValues {
+  nome: string;
+  documento: string;
+  dadosBancarios: DadosBancarios;
+}
+
+// Tipo SaldoItem utilizado na tabela de saldos pendentes
+export interface SaldoItem extends SaldoPagarItem {
+  id: number;
+  parceiro: string;
+  valor_total: number;
+  valor_pago?: number;
+  saldo_restante?: number;
+  contratos_associados?: string;
+  status: string;
+  vencimento?: string;
+}

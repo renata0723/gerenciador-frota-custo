@@ -40,6 +40,8 @@ export interface NovoAbastecimentoFormProps {
   onSubmit: (data: AbastecimentoFormData) => void;
   onCancel: () => void;
   initialData?: Partial<AbastecimentoFormData>;
+  onSave?: (formData: AbastecimentoFormData) => Promise<void>;
+  tiposCombustivel?: TipoCombustivel[];
 }
 
 export type TipoCombustivel = {

@@ -60,7 +60,7 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
         const { error: erroContrato } = await supabase
           .from('Contratos')
           .update({ status_contrato: 'Cancelado' })
-          .eq('id', numeroDocumento);
+          .eq('id', numeroDocumento); // Isso agora espera uma string
           
         if (erroContrato) throw erroContrato;
       } else if (tipo === 'CTe') {
