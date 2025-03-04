@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { Canhoto } from "@/types/canhoto";
 import { supabase } from '@/integrations/supabase/client';
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface CanhotoFormProps {
   dados?: Partial<Canhoto>;
@@ -37,7 +38,9 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
     data_recebimento_canhoto: dados?.data_recebimento_canhoto || today,
     responsavel_recebimento: dados?.responsavel_recebimento || '',
     data_programada_pagamento: dados?.data_programada_pagamento || '',
-    status: 'Recebido'
+    status: 'Recebido',
+    data_recebimento_mercadoria: dados?.data_recebimento_mercadoria || '',
+    data_recebimento_controladoria: dados?.data_recebimento_controladoria || today,
   });
   
   const [loadingContrato, setLoadingContrato] = useState(false);
@@ -96,6 +99,15 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
     }));
   };
   
+  const handleDateChange = (field: string, date: Date | undefined) => {
+    if (date) {
+      setFormData(prev => ({
+        ...prev,
+        [field]: format(date, 'yyyy-MM-dd')
+      }));
+    }
+  };
+  
   const calculaSaldoPagar = () => {
     // Esta função seria implementada para calcular o saldo a pagar
     // baseando-se no contrato e outros parâmetros
@@ -115,9 +127,42 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
       return;
     }
     
+    if (!formData.data_recebimento_mercadoria) {
+      toast.error("Informe a data que o cliente recebeu a mercadoria");
+      return;
+    }
+    
+    if (!formData.data_recebimento_controladoria) {
+      toast.error("Informe a data que a controladoria recebeu o canhoto");
+      return;
+    }
+    
     // Calcular saldo a pagar se necessário
     if (!formData.saldo_a_pagar) {
       formData.saldo_a_pagar = calculaSaldoPagar();
+    }
+    
+    // Liberar o saldo a pagar quando o canhoto é recebido
+    if (formData.saldo_a_pagar && formData.saldo_a_pagar > 0) {
+      try {
+        const { data: saldoData, error: saldoError } = await supabase
+          .from('Saldo a pagar')
+          .select('*')
+          .eq('contratos_associados', formData.contrato_id)
+          .single();
+          
+        if (!saldoError && saldoData) {
+          // Atualizar status do saldo para liberado para pagamento
+          await supabase
+            .from('Saldo a pagar')
+            .update({ status: 'liberado' })
+            .eq('id', saldoData.id);
+            
+          toast.success('Saldo a pagar liberado com sucesso!');
+        }
+      } catch (error) {
+        console.error('Erro ao liberar saldo a pagar:', error);
+      }
     }
     
     await onSubmit(formData);
@@ -204,6 +249,18 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
+          <Label htmlFor="data_recebimento_mercadoria">Data de Recebimento pelo Cliente</Label>
+          <Input
+            id="data_recebimento_mercadoria"
+            name="data_recebimento_mercadoria"
+            type="date"
+            value={formData.data_recebimento_mercadoria}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        
+        <div>
           <Label htmlFor="data_entrega_cliente">Data da Entrega ao Cliente</Label>
           <Input
             id="data_entrega_cliente"
@@ -213,7 +270,9 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
             onChange={handleChange}
           />
         </div>
-        
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="data_recebimento_canhoto">Data do Recebimento do Canhoto</Label>
           <Input
@@ -221,6 +280,18 @@ const CanhotoForm: React.FC<CanhotoFormProps> = ({
             name="data_recebimento_canhoto"
             type="date"
             value={formData.data_recebimento_canhoto}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="data_recebimento_controladoria">Data de Recebimento na Controladoria</Label>
+          <Input
+            id="data_recebimento_controladoria"
+            name="data_recebimento_controladoria"
+            type="date"
+            value={formData.data_recebimento_controladoria}
             onChange={handleChange}
             required
           />

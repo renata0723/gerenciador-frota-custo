@@ -1,72 +1,37 @@
 
-/**
- * Formatadores para valores e datas
- */
-
-/**
- * Formata um valor para moeda brasileira (R$)
- * @param value - Valor a ser formatado
- * @returns string formatada
- */
-export const formatCurrency = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return 'R$ 0,00';
-  
+export const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
-    currency: 'BRL',
+    currency: 'BRL'
   }).format(value);
 };
 
-/**
- * Formata um valor monetário sem o símbolo da moeda
- * @param value - Valor a ser formatado
- * @returns string formatada apenas com o valor (sem símbolo da moeda)
- */
-export const formatarValorMonetario = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '0,00';
+export const formatDate = (date: string): string => {
+  if (!date) return 'N/A';
   
-  return new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+  try {
+    const newDate = new Date(date);
+    return newDate.toLocaleDateString('pt-BR');
+  } catch (error) {
+    return date;
+  }
 };
 
-/**
- * Formata data no padrão brasileiro dd/mm/yyyy
- * @param date - Data a ser formatada
- * @returns string formatada
- */
-export const formatDate = (date: string | Date | null | undefined): string => {
-  if (!date) return '';
+export const formatCPFCNPJ = (value: string | null | undefined): string => {
+  if (!value) return 'N/A';
   
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  // Remove caracteres não numéricos
+  const numbers = value.replace(/\D/g, '');
   
-  return new Intl.DateTimeFormat('pt-BR').format(dateObj);
-};
-
-/**
- * Formata uma data para o formato ISO (yyyy-mm-dd)
- * @param date - Data a ser formatada
- * @returns string no formato ISO
- */
-export const formatDateToISO = (date: Date | string): string => {
-  if (!date) return '';
+  // CPF (11 dígitos)
+  if (numbers.length === 11) {
+    return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  }
   
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  // CNPJ (14 dígitos)
+  if (numbers.length === 14) {
+    return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  }
   
-  return dateObj.toISOString().split('T')[0];
-};
-
-/**
- * Formata número com duas casas decimais
- * @param value - Valor a ser formatado
- * @returns string formatada
- */
-export const formatNumber = (value: number | null | undefined, decimals: number = 2): string => {
-  if (value === null || value === undefined) return '0';
-  
-  return value.toLocaleString('pt-BR', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
-  });
+  return value;
 };

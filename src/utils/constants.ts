@@ -22,6 +22,7 @@ export const tiposDespesa = [
   "Hospedagem", 
   "Multa", 
   "Equipamentos", 
+  "Combustível",
   "Administrativa", 
   "Outros"
 ];
@@ -57,3 +58,21 @@ export const ANO_ATUAL = 2025;
 
 export const EMPRESA_CNPJ = "44.712.877/0001-80";
 export const EMPRESA_NOME = "SSLOG Transportes LTDA";
+
+export const statusSaldoPagar = {
+  PENDENTE: 'pendente' as const,
+  LIBERADO: 'liberado' as const, 
+  PAGO: 'pago' as const,
+  CANCELADO: 'cancelado' as const
+};
+
+export type StatusSaldoPagar = typeof statusSaldoPagar[keyof typeof statusSaldoPagar];
+
+export const tiposUsuario = {
+  ADMINISTRADOR: 'administrador' as const,
+  GESTOR: 'gestor' as const,
+  OPERADOR: 'operador' as const,
+  VISUALIZADOR: 'visualizador' as const
+};
+
+export type TipoUsuario = typeof tiposUsuario[keyof typeof tiposUsuario];

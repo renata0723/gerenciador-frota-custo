@@ -15,6 +15,8 @@ export interface CanhotoPendente {
   data_programada_pagamento?: string;
   saldo_a_pagar?: number;
   observacoes?: string;
+  data_recebimento_mercadoria?: string;
+  data_recebimento_controladoria?: string;
 }
 
 export interface Canhoto extends CanhotoPendente {
@@ -36,6 +38,8 @@ export interface CanhotoFormData {
   data_entrega_cliente: string;
   responsavel_recebimento: string;
   observacoes?: string;
+  data_recebimento_mercadoria: string;
+  data_recebimento_controladoria: string;
 }
 
 export interface CanhotoFiltro {
