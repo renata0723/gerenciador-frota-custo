@@ -5,9 +5,10 @@ import Sidebar from './Sidebar';
 
 interface PageLayoutProps {
   children: React.ReactNode;
+  showProjectionButton?: boolean;
 }
 
-const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
+const PageLayout: React.FC<PageLayoutProps> = ({ children, showProjectionButton }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const toggleSidebar = () => {
@@ -16,10 +17,10 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Sidebar isSidebarOpen={isSidebarOpen} />
+      <Sidebar isOpen={isSidebarOpen} />
       
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Navbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+        <Navbar onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} showProjectionButton={showProjectionButton} />
         
         <main className="flex-1 overflow-y-auto p-6">
           <div className="container mx-auto">

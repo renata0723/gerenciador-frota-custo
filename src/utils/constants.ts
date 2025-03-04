@@ -1,3 +1,4 @@
+
 export const formataMoeda = (valor: number) => {
   return valor.toLocaleString('pt-BR', {
     style: 'currency',
@@ -47,7 +48,11 @@ export const tiposManutencao = [
   "corretiva"
 ];
 
+export type TipoManutencao = "preventiva" | "corretiva";
+
 export const localRealizacao = [
   "patio",
   "externa"
 ];
+
+export type LocalRealizacao = "patio" | "externa";

@@ -54,7 +54,7 @@ const Login = () => {
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
             <img 
-              src="/lovable-uploads/cf1b83fb-7af9-44bc-922d-994d72b4d84d.png" 
+              src="/lovable-uploads/3c829e17-60d6-4947-b5d0-291534256381.png" 
               alt="Sslog Transportes" 
               className="h-32 mx-auto"
             />

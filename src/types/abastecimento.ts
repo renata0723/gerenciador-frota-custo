@@ -37,3 +37,12 @@ export interface AbastecimentoFormData {
   responsavel: string;
   itens: string;
 }
+
+export interface TipoCombustivelFormProps {
+  onTipoCombustivelAdded: (tipoCombustivel: TipoCombustivel) => void;
+}
+
+export interface NovoAbastecimentoFormProps {
+  tiposCombustivel: TipoCombustivel[];
+  onAbastecimentoAdicionado: () => void;
+}

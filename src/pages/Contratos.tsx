@@ -10,15 +10,20 @@ import FormularioCancelamento from '@/components/contratos/FormularioCancelament
 import { ThumbsDown, FileDown, Plus, Search, Ban } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Contratos = () => {
   const [rejeicaoDialogOpen, setRejeicaoDialogOpen] = useState(false);
   const [cancelamentoDialogOpen, setCancelamentoDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("em-andamento");
+  const [contratos, setContratos] = useState<any[]>([]);
+  const [carregando, setCarregando] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
+    carregarContratos();
+    
     // Verifica se há um parâmetro de ID na URL (vindo da página de busca)
     const params = new URLSearchParams(location.search);
     const contratoId = params.get('id');
@@ -31,15 +36,39 @@ const Contratos = () => {
     }
   }, [location, navigate]);
 
+  const carregarContratos = async () => {
+    try {
+      setCarregando(true);
+      const { data, error } = await supabase
+        .from('Contratos')
+        .select('*')
+        .order('data_saida', { ascending: false });
+        
+      if (error) {
+        console.error('Erro ao carregar contratos:', error);
+        toast.error('Erro ao carregar contratos');
+      } else {
+        setContratos(data || []);
+      }
+    } catch (error) {
+      console.error('Erro ao processar contratos:', error);
+      toast.error('Ocorreu um erro ao carregar os contratos');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
   const handleSaveRejection = (data: any) => {
     console.log('Contrato rejeitado:', data);
     // Implementar lógica para salvar a rejeição
     setRejeicaoDialogOpen(false);
+    toast.success('Contrato rejeitado com sucesso');
   };
 
   const handleCancelamentoRealizado = () => {
     setCancelamentoDialogOpen(false);
     // Recarregar lista de contratos após cancelamento
+    carregarContratos();
     toast.success("Documento cancelado com sucesso");
   };
 
@@ -85,7 +114,6 @@ const Contratos = () => {
               </DialogHeader>
               <FormularioCancelamento 
                 onCancelamentoRealizado={handleCancelamentoRealizado}
-                onCancel={() => setCancelamentoDialogOpen(false)}
               />
             </DialogContent>
           </Dialog>
@@ -126,26 +154,58 @@ const Contratos = () => {
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Contratos em Andamento</h2>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Saída</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Placa</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destino</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Frete</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {/* Dados serão carregados aqui */}
-                  <tr>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={8}>Nenhum registro encontrado</td>
-                  </tr>
-                </tbody>
-              </table>
+              {carregando ? (
+                <p className="text-center py-4">Carregando contratos...</p>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Saída</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Placa</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destino</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Frete</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {contratos.filter(c => c.status_contrato === 'Em Andamento').length > 0 ? (
+                      contratos.filter(c => c.status_contrato === 'Em Andamento').map((contrato) => (
+                        <tr key={contrato.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(contrato.data_saida).toLocaleDateString('pt-BR')}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.placa_cavalo}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.motorista || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.cidade_destino}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.cliente_destino}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {contrato.valor_frete ? `R$ ${parseFloat(contrato.valor_frete).toFixed(2)}` : '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                              {contrato.status_contrato}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => navigate(`/contratos/editar/${contrato.id}`)}
+                            >
+                              Editar
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={8}>Nenhum contrato em andamento encontrado</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </TabsContent>
@@ -153,14 +213,120 @@ const Contratos = () => {
         <TabsContent value="concluidos">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Contratos Concluídos</h2>
-            {/* Tabela de contratos concluídos */}
+            <div className="overflow-x-auto">
+              {carregando ? (
+                <p className="text-center py-4">Carregando contratos...</p>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Saída</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Placa</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destino</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Frete</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {contratos.filter(c => c.status_contrato === 'Concluído').length > 0 ? (
+                      contratos.filter(c => c.status_contrato === 'Concluído').map((contrato) => (
+                        <tr key={contrato.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(contrato.data_saida).toLocaleDateString('pt-BR')}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.placa_cavalo}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.motorista || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.cidade_destino}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.cliente_destino}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {contrato.valor_frete ? `R$ ${parseFloat(contrato.valor_frete).toFixed(2)}` : '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                              {contrato.status_contrato}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => navigate(`/contratos/editar/${contrato.id}`)}
+                            >
+                              Visualizar
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={8}>Nenhum contrato concluído encontrado</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </TabsContent>
         
         <TabsContent value="aguardando-canhoto">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Contratos Aguardando Canhoto</h2>
-            {/* Tabela de contratos aguardando canhoto */}
+            <div className="overflow-x-auto">
+              {carregando ? (
+                <p className="text-center py-4">Carregando contratos...</p>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Saída</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Placa</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destino</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Frete</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {contratos.filter(c => c.status_contrato === 'Aguardando Canhoto').length > 0 ? (
+                      contratos.filter(c => c.status_contrato === 'Aguardando Canhoto').map((contrato) => (
+                        <tr key={contrato.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(contrato.data_saida).toLocaleDateString('pt-BR')}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.placa_cavalo}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.motorista || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.cidade_destino}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contrato.cliente_destino}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {contrato.valor_frete ? `R$ ${parseFloat(contrato.valor_frete).toFixed(2)}` : '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                              {contrato.status_contrato}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => navigate(`/canhotos?contrato_id=${contrato.id}`)}
+                            >
+                              Registrar Canhoto
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colSpan={8}>Nenhum contrato aguardando canhoto encontrado</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </TabsContent>
       </Tabs>

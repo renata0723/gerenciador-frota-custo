@@ -101,3 +101,15 @@ export interface SaldoPagarItem {
 }
 
 export type TipoMovimento = 'entrada' | 'saida';
+
+export interface PagamentoProvisionado {
+  id?: number;
+  fornecedor: string;
+  vencimento: string;
+  valor: number;
+  contrato_id?: string;
+  descricao: string;
+  status: 'Pendente' | 'Pago' | 'Vencido';
+  conta_contabil?: string;
+  contabilizado: boolean;
+}

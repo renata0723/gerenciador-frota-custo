@@ -55,4 +55,7 @@ export interface CanhotoPendente {
   status?: string;
   numero_nota_fiscal?: string;
   data_entrega_cliente?: string;
+  data_entrega?: string; // Adicionado para compatibilidade
+  cliente?: string; // Adicionado para compatibilidade
+  motorista?: string; // Adicionado para compatibilidade
 }
