@@ -18,8 +18,15 @@ const Login = () => {
   useEffect(() => {
     const verificarSessao = async () => {
       try {
+        // Limpar qualquer toast de redirecionamento
+        toast.dismiss('auth-redirect');
+        
         const session = await checkAuthStatus();
-        if (session) {
+        // Verificar também os dados do usuário no localStorage
+        const userData = localStorage.getItem('userData');
+        const userToken = localStorage.getItem('userToken');
+        
+        if (session || (userData && userToken)) {
           console.log('Usuário já autenticado, redirecionando...');
           navigate('/');
         }

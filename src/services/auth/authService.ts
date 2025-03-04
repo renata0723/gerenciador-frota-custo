@@ -35,8 +35,28 @@ export const signIn = async ({ email, password }: LoginCredentials) => {
       if (!userError && userData) {
         localStorage.setItem('userData', JSON.stringify(userData));
         console.log('Dados do usuário armazenados:', userData);
+        
+        // Atualizar último acesso
+        await supabase
+          .from('Usuarios')
+          .update({ ultimo_acesso: new Date().toISOString() })
+          .eq('id', userData.id);
       } else {
-        console.log('Usuário autenticado, mas não encontrado na tabela Usuarios');
+        // Se estamos em desenvolvimento, criar um usuário de teste
+        if (process.env.NODE_ENV === 'development') {
+          const testUser: Usuario = {
+            id: 9999,
+            nome: 'Usuário de Teste',
+            email: email,
+            cargo: 'Operador',
+            status: 'ativo',
+            ultimo_acesso: new Date().toISOString()
+          };
+          localStorage.setItem('userData', JSON.stringify(testUser));
+          console.log('Usuário de teste criado para desenvolvimento');
+        } else {
+          console.log('Usuário autenticado, mas não encontrado na tabela Usuarios');
+        }
       }
       
       return data;
@@ -63,6 +83,9 @@ export const signOut = async () => {
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userData');
     localStorage.removeItem('userToken');
+    localStorage.removeItem('userName');
+    
+    toast.success('Logout realizado com sucesso');
   } catch (error) {
     console.error('Erro ao fazer logout:', error);
     toast.error('Erro ao fazer logout');
@@ -92,6 +115,7 @@ export const checkAuthStatus = async () => {
         
         if (!userError && userDetails) {
           localStorage.setItem('userData', JSON.stringify(userDetails));
+          localStorage.setItem('userName', userDetails.nome);
         }
       }
       

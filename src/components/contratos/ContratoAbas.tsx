@@ -3,7 +3,7 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FormularioDadosContrato from '@/components/contratos/FormularioDadosContrato';
 import FormularioDocumentosRegistros from '@/components/contratos/FormularioDocumentosRegistros';
-import { FormularioFreteContratado } from '@/components/contratos/FormularioFreteContratado';
+import FormularioFreteContratado from '@/components/contratos/FormularioFreteContratado';
 import FormularioObservacoes from '@/components/contratos/FormularioObservacoes';
 import FormularioCancelamento from '@/components/contratos/FormularioCancelamento';
 import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';

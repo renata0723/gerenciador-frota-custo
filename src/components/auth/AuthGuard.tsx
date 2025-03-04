@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Usuario } from '@/types/usuario';
 import { getUsuarioAutenticado, checkAuthStatus } from '@/services/auth/authService';
 
 interface AuthGuardProps {
@@ -42,6 +41,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           
           localStorage.setItem('userData', JSON.stringify(adminTestUser));
           localStorage.setItem('userToken', 'token-simulado-dev');
+          localStorage.setItem('userName', adminTestUser.nome);
           
           setIsAuthenticated(true);
           setLoading(false);
@@ -55,14 +55,26 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             
             if (usuario && (usuario.id || usuario.email)) {
               console.log('Usuário autenticado:', usuario.nome);
+              
+              // Garantir que o nome do usuário esteja disponível
+              if (usuario.nome && !localStorage.getItem('userName')) {
+                localStorage.setItem('userName', usuario.nome);
+              }
+              
               setIsAuthenticated(true);
             } else {
               console.log('Dados de usuário inválidos');
               setIsAuthenticated(false);
+              // Limpar dados de autenticação inválidos
+              localStorage.removeItem('userData');
+              localStorage.removeItem('userToken');
             }
           } catch (error) {
             console.error('Erro ao processar dados de autenticação:', error);
             setIsAuthenticated(false);
+            // Limpar dados de autenticação com erro
+            localStorage.removeItem('userData');
+            localStorage.removeItem('userToken');
           }
         } else {
           console.log('Nenhum usuário autenticado');
