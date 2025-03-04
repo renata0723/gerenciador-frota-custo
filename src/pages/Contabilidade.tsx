@@ -16,7 +16,8 @@ import {
   Users,
   FileSpreadsheet,
   Lock,
-  CalendarRange
+  CalendarRange,
+  Percent
 } from 'lucide-react';
 
 const Contabilidade = () => {
@@ -54,6 +55,12 @@ const Contabilidade = () => {
       description: 'Análise detalhada de custos, receitas e resultados',
       icon: <Calculator className="h-8 w-8 text-rose-500" />,
       onClick: () => navigate('/contabilidade/apuracao-custo-resultado')
+    },
+    {
+      title: 'Apuração de Impostos',
+      description: 'Cálculo e controle de tributos para Lucro Real',
+      icon: <Percent className="h-8 w-8 text-orange-500" />,
+      onClick: () => navigate('/contabilidade/apuracao-impostos')
     },
     {
       title: 'Balanço Patrimonial',

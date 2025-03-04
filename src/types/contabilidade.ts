@@ -1,3 +1,4 @@
+
 export type StatusItem = 'ativo' | 'inativo' | 'pendente' | 'concluido' | 'cancelado' | 'aberto' | 'fechado';
 export type TipoMovimento = 'entrada' | 'saida';
 export type TipoConta = 'ativo' | 'passivo' | 'receita' | 'despesa' | 'patrimonio';
@@ -161,4 +162,57 @@ export interface Balancete {
   status?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+// Novas interfaces para Apuração de Impostos
+export interface ApuracaoImpostos {
+  id?: number;
+  periodo_inicio: string;
+  periodo_fim: string;
+  receita_bruta: number;
+  base_calculo_pis_cofins: number;
+  creditos_pis_cofins: number;
+  base_calculo_irpj: number;
+  base_calculo_csll: number;
+  valor_pis: number;
+  valor_cofins: number;
+  valor_irpj: number;
+  valor_csll: number;
+  prejuizo_acumulado?: number;
+  compensacao_prejuizo?: number;
+  aliquota_efetiva?: number;
+  status: StatusItem;
+  created_at?: string;
+  updated_at?: string;
+  observacoes?: string;
+}
+
+export interface CreditoTributario {
+  id?: number;
+  tipo_credito: 'pis' | 'cofins' | 'irpj' | 'csll' | 'icms' | 'outros';
+  descricao: string;
+  valor: number;
+  data_aquisicao: string;
+  data_utilizacao?: string;
+  documento_referencia?: string;
+  periodo_apuracao: string;
+  status: 'disponivel' | 'utilizado' | 'expirado';
+  created_at?: string;
+}
+
+export interface OperacaoTributavel {
+  id?: number;
+  tipo_documento: 'cte' | 'nfe' | 'nfse' | 'outros';
+  numero_documento: string;
+  data_emissao: string;
+  valor_operacao: number;
+  base_pis_cofins: number;
+  base_irpj_csll: number;
+  valor_pis: number;
+  valor_cofins: number;
+  valor_irpj: number;
+  valor_csll: number;
+  contrato_id?: string;
+  observacoes?: string;
+  created_at?: string;
 }

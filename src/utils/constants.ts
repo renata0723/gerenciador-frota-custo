@@ -79,3 +79,29 @@ export const statusSaldoPagar = [
   { value: 'pago', label: 'Pago' },
   { value: 'cancelado', label: 'Cancelado' }
 ];
+
+// Constantes para status de documentos e operações
+export const STATUS_NOTAS = {
+  AGUARDANDO_ENTREGA: 'aguardando_entrega',
+  EM_TRANSITO: 'em_transito',
+  CONCLUIDA: 'concluida',
+  CANCELADA: 'cancelada'
+};
+
+// Constantes para impostos do lucro real
+export const ALIQUOTAS_IMPOSTOS = {
+  PIS: 0.0165, // 1,65%
+  COFINS: 0.076, // 7,6%
+  IRPJ_BASICO: 0.15, // 15%
+  IRPJ_ADICIONAL: 0.10, // 10% adicional para lucro acima de R$ 20.000/mês
+  CSLL: 0.09, // 9%
+};
+
+// Limite mensal para incidência da alíquota adicional do IRPJ
+export const LIMITE_MENSAL_IRPJ_ADICIONAL = 20000;
+
+// Percentuais de presunção do lucro para transportadoras
+export const PERCENTUAIS_PRESUNCAO = {
+  TRANSPORTE: 0.08, // 8% para IRPJ
+  TRANSPORTE_CSLL: 0.12, // 12% para CSLL
+};
