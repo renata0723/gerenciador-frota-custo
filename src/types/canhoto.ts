@@ -1,27 +1,38 @@
 
-export type CanhotoStatus = 'Pendente' | 'Recebido' | 'Cancelado';
-
-export interface Canhoto {
-  id: number;
-  contrato_id: string;
-  cliente: string;
-  motorista: string;
-  data_entrega_cliente: string | null;
-  data_recebimento_canhoto: string | null;
-  responsavel_recebimento: string | null;
-  numero_manifesto: string | null;
-  numero_cte: string | null;
-  numero_nota_fiscal: string | null;
-  status: CanhotoStatus;
-  data_programada_pagamento: string | null;
-  proprietario_veiculo: string | null;
-  saldo_a_pagar: number | null;
+export interface CanhotoPendente {
+  id?: number;
+  contrato_id?: string;
+  numero_manifesto?: string;
+  numero_cte?: string;
+  numero_nota_fiscal?: string;
+  cliente?: string;
+  data_entrega?: string;
+  data_entrega_cliente?: string;
+  status?: string;
+  data_recebimento_canhoto?: string;
+  data_programada_pagamento?: string;
+  saldo_a_pagar?: number;
+  motorista?: string;
+  proprietario_veiculo?: string;
+  responsavel_recebimento?: string;
 }
 
-export interface CanhotoPendente {
-  id: number;
+export interface CanhotoRegistrado {
+  id?: number;
   contrato_id: string;
-  cliente: string;
-  motorista: string;
-  data_entrega: string;
+  data_recebimento_canhoto: string;
+  data_entrega_cliente: string;
+  responsavel_recebimento: string;
+  observacoes?: string;
+  status?: string;
+}
+
+export interface CancelamentoDocumento {
+  id?: number;
+  tipo_documento: string;
+  numero_documento: string;
+  motivo: string;
+  responsavel: string;
+  observacoes?: string;
+  data_cancelamento?: string;
 }

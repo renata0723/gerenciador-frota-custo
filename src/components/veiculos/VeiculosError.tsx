@@ -1,47 +1,21 @@
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import PageHeader from "@/components/ui/PageHeader";
-import { Truck, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
-interface VeiculosErrorProps {
-  error: string;
-  onRetry: () => void;
+export interface VeiculosErrorProps {
+  message: string;
+  onRetry: () => Promise<void>;
 }
 
-const VeiculosError: React.FC<VeiculosErrorProps> = ({ error, onRetry }) => {
+const VeiculosError: React.FC<VeiculosErrorProps> = ({ message, onRetry }) => {
   return (
-    <>
-      <PageHeader 
-        title="Veículos" 
-        description="Gerencie sua frota de veículos"
-        icon={<Truck size={26} className="text-blue-500" />}
-        breadcrumbs={[
-          { label: 'Dashboard', href: '/' },
-          { label: 'Veículos' }
-        ]}
-        actions={
-          <Link to="/veiculos/novo">
-            <Button>
-              <Plus size={16} className="mr-2" />
-              Novo Veículo
-            </Button>
-          </Link>
-        }
-      />
-      
-      <div className="bg-white rounded-xl shadow-card border border-gray-100 p-6 mb-8">
-        <div className="text-center">
-          <div className="text-red-500 mb-4">
-            <AlertTriangle className="h-12 w-12 mx-auto mb-2" />
-            <span className="text-lg font-medium">{error}</span>
-          </div>
-          <Button onClick={onRetry}>Tentar novamente</Button>
-        </div>
-      </div>
-    </>
+    <div className="flex flex-col items-center justify-center p-8 border rounded-lg bg-red-50">
+      <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
+      <h3 className="text-lg font-medium text-red-800 mb-2">Erro ao carregar dados</h3>
+      <p className="text-red-600 mb-4 text-center">{message}</p>
+      <Button onClick={onRetry} variant="secondary">Tentar novamente</Button>
+    </div>
   );
 };
 

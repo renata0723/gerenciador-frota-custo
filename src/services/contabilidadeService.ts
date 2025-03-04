@@ -635,9 +635,9 @@ export const criarFuncaoCreateFolhaPagamentoTable = async (): Promise<boolean> =
 // Verifica se a função exec_sql existe
 export const criarFuncaoExecSql = async (): Promise<boolean> => {
   try {
-    // Cria a função via SQL raw query
-    const { error } = await supabase.from('raw_query').insert({
-      query: `
+    // Como a tabela raw_query pode não existir, vamos usar uma abordagem diferente
+    const { error } = await supabase.rpc('exec_sql', {
+      sql_query: `
         CREATE OR REPLACE FUNCTION exec_sql(sql_query text)
         RETURNS void
         LANGUAGE plpgsql
@@ -660,5 +660,45 @@ export const criarFuncaoExecSql = async (): Promise<boolean> => {
   } catch (error) {
     console.error('Erro ao criar função exec_sql:', error);
     return false;
+  }
+};
+
+// Funções com nomes alternativos para compatibilidade
+export const getLancamentosContabeis = listarLancamentosContabeis;
+export const criarLancamentoContabil = adicionarLancamentoContabil;
+export const getPlanoContas = listarPlanoContas;
+export const getCentrosCusto = listarCentrosCusto;
+export const getLivroCaixa = listarLivroCaixa;
+export const criarLivroCaixaItem = adicionarMovimentoLivroCaixa;
+export const buscarPlanoContas = listarPlanoContas;
+export const criarContaContabil = adicionarContaContabil;
+export const getDRE = listarDRE;
+export const criarDRE = adicionarDRE;
+export const getBalancosPatrimoniais = listarBalancoPatrimonial;
+export const criarBalancoPatrimonial = adicionarBalancoPatrimonial;
+
+// Função para buscar conta contábil por código reduzido
+export const getContaContabilByCodigoReduzido = async (codigoReduzido: string): Promise<ContaContabil | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('Plano_Contas')
+      .select('*')
+      .eq('codigo_reduzido', codigoReduzido)
+      .single();
+    
+    if (error) {
+      console.error('Erro ao buscar conta por código reduzido:', error);
+      return null;
+    }
+    
+    return {
+      ...data,
+      tipo: data.tipo as TipoConta,
+      natureza: data.natureza as 'devedora' | 'credora',
+      status: data.status as StatusItem
+    };
+  } catch (error) {
+    console.error('Erro ao buscar conta por código reduzido:', error);
+    return null;
   }
 };

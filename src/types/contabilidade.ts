@@ -123,4 +123,5 @@ export interface SaldoPagarItem {
   data_pagamento?: string;
   banco_pagamento?: string;
   vencimento?: string;
+  status?: StatusItem;
 }

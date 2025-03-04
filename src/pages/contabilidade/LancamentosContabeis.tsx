@@ -14,7 +14,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 
-import { getLancamentosContabeis, criarLancamentoContabil, getPlanoContas, getCentrosCusto, getContaContabilByCodigoReduzido } from '@/services/contabilidadeService';
+import { 
+  listarLancamentosContabeis,
+  adicionarLancamentoContabil,
+  listarPlanoContas,
+  listarCentrosCusto,
+  getContaContabilByCodigoReduzido
+} from '@/services/contabilidadeService';
 import { LancamentoContabil, ContaContabil, CentroCusto } from '@/types/contabilidade';
 import { formatarValorMonetario } from '@/utils/formatters';
 
@@ -46,9 +52,9 @@ const LancamentosContabeis = () => {
         
         // Carrega todos os dados necessários
         const [lancamentosData, contasData, centrosCustoData] = await Promise.all([
-          getLancamentosContabeis(),
-          getPlanoContas(),
-          getCentrosCusto()
+          listarLancamentosContabeis(),
+          listarPlanoContas(),
+          listarCentrosCusto()
         ]);
         
         setLancamentos(lancamentosData);
@@ -116,7 +122,7 @@ const LancamentosContabeis = () => {
     }
     
     try {
-      const response = await criarLancamentoContabil(novoLancamento);
+      const response = await adicionarLancamentoContabil(novoLancamento);
       
       if (response) {
         toast.success('Lançamento contábil registrado com sucesso.');

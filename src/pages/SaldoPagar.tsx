@@ -1,250 +1,267 @@
-
 import React, { useState, useEffect } from 'react';
-import PageLayout from '../components/layout/PageLayout';
-import PageHeader from '../components/ui/PageHeader';
-import { CreditCard, Search, Filter, Download, BarChart2, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { formataMoeda } from '@/utils/constants';
+import { PageHeader } from "@/components/ui/page-header"
+import { PageLayout } from "@/components/layout/PageLayout"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Plus, FileCheck } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { formatCurrency } from '@/utils/formatters';
+
 import { SaldoPagarItem } from '@/types/contabilidade';
-import Placeholder, { LoadingPlaceholder } from '@/components/ui/Placeholder';
 
 const SaldoPagar = () => {
-  const [saldosList, setSaldosList] = useState<SaldoPagarItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [saldos, setSaldos] = useState<SaldoPagarItem[]>([]);
+  const [novoSaldo, setNovoSaldo] = useState<SaldoPagarItem>({
+    parceiro: '',
+    valor_total: 0,
+    vencimento: '',
+  });
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [editandoSaldo, setEditandoSaldo] = useState<SaldoPagarItem | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    carregarSaldos();
+    // Aqui você buscaria os dados do backend
+    // Substitua este exemplo com sua lógica real
+    const dataMock: SaldoPagarItem[] = [
+      { id: 1, parceiro: 'Fornecedor A', valor_total: 1500, valor_pago: 500, saldo_restante: 1000, vencimento: '2024-05-10', status: 'pendente' },
+      { id: 2, parceiro: 'Fornecedor B', valor_total: 2500, valor_pago: 2500, saldo_restante: 0, vencimento: '2024-05-15', status: 'concluido' },
+      { id: 3, parceiro: 'Fornecedor C', valor_total: 800, valor_pago: 0, saldo_restante: 800, vencimento: '2024-05-20', status: 'pendente' },
+    ];
+    setSaldos(dataMock);
   }, []);
 
-  const carregarSaldos = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('Saldo a pagar')
-        .select('*');
-
-      if (error) {
-        console.error("Erro ao carregar saldos a pagar:", error);
-        toast.error("Erro ao carregar a lista de saldos a pagar");
-        return;
-      }
-
-      // Mapear os dados para incluir o status
-      const dadosFormatados = (data || []).map(item => ({
-        ...item,
-        status: item.valor_pago && item.valor_total 
-          ? item.valor_pago >= item.valor_total 
-            ? 'Pago' 
-            : 'Parcial'
-          : 'Pendente'
-      })) as SaldoPagarItem[];
-
-      setSaldosList(dadosFormatados);
-    } catch (error) {
-      console.error("Erro ao processar dados:", error);
-      toast.error("Ocorreu um erro ao processar os dados dos saldos");
-    } finally {
-      setLoading(false);
+  const statusColor = (status?: string) => {
+    if (!status) return "text-gray-500";
+    switch (status) {
+      case 'pendente':
+        return "text-yellow-500";
+      case 'concluido':
+        return "text-green-500";
+      case 'cancelado':
+        return "text-red-500";
+      default:
+        return "text-gray-500";
     }
   };
 
-  const efetuarPagamento = async (id: string | number) => {
-    try {
-      const { error } = await supabase
-        .from('Saldo a pagar')
-        .update({
-          valor_pago: saldosList.find(s => s.id === id)?.valor_total || 0,
-          data_pagamento: new Date().toISOString().split('T')[0]
-        })
-        .eq('id', Number(id));
-
-      if (error) {
-        console.error("Erro ao efetuar pagamento:", error);
-        toast.error("Erro ao registrar o pagamento");
-        return;
-      }
-
-      // Atualizar estado local
-      setSaldosList(saldos => saldos.map(saldo => {
-        if (saldo.id === id) {
-          return {
-            ...saldo,
-            valor_pago: saldo.valor_total,
-            status: 'Pago',
-            data_pagamento: new Date().toISOString().split('T')[0]
-          };
-        }
-        return saldo;
-      }));
-      
-      toast.success("Pagamento efetuado com sucesso!");
-    } catch (error) {
-      console.error("Erro ao processar pagamento:", error);
-      toast.error("Ocorreu um erro ao efetuar o pagamento");
+  const renderStatusBadge = (status?: string) => {
+    if (!status) return "Pendente";
+    
+    switch (status) {
+      case 'pendente':
+        return "Pendente";
+      case 'concluido':
+        return "Pago";
+      case 'cancelado':
+        return "Cancelado";
+      default:
+        return "Pendente";
     }
   };
 
-  const filteredSaldos = saldosList.filter(saldo => 
-    saldo.parceiro.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    saldo.contratos_associados.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNovoSaldo(prev => ({ ...prev, [name]: value }));
+  };
 
-  const totalPendente = filteredSaldos
-    .filter(saldo => saldo.status !== 'Pago')
-    .reduce((sum, saldo) => sum + (saldo.valor_total - (saldo.valor_pago || 0)), 0);
+  const handleCreate = () => {
+    // Aqui você enviaria os dados para o backend
+    // Substitua este exemplo com sua lógica real
+    const novoId = saldos.length > 0 ? Math.max(...saldos.map(s => s.id || 0)) + 1 : 1;
+    const novoItem: SaldoPagarItem = { ...novoSaldo, id: novoId, status: 'pendente' };
+    setSaldos(prev => [...prev, novoItem]);
+    setNovoSaldo({ parceiro: '', valor_total: 0, vencimento: '' });
+  };
+
+  const handleEdit = (id: number) => {
+    const saldo = saldos.find(s => s.id === id);
+    if (saldo) {
+      setEditandoId(id);
+      setEditandoSaldo({ ...saldo });
+    }
+  };
+
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditandoSaldo(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleUpdate = () => {
+    if (editandoSaldo) {
+      // Aqui você enviaria os dados atualizados para o backend
+      // Substitua este exemplo com sua lógica real
+      setSaldos(prev =>
+        prev.map(s => (s.id === editandoId ? { ...editandoSaldo } : s))
+      );
+      setEditandoId(null);
+      setEditandoSaldo(null);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditandoId(null);
+    setEditandoSaldo(null);
+  };
+
+  const handleDelete = (id: number) => {
+    // Aqui você enviaria a solicitação de exclusão para o backend
+    // Substitua este exemplo com sua lógica real
+    setSaldos(prev => prev.filter(s => s.id !== id));
+  };
 
   return (
     <PageLayout>
-      <PageHeader 
-        title="Saldo a Pagar" 
-        description="Gerencie os saldos a pagar para parceiros"
-        icon={<CreditCard size={26} className="text-red-500" />}
-        breadcrumbs={[
-          { label: 'Dashboard', href: '/' },
-          { label: 'Saldo a Pagar' }
-        ]}
-      />
+      <PageHeader title="Saldo a Pagar" description="Gerencie os saldos a pagar aos seus fornecedores" />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="p-4 shadow-sm border">
-          <div className="flex justify-between items-center">
+      <Card className="p-6 mt-4">
+        <CardContent>
+          <h3 className="text-lg font-semibold mb-4">Adicionar Novo Saldo</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <p className="text-sm font-medium text-gray-500">Total Pendente</p>
-              <h3 className="text-2xl font-bold text-gray-900">{formataMoeda(totalPendente)}</h3>
-            </div>
-            <div className="p-3 rounded-full bg-red-100">
-              <CreditCard size={20} className="text-red-600" />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="shadow-sm border">
-        <div className="p-4 border-b">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="relative w-full md:w-80">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Search size={18} className="text-gray-400" />
-              </div>
+              <Label htmlFor="parceiro">Parceiro</Label>
               <Input
                 type="text"
-                className="pl-10 w-full"
-                placeholder="Buscar por parceiro ou contrato..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                id="parceiro"
+                name="parceiro"
+                value={novoSaldo.parceiro}
+                onChange={handleInputChange}
               />
             </div>
-            
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" className="flex items-center">
-                <Filter size={16} className="mr-2" />
-                Filtrar
-              </Button>
-              <Button variant="outline" className="flex items-center">
-                <Download size={16} className="mr-2" />
-                Exportar
-              </Button>
-              <Button variant="outline" className="flex items-center">
-                <BarChart2 size={16} className="mr-2" />
-                Relatórios
-              </Button>
+            <div>
+              <Label htmlFor="valor_total">Valor Total</Label>
+              <Input
+                type="number"
+                id="valor_total"
+                name="valor_total"
+                value={novoSaldo.valor_total}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="vencimento">Vencimento</Label>
+              <Input
+                type="date"
+                id="vencimento"
+                name="vencimento"
+                value={novoSaldo.vencimento}
+                onChange={handleInputChange}
+              />
             </div>
           </div>
-        </div>
-        
-        {loading ? (
-          <LoadingPlaceholder className="m-4" />
-        ) : saldosList.length === 0 ? (
-          <Placeholder 
-            title="Nenhum saldo a pagar encontrado" 
-            description="Não há registros de saldos a pagar no momento."
-            className="m-4"
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Parceiro</TableHead>
-                  <TableHead>Contratos</TableHead>
-                  <TableHead>Valor Total</TableHead>
-                  <TableHead>Valor Pago</TableHead>
-                  <TableHead>Saldo Restante</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSaldos.map((saldo) => (
-                  <TableRow key={saldo.id}>
-                    <TableCell className="font-medium">{saldo.parceiro}</TableCell>
-                    <TableCell>{saldo.contratos_associados}</TableCell>
-                    <TableCell>{formataMoeda(saldo.valor_total)}</TableCell>
-                    <TableCell>{formataMoeda(saldo.valor_pago || 0)}</TableCell>
-                    <TableCell>{formataMoeda(saldo.valor_total - (saldo.valor_pago || 0))}</TableCell>
-                    <TableCell>{saldo.vencimento || 'N/A'}</TableCell>
-                    <TableCell>
-                      <div className={`px-2 py-1 text-xs rounded-full inline-flex items-center ${
-                        saldo.status === 'Pago' 
-                          ? 'bg-green-100 text-green-800' 
-                          : saldo.status === 'Parcial'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-red-100 text-red-800'
-                      }`}>
-                        {saldo.status}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {saldo.status !== 'Pago' && (
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          onClick={() => efetuarPagamento(saldo.id)}
-                          className="text-green-600 hover:text-green-800 hover:bg-green-100"
-                        >
-                          <Check size={16} className="mr-1" />
-                          Pagar
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-        
-        <div className="p-4 border-t flex justify-between items-center">
-          <p className="text-sm text-gray-500">
-            Mostrando {filteredSaldos.length} de {saldosList.length} saldos
-          </p>
-          <div className="flex space-x-2">
-            <Button variant="outline" className="px-3 py-1" disabled>
-              Anterior
-            </Button>
-            <Button className="px-3 py-1">
-              1
-            </Button>
-            <Button variant="outline" className="px-3 py-1" disabled>
-              Próximo
-            </Button>
-          </div>
-        </div>
+          <Button className="mt-4" onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar
+          </Button>
+        </CardContent>
       </Card>
+
+      <Card className="p-6 mt-4">
+        <CardContent>
+          <h3 className="text-lg font-semibold mb-4">Lista de Saldos a Pagar</h3>
+          {loading ? (
+            <p>Carregando...</p>
+          ) : saldos.length === 0 ? (
+            <div className="text-center py-8">
+              <FileCheck className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900">Nenhum saldo a pagar registrado</h3>
+              <p className="mt-1 text-gray-500">Adicione um novo saldo para começar.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Parceiro</TableHead>
+                    <TableHead>Valor Total</TableHead>
+                    <TableHead>Valor Pago</TableHead>
+                    <TableHead>Saldo Restante</TableHead>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {saldos.map(item => (
+                    <TableRow key={item.id}>
+                      <TableCell>{item.parceiro}</TableCell>
+                      <TableCell>{formatCurrency(item.valor_total)}</TableCell>
+                      <TableCell>{formatCurrency(item.valor_pago || 0)}</TableCell>
+                      <TableCell>{formatCurrency(item.saldo_restante || 0)}</TableCell>
+                      <TableCell>{item.vencimento}</TableCell>
+                      <TableCell className={statusColor(item.status)}>{renderStatusBadge(item.status)}</TableCell>
+                      <TableCell className="text-right">
+                        {editandoId === item.id ? (
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" onClick={handleUpdate}>Salvar</Button>
+                            <Button size="sm" variant="ghost" onClick={handleCancelEdit}>Cancelar</Button>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleEdit(item.id || 0)}>
+                              Editar
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleDelete(item.id || 0)}>
+                              Excluir
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {editandoId && editandoSaldo && (
+        <Card className="p-6 mt-4">
+          <CardContent>
+            <h3 className="text-lg font-semibold mb-4">Editar Saldo a Pagar</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="parceiro">Parceiro</Label>
+                <Input
+                  type="text"
+                  id="parceiro"
+                  name="parceiro"
+                  value={editandoSaldo.parceiro}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div>
+                <Label htmlFor="valor_total">Valor Total</Label>
+                <Input
+                  type="number"
+                  id="valor_total"
+                  name="valor_total"
+                  value={editandoSaldo.valor_total}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div>
+                <Label htmlFor="vencimento">Vencimento</Label>
+                <Input
+                  type="date"
+                  id="vencimento"
+                  name="vencimento"
+                  value={editandoSaldo.vencimento}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button onClick={handleUpdate}>Salvar</Button>
+              <Button variant="ghost" onClick={handleCancelEdit}>Cancelar</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </PageLayout>
   );
 };
