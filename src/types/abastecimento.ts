@@ -20,11 +20,6 @@ export interface TipoCombustivel {
   descricao?: string;
 }
 
-export interface TipoCombustivelFormData {
-  nome: string;
-  descricao?: string;
-}
-
 export interface AbastecimentoFormData {
   data: string;
   placa: string;

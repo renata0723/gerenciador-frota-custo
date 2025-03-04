@@ -86,7 +86,7 @@ export interface LivroCaixaItem {
 }
 
 export interface SaldoPagarItem {
-  id?: string | number;
+  id: string | number;
   parceiro: string;
   contratos_associados: string;
   valor_total: number;

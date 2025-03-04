@@ -20,7 +20,11 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, showProjectionButton 
       <Sidebar isOpen={isSidebarOpen} />
       
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Navbar onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} showProjectionButton={showProjectionButton} />
+        <Navbar 
+          onToggleSidebar={toggleSidebar} 
+          isSidebarOpen={isSidebarOpen} 
+          showProjectionButton={showProjectionButton} 
+        />
         
         <main className="flex-1 overflow-y-auto p-6">
           <div className="container mx-auto">

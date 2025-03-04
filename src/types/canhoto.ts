@@ -50,7 +50,7 @@ export interface CancelamentoDocumento {
 }
 
 export interface CanhotoPendente {
-  id?: number;
+  id: number;
   contrato_id?: string;
   status?: string;
   numero_nota_fiscal?: string;

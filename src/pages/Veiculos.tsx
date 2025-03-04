@@ -35,16 +35,16 @@ const Veiculos = () => {
 
       // Mapear dados para o formato esperado pelo componente
       const veiculosFormatados = (data || []).map(veiculo => ({
-        id: veiculo.id || Math.random().toString(36).substr(2, 9),
-        placa: veiculo.placa_cavalo || veiculo.placa_carreta || 'Sem placa',
-        tipo: veiculo.placa_cavalo ? 'Cavalo' : 'Carreta',
-        modelo: veiculo.modelo || 'Não especificado',
-        ano: veiculo.ano || new Date().getFullYear(),
-        status: veiculo.status_veiculo || 'Ativo',
-        frota: veiculo.tipo_frota || 'Própria',
-        inativacao: veiculo.status_veiculo === 'Inativo' ? {
-          data: veiculo.data_inativacao || '2023-01-01',
-          motivo: veiculo.motivo_inativacao || 'Não especificado'
+        id: (veiculo as any).id || Math.random().toString(36).substr(2, 9),
+        placa: (veiculo as any).placa_cavalo || (veiculo as any).placa_carreta || 'Sem placa',
+        tipo: (veiculo as any).placa_cavalo ? 'Cavalo' : 'Carreta',
+        modelo: 'Não especificado', // Valor padrão
+        ano: new Date().getFullYear(), // Valor padrão
+        status: (veiculo as any).status_veiculo || 'Ativo',
+        frota: (veiculo as any).tipo_frota || 'Própria',
+        inativacao: (veiculo as any).status_veiculo === 'Inativo' ? {
+          data: (veiculo as any).data_inativacao || '2023-01-01',
+          motivo: (veiculo as any).motivo_inativacao || 'Não especificado'
         } : null
       }));
 
@@ -59,14 +59,14 @@ const Veiculos = () => {
 
   // Filtrar veículos pelo termo de busca
   const filteredVeiculos = veiculosData.filter(veiculo => 
-    veiculo.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    veiculo.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    veiculo.tipo.toLowerCase().includes(searchTerm.toLowerCase())
+    (veiculo as any).placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (veiculo as any).modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (veiculo as any).tipo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleInativarVeiculo = async (id, motivo, data) => {
+  const handleInativarVeiculo = async (id: any, motivo: string, data: string) => {
     try {
-      const veiculoParaInativar = veiculosData.find(v => v.id === id);
+      const veiculoParaInativar = veiculosData.find(v => (v as any).id === id);
       if (!veiculoParaInativar) return;
 
       // Atualiza no banco de dados
@@ -77,8 +77,8 @@ const Veiculos = () => {
           data_inativacao: data,
           motivo_inativacao: motivo
         })
-        .eq('placa_cavalo', veiculoParaInativar.placa)
-        .eq('tipo', veiculoParaInativar.tipo === 'Cavalo' ? 'cavalo' : 'carreta');
+        .eq('placa_cavalo', (veiculoParaInativar as any).placa)
+        .eq('tipo', (veiculoParaInativar as any).tipo === 'Cavalo' ? 'cavalo' : 'carreta');
 
       if (error) {
         console.error("Erro ao inativar veículo:", error);
@@ -88,9 +88,9 @@ const Veiculos = () => {
 
       // Atualiza estado local
       setVeiculosData(veiculos => veiculos.map(veiculo => {
-        if (veiculo.id === id) {
+        if ((veiculo as any).id === id) {
           return {
-            ...veiculo,
+            ...(veiculo as any),
             status: 'Inativo',
             inativacao: { data, motivo }
           };
@@ -98,26 +98,23 @@ const Veiculos = () => {
         return veiculo;
       }));
       
-      toast({
-        title: "Veículo inativado",
-        description: "O veículo foi inativado com sucesso!",
-      });
+      toast.success("Veículo inativado com sucesso!");
     } catch (error) {
       console.error("Erro ao processar inativação:", error);
       toast.error("Ocorreu um erro ao inativar o veículo");
     }
   };
 
-  const handleDeleteVeiculo = async (id) => {
+  const handleDeleteVeiculo = async (id: any) => {
     try {
-      const veiculoParaDeletar = veiculosData.find(v => v.id === id);
+      const veiculoParaDeletar = veiculosData.find(v => (v as any).id === id);
       if (!veiculoParaDeletar) return;
 
       // Exclui do banco de dados
       const { error } = await supabase
         .from('Veiculos')
         .delete()
-        .or(`placa_cavalo.eq.${veiculoParaDeletar.placa},placa_carreta.eq.${veiculoParaDeletar.placa}`);
+        .or(`placa_cavalo.eq.${(veiculoParaDeletar as any).placa},placa_carreta.eq.${(veiculoParaDeletar as any).placa}`);
 
       if (error) {
         console.error("Erro ao excluir veículo:", error);
@@ -126,13 +123,9 @@ const Veiculos = () => {
       }
 
       // Atualiza estado local
-      setVeiculosData(veiculos => veiculos.filter(veiculo => veiculo.id !== id));
+      setVeiculosData(veiculos => veiculos.filter(veiculo => (veiculo as any).id !== id));
       
-      toast({
-        title: "Veículo excluído",
-        description: "O veículo foi excluído com sucesso!",
-        variant: "destructive"
-      });
+      toast.success("Veículo excluído com sucesso!");
     } catch (error) {
       console.error("Erro ao processar exclusão:", error);
       toast.error("Ocorreu um erro ao excluir o veículo");

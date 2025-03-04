@@ -54,12 +54,12 @@ const Login = () => {
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
             <img 
-              src="/lovable-uploads/3c829e17-60d6-4947-b5d0-291534256381.png" 
-              alt="Sslog Transportes" 
-              className="h-32 mx-auto"
+              src="/lovable-uploads/68e7fc7b-e539-487a-bfbe-aad068171fbd.png" 
+              alt="SSlog Transportes" 
+              className="h-24 mx-auto"
             />
           </div>
-          <CardTitle className="text-2xl font-bold text-sistema-primary">SSLOG TRANSPORTES LTDA</CardTitle>
+          <CardTitle className="text-2xl font-bold text-blue-700">SSLOG TRANSPORTES LTDA</CardTitle>
           <CardDescription>
             Sistema de Controle de Frotas e Logística
           </CardDescription>
@@ -90,7 +90,7 @@ const Login = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full bg-sistema-primary hover:bg-sistema-primary-dark" disabled={loading}>
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
                 {loading ? 'Entrando...' : 'Entrar'}
               </Button>
             </div>
