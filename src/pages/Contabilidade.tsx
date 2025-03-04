@@ -102,7 +102,7 @@ const Contabilidade = () => {
   return (
     <NewPageLayout>
       <PageHeader
-        title="Controladoria SLog Transportes"
+        title="Controladoria de Custo"
         description="Gestão financeira e controle contábil da empresa"
         icon={<DollarSign className="h-6 w-6" />}
       />

@@ -92,7 +92,7 @@ const CollapsibleSidebar = ({ children }: CollapsibleSidebarProps) => {
     { icon: <DollarSign size={20} />, href: "/despesas", label: "Despesas Gerais" },
     { icon: <CreditCard size={20} />, href: "/saldo-pagar", label: "Saldo a Pagar" },
     { icon: <BarChart2 size={20} />, href: "/relatorios", label: "Relatórios" },
-    { icon: <ReceiptText size={20} />, href: "/contabilidade", label: "Contabilidade" },
+    { icon: <ReceiptText size={20} />, href: "/contabilidade", label: "Controladoria" },
     { icon: <Calendar size={20} />, href: "/folha-pagamento", label: "Folha de Pagamento" },
     { icon: <UserCheck size={20} />, href: "/usuarios", label: "Usuários" },
     { icon: <Settings size={20} />, href: "/configuracoes", label: "Configurações" },
@@ -116,7 +116,7 @@ const CollapsibleSidebar = ({ children }: CollapsibleSidebarProps) => {
           {!isCollapsed && (
             <Link to="/" className="flex items-center">
               <LayoutDashboard className="h-6 w-6 text-blue-600" />
-              <span className="ml-2 font-bold text-lg text-gray-900">ControlFrota</span>
+              <span className="ml-2 font-bold text-lg text-gray-900">Controladoria de Custo</span>
             </Link>
           )}
           <Button

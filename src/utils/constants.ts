@@ -1,3 +1,4 @@
+
 export const formataMoeda = (valor: number | null | undefined): string => {
   if (valor === null || valor === undefined) return 'R$ 0,00';
   return new Intl.NumberFormat('pt-BR', {
@@ -25,8 +26,8 @@ export const tiposDespesa = [
   "Outros"
 ];
 
-export const APP_NAME = "SSLOG TRANSPORTES LTDA | Sistema de Controle de Frota e Logística";
-export const APP_SUBTITLE = "Controladoria";
+export const APP_NAME = "SSLOG TRANSPORTES LTDA | Controladoria de Custo";
+export const APP_SUBTITLE = "Controladoria de Custo";
 
 export const APP_VERSION = "";
 

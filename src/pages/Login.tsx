@@ -50,7 +50,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md space-y-8 p-8 shadow-lg">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-blue-700">SLog Controladoria</h1>
+          <h1 className="text-2xl font-bold text-blue-700">Controladoria de Custo</h1>
           <h2 className="mt-2 text-lg font-medium text-gray-900">Sistema de Gestão de Frota</h2>
           <p className="mt-2 text-sm text-gray-600">Faça login para acessar o sistema</p>
         </div>
