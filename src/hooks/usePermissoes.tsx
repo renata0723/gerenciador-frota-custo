@@ -40,13 +40,19 @@ export const usePermissoes = (modulo: string) => {
             setUserId(usuario.id);
             carregarPermissoes(usuario.id);
           } else {
+            // Por padrão concede permissão de visualização para todos os usuários
+            setPermissoes([{ modulo, acao: 'visualizar' }]);
             setLoading(false);
           }
         } catch (error) {
           console.error('Erro ao processar dados de usuário:', error);
+          // Por padrão concede permissão de visualização
+          setPermissoes([{ modulo, acao: 'visualizar' }]);
           setLoading(false);
         }
       } else {
+        // Por padrão concede permissão de visualização
+        setPermissoes([{ modulo, acao: 'visualizar' }]);
         setLoading(false);
       }
     };
@@ -79,11 +85,17 @@ export const usePermissoes = (modulo: string) => {
             acao: item.Permissoes.acao as TipoPermissao
           }));
         
-        setPermissoes(permissoesDoModulo);
+        // Se não tiver nenhuma permissão específica, concede no mínimo visualização
+        if (permissoesDoModulo.length === 0) {
+          setPermissoes([{ modulo, acao: 'visualizar' }]);
+        } else {
+          setPermissoes(permissoesDoModulo);
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar permissões:', error);
-      toast.error('Não foi possível verificar suas permissões');
+      // Garante pelo menos visualização em caso de erro
+      setPermissoes([{ modulo, acao: 'visualizar' }]);
     } finally {
       setLoading(false);
     }

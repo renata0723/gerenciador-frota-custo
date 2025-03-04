@@ -1,28 +1,58 @@
 
 import React from 'react';
-import DashboardCard from './DashboardCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { Loader2 } from 'lucide-react';
 
-const MaintenanceTypesChart: React.FC = () => {
+interface MaintenanceTypesChartProps {
+  loading: boolean;
+}
+
+export default function MaintenanceTypesChart({ loading }: MaintenanceTypesChartProps) {
+  // Dados de exemplo para o gráfico
+  const data = [
+    { name: 'Preventiva', value: 400 },
+    { name: 'Corretiva', value: 300 },
+    { name: 'Pneus', value: 200 },
+    { name: 'Outros', value: 100 },
+  ];
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
   return (
-    <DashboardCard title="Manutenções Por Tipo">
-      <div className="h-48 flex items-center justify-center">
-        <div className="flex space-x-6">
-          <div className="flex flex-col items-center">
-            <div className="w-24 h-24 rounded-full border-8 border-sistema-primary flex items-center justify-center">
-              <p className="text-xl font-bold">65%</p>
-            </div>
-            <p className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Preventiva</p>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-medium">Tipos de Manutenção</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <Loader2 className="h-6 w-6 text-gray-400 animate-spin" />
           </div>
-          <div className="flex flex-col items-center">
-            <div className="w-24 h-24 rounded-full border-8 border-gray-300 flex items-center justify-center">
-              <p className="text-xl font-bold">35%</p>
-            </div>
-            <p className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Corretiva</p>
+        ) : (
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={65}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-        </div>
-      </div>
-    </DashboardCard>
+        )}
+      </CardContent>
+    </Card>
   );
-};
-
-export default MaintenanceTypesChart;
+}

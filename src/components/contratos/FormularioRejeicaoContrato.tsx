@@ -1,123 +1,174 @@
 
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { ThumbsDown } from 'lucide-react';
-import { toast } from "sonner";
+import { useForm } from 'react-hook-form';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { ArrowLeft, Check, X } from 'lucide-react';
+import { logOperation } from '@/utils/logOperations';
+import { format } from 'date-fns';
 
 interface FormularioRejeicaoContratoProps {
-  onSave?: (data: any) => void;
+  contrato: string;
+  onBack: () => void;
 }
 
-const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({ onSave }) => {
-  const [motivoRejeicao, setMotivoRejeicao] = useState('');
-  const [observacoes, setObservacoes] = useState('');
-  const [responsavel, setResponsavel] = useState('');
-  const [numeroRBM, setNumeroRBM] = useState('');
+interface RejeicaoFormData {
+  motivo: string;
+  responsavel: string;
+  observacoes: string;
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({ 
+  contrato, 
+  onBack 
+}) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm<RejeicaoFormData>();
+  const [sucessoRejeicao, setSucessoRejeicao] = useState(false);
+
+  const onSubmit = async (formData: RejeicaoFormData) => {
+    setIsSubmitting(true);
     
-    if (!motivoRejeicao) {
-      toast.error("Por favor, selecione um motivo de rejeição");
-      return;
+    try {
+      // Inserir registro de rejeição (usando a mesma tabela de cancelamentos)
+      const rejeicaoData = {
+        tipo_documento: 'Contrato',
+        numero_documento: contrato,
+        motivo: formData.motivo,
+        responsavel: formData.responsavel,
+        observacoes: formData.observacoes,
+        data_cancelamento: format(new Date(), 'yyyy-MM-dd HH:mm:ss')
+      };
+      
+      const { error: rejeicaoError } = await supabase
+        .from('Cancelamentos')
+        .insert(rejeicaoData);
+      
+      if (rejeicaoError) throw rejeicaoError;
+      
+      // Atualizar o status do contrato
+      const { error: atualizacaoError } = await supabase
+        .from('Contratos')
+        .update({ status_contrato: 'Rejeitado' })
+        .eq('id', contrato);
+        
+      if (atualizacaoError) {
+        console.error('Erro ao atualizar status do contrato:', atualizacaoError);
+        toast.error(`Contrato rejeitado, mas falha ao atualizar seu status.`);
+      }
+      
+      // Log de operação
+      logOperation('Contratos', `Contrato rejeitado`, `Contrato: ${contrato}, Motivo: ${formData.motivo}`);
+      
+      // Sucesso
+      toast.success(`Contrato rejeitado com sucesso!`);
+      setSucessoRejeicao(true);
+    } catch (error) {
+      console.error('Erro ao processar rejeição:', error);
+      toast.error('Ocorreu um erro ao processar a rejeição do contrato.');
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    if (!numeroRBM) {
-      toast.error("Por favor, informe o número RBM");
-      return;
-    }
-    
-    // Aqui seria implementada a lógica para salvar a rejeição do contrato
-    toast.success("Contrato rejeitado e devolvido para correção");
-    
-    const rejeicaoData = {
-      motivo: motivoRejeicao,
-      observacoes,
-      responsavel,
-      numeroRBM,
-      data: new Date()
-    };
-    
-    if (onSave) {
-      onSave(rejeicaoData);
-    }
-    
-    // Limpar formulário
-    setMotivoRejeicao('');
-    setObservacoes('');
-    setResponsavel('');
-    setNumeroRBM('');
   };
 
-  return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <div className="flex items-center gap-2 mb-6">
-        <ThumbsDown className="h-6 w-6 text-red-500" />
-        <h2 className="text-xl font-semibold">Rejeição de Contrato</h2>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="numeroRBM">Número RBM</Label>
-          <Input 
-            id="numeroRBM" 
-            value={numeroRBM}
-            onChange={(e) => setNumeroRBM(e.target.value)}
-            placeholder="Informe o número RBM"
-            required
-          />
+  if (sucessoRejeicao) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+          <Check className="w-8 h-8 text-green-600" />
         </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="motivo">Motivo da Rejeição</Label>
-          <Select value={motivoRejeicao} onValueChange={setMotivoRejeicao}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o motivo da rejeição" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dados_incompletos">Dados incompletos</SelectItem>
-              <SelectItem value="erro_documentacao">Erro na documentação</SelectItem>
-              <SelectItem value="valores_incorretos">Valores incorretos</SelectItem>
-              <SelectItem value="inconsistencia_dados">Inconsistência nos dados</SelectItem>
-              <SelectItem value="documentos_faltantes">Documentos faltantes</SelectItem>
-              <SelectItem value="outro">Outro motivo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="observacoes">Observações</Label>
-          <Textarea 
-            id="observacoes" 
-            value={observacoes}
-            onChange={(e) => setObservacoes(e.target.value)}
-            placeholder="Descreva detalhadamente o motivo da rejeição e as correções necessárias"
-            rows={4}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="responsavel">Responsável pela Rejeição</Label>
-          <Input 
-            id="responsavel" 
-            value={responsavel}
-            onChange={(e) => setResponsavel(e.target.value)}
-            placeholder="Nome do responsável"
-          />
-        </div>
-        
-        <div className="flex justify-end gap-3 pt-4">
-          <Button type="submit" variant="destructive">
-            <ThumbsDown className="h-5 w-5 mr-2" />
-            Rejeitar e Devolver Contrato
+        <h3 className="text-xl font-medium text-gray-900 mb-2">Rejeição concluída</h3>
+        <p className="text-gray-500 mb-6 max-w-md">
+          O contrato #{contrato} foi rejeitado com sucesso e não estará mais disponível para processamento.
+        </p>
+        <div className="flex space-x-3">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
           </Button>
         </div>
-      </form>
-    </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex-1">
+          <div className="mb-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-1">
+              Rejeição de Contrato
+            </h2>
+            <p className="text-sm text-gray-500">
+              Você está rejeitando o contrato #{contrato}. Esta ação não pode ser desfeita.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="motivo">Motivo da Rejeição <span className="text-red-500">*</span></Label>
+              <Input
+                id="motivo"
+                placeholder="Informe o motivo da rejeição"
+                {...register('motivo', { required: "Motivo é obrigatório" })}
+              />
+              {errors.motivo && (
+                <p className="text-sm text-red-500">{errors.motivo.message}</p>
+              )}
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="responsavel">Responsável pela Rejeição <span className="text-red-500">*</span></Label>
+              <Input
+                id="responsavel"
+                placeholder="Nome do responsável pela solicitação"
+                {...register('responsavel', { required: "Responsável é obrigatório" })}
+              />
+              {errors.responsavel && (
+                <p className="text-sm text-red-500">{errors.responsavel.message}</p>
+              )}
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="observacoes">Observações adicionais</Label>
+              <Textarea
+                id="observacoes"
+                placeholder="Informações adicionais sobre a rejeição"
+                rows={4}
+                {...register('observacoes')}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-between items-center pt-4 border-t">
+        <Button type="button" variant="outline" onClick={onBack}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
+        </Button>
+        
+        <div className="flex space-x-2">
+          <Button type="submit" disabled={isSubmitting} className="bg-red-600 hover:bg-red-700">
+            {isSubmitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Processando...
+              </>
+            ) : (
+              <>
+                <X className="w-4 h-4 mr-2" />
+                Confirmar Rejeição
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </form>
   );
 };
 

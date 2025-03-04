@@ -1,19 +1,23 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => {
+    const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
 
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
+    // Verificar na montagem
+    checkIfMobile();
 
+    // Adicionar o listener para quando a janela for redimensionada
+    window.addEventListener('resize', checkIfMobile);
+
+    // Limpar o listener quando o componente for desmontado
     return () => {
-      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener('resize', checkIfMobile);
     };
   }, []);
 

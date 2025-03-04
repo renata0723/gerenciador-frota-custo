@@ -1,67 +1,62 @@
 
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { ChevronRight, Loader2 } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
 import { Link } from 'react-router-dom';
-import DashboardCard from './DashboardCard';
 
-interface MaintenanceItem {
-  id: string;
-  vehicle: string;
-  type: string;
-  status: string;
+interface LatestMaintenanceTableProps {
+  loading: boolean;
+  data: any[];
+  viewAllUrl: string;
 }
 
-const LatestMaintenanceTable: React.FC = () => {
-  // Dados simulados para tabelas
-  const latestMaintenance: MaintenanceItem[] = [
-    { id: 'MAN-001', vehicle: 'ABC-1234', type: 'Preventiva', status: 'Concluída' },
-    { id: 'MAN-002', vehicle: 'DEF-5678', type: 'Corretiva', status: 'Em andamento' },
-    { id: 'MAN-003', vehicle: 'GHI-9012', type: 'Preventiva', status: 'Agendada' },
-  ];
-
+export default function LatestMaintenanceTable({ loading, data, viewAllUrl }: LatestMaintenanceTableProps) {
   return (
-    <DashboardCard 
-      title="Últimas Manutenções" 
-      action={
-        <Link to="/manutencao" className="text-sistema-primary text-xs font-medium flex items-center hover:text-sistema-primary-dark transition-colors duration-200">
-          Ver todas <ArrowRight size={14} className="ml-1" />
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-base font-medium">Últimas Manutenções</CardTitle>
+        <Link to={viewAllUrl}>
+          <Button variant="ghost" size="sm" className="text-sm text-gray-600">
+            Ver todas
+            <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
         </Link>
-      }
-    >
-      <div className="table-container">
-        <table className="table-default">
-          <thead className="table-head">
-            <tr>
-              <th className="table-header-cell">ID</th>
-              <th className="table-header-cell">Veículo</th>
-              <th className="table-header-cell">Tipo</th>
-              <th className="table-header-cell">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {latestMaintenance.map((maintenance) => (
-              <tr key={maintenance.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
-                <td className="table-cell font-medium">{maintenance.id}</td>
-                <td className="table-cell">{maintenance.vehicle}</td>
-                <td className="table-cell">{maintenance.type}</td>
-                <td className="table-cell">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    maintenance.status === 'Concluída' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                      : maintenance.status === 'Em andamento'
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                  }`}>
-                    {maintenance.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </DashboardCard>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <Loader2 className="h-6 w-6 text-gray-400 animate-spin" />
+          </div>
+        ) : data.length === 0 ? (
+          <div className="text-center p-6 text-gray-500">
+            <p>Nenhuma manutenção encontrada.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Veículo</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((manutencao) => (
+                <TableRow key={manutencao.id}>
+                  <TableCell className="font-medium">{manutencao.placa_veiculo || "N/A"}</TableCell>
+                  <TableCell>{manutencao.tipo_manutencao || "N/A"}</TableCell>
+                  <TableCell>{manutencao.data_manutencao || "N/A"}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(manutencao.valor_total || 0)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
-};
-
-export default LatestMaintenanceTable;
+}

@@ -1,76 +1,76 @@
 
 import React from 'react';
-import { ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { ArrowDown, ArrowUp, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
   title: string;
-  value: string | number;
+  value: number;
   icon: React.ReactNode;
-  change?: {
-    value: number;
-    type: 'increase' | 'decrease' | 'neutral';
-  };
-  subtitle?: string;
-  className?: string;
+  trend: number;
+  descriptor: string;
+  loading?: boolean;
+  trendDown?: boolean;
 }
 
-const StatCard: React.FC<StatCardProps> = ({
-  title,
-  value,
-  icon,
-  change,
-  subtitle,
-  className,
-}) => {
+export default function StatCard({ 
+  title, 
+  value, 
+  icon, 
+  trend, 
+  descriptor, 
+  loading = false,
+  trendDown = false 
+}: StatCardProps) {
   return (
-    <div className={cn(
-      "bg-white dark:bg-sistema-dark rounded-xl p-6 shadow-card hover:shadow-card-hover transition-all duration-300 border border-gray-100 dark:border-gray-800 card-transition",
-      className
-    )}>
-      <div className="flex items-center">
-        <div className="rounded-lg p-3 bg-sistema-primary/10 dark:bg-sistema-primary/20">
-          {icon}
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm font-medium text-gray-500">{title}</p>
+            {loading ? (
+              <div className="mt-2 h-8 flex items-center">
+                <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+              </div>
+            ) : (
+              <h4 className="text-2xl font-bold mt-1">{value.toLocaleString()}</h4>
+            )}
+          </div>
+          <div className="p-2 bg-blue-50 rounded-full">
+            {icon}
+          </div>
         </div>
         
-        <div className="ml-auto text-right">
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
-        </div>
-      </div>
-      
-      {(change || subtitle) && (
-        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-          {change && (
-            <div className="flex items-center">
-              <div className={cn(
-                "flex items-center text-sm font-medium",
-                change.type === 'increase' && "text-green-600 dark:text-green-400",
-                change.type === 'decrease' && "text-red-600 dark:text-red-400",
-                change.type === 'neutral' && "text-gray-600 dark:text-gray-400"
-              )}>
-                {change.type === 'increase' && <ArrowUpIcon size={16} className="mr-1" />}
-                {change.type === 'decrease' && <ArrowDownIcon size={16} className="mr-1" />}
-                <span>{change.value}%</span>
-              </div>
-              
-              {subtitle && (
-                <p className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                  {subtitle}
-                </p>
+        {!loading && (
+          <div className="flex items-center mt-4">
+            <div 
+              className={cn(
+                "flex items-center text-xs font-medium rounded-full px-2 py-0.5",
+                trend === 0 
+                  ? "bg-gray-100 text-gray-600" 
+                  : trendDown 
+                    ? "bg-red-100 text-red-600" 
+                    : "bg-green-100 text-green-600"
+              )}
+            >
+              {trend === 0 ? (
+                <span className="text-gray-600">Estável</span>
+              ) : (
+                <>
+                  {trendDown ? (
+                    <ArrowDown className="mr-1 h-3 w-3" />
+                  ) : (
+                    <ArrowUp className="mr-1 h-3 w-3" />
+                  )}
+                  {trend}%
+                </>
               )}
             </div>
-          )}
-          
-          {!change && subtitle && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {subtitle}
-            </p>
-          )}
-        </div>
-      )}
-    </div>
+            <span className="text-xs text-gray-500 ml-2">{descriptor}</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
-};
-
-export default StatCard;
+}

@@ -1,51 +1,56 @@
 
 import React from 'react';
-import { Fuel } from 'lucide-react';
-import DashboardCard from './DashboardCard';
-import { logOperation } from '@/utils/logOperations';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Loader2 } from 'lucide-react';
 
-interface FuelItem {
-  vehicle: string;
-  lastFuel: string;
-  avgConsumption: string;
+interface FuelConsumptionCardProps {
+  loading: boolean;
 }
 
-const FuelConsumptionCard: React.FC = () => {
-  const fuelConsumption: FuelItem[] = [
-    { vehicle: 'ABC-1234', lastFuel: '250 L', avgConsumption: '2,8 km/L' },
-    { vehicle: 'DEF-5678', lastFuel: '180 L', avgConsumption: '3,2 km/L' },
-    { vehicle: 'GHI-9012', lastFuel: '220 L', avgConsumption: '2,5 km/L' },
+export default function FuelConsumptionCard({ loading }: FuelConsumptionCardProps) {
+  // Dados de exemplo para o gráfico
+  const data = [
+    { name: 'Jan', value: 400 },
+    { name: 'Fev', value: 300 },
+    { name: 'Mar', value: 600 },
+    { name: 'Abr', value: 800 },
+    { name: 'Mai', value: 500 },
+    { name: 'Jun', value: 450 },
   ];
 
-  const handleVehicleClick = (vehicle: string) => {
-    logOperation('Visualização de Veículo', `Informações de combustível para: ${vehicle}`);
-  };
-
   return (
-    <DashboardCard title="Consumo de Combustível">
-      <div className="space-y-4">
-        {fuelConsumption.map((item, index) => (
-          <div 
-            key={index} 
-            className="flex items-center p-3 border border-gray-100 dark:border-gray-800 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
-            onClick={() => handleVehicleClick(item.vehicle)}
-          >
-            <div className="w-10 h-10 rounded-full bg-sistema-primary/10 dark:bg-sistema-primary/20 flex items-center justify-center">
-              <Fuel className="text-sistema-primary" size={20} />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">{item.vehicle}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Média: {item.avgConsumption}</p>
-            </div>
-            <div className="ml-auto">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">{item.lastFuel}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Último abast.</p>
-            </div>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-medium">Consumo de Combustível</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <Loader2 className="h-6 w-6 text-gray-400 animate-spin" />
           </div>
-        ))}
-      </div>
-    </DashboardCard>
+        ) : (
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={data}
+                margin={{
+                  top: 5,
+                  right: 10,
+                  left: 0,
+                  bottom: 5,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
-};
-
-export default FuelConsumptionCard;
+}

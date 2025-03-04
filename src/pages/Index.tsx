@@ -31,24 +31,24 @@ const Index = () => {
     setLoading(true);
     
     try {
-      // Carregar estatísticas
+      // Carregar estatísticas - usamos from para tabelas exatas
       const [veiculosResult, notasResult, motoristasResult, contratosResult] = await Promise.all([
-        supabase.from('Veiculos').select('id', { count: 'exact', head: true }),
-        supabase.from('NotasFiscais').select('id', { count: 'exact', head: true }),
-        supabase.from('Motoristas').select('id', { count: 'exact', head: true }),
-        supabase.from('Contratos').select('id').eq('status_contrato', 'Em Andamento').limit(0, { count: 'exact', head: true })
+        supabase.from('Veiculos').select('*'),
+        supabase.from('Notas Fiscais').select('*'),
+        supabase.from('Motoristas').select('*'),
+        supabase.from('Contratos').select('*').eq('status_contrato', 'Em Andamento')
       ]);
       
       setStats({
-        totalVeiculos: veiculosResult.count || 0,
-        notasFiscais: notasResult.count || 0,
-        totalMotoristas: motoristasResult.count || 0,
-        contratosAtivos: contratosResult.count || 0
+        totalVeiculos: veiculosResult.data?.length || 0,
+        notasFiscais: notasResult.data?.length || 0,
+        totalMotoristas: motoristasResult.data?.length || 0,
+        contratosAtivos: contratosResult.data?.length || 0
       });
       
       // Carregar últimas notas fiscais
       const { data: notasData } = await supabase
-        .from('NotasFiscais')
+        .from('Notas Fiscais')
         .select('*')
         .order('data_coleta', { ascending: false })
         .limit(5);
@@ -57,7 +57,7 @@ const Index = () => {
       
       // Carregar últimas manutenções
       const { data: manutencoesData } = await supabase
-        .from('Manutencoes')
+        .from('Manutenção')
         .select('*')
         .order('data_manutencao', { ascending: false })
         .limit(5);
@@ -123,14 +123,12 @@ const Index = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <LatestInvoicesTable 
-          title="Últimas Notas Fiscais"
           loading={loading}
           data={ultimasNotas}
           viewAllUrl="/entrada-notas"
         />
         
         <LatestMaintenanceTable 
-          title="Últimas Manutenções"
           loading={loading}
           data={ultimasManutencoes}
           viewAllUrl="/manutencao"

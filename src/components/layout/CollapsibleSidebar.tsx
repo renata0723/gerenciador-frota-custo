@@ -25,7 +25,6 @@ import {
   Wrench
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import Navbar from './Navbar';
 
 interface SidebarLinkProps {
   icon: React.ReactNode;
@@ -56,28 +55,26 @@ interface CollapsibleSidebarProps {
 }
 
 const CollapsibleSidebar = ({ children }: CollapsibleSidebarProps) => {
-  // Começar sempre expandido (não colapsado)
+  // Sempre iniciar como não colapsado (expandido)
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   
   // Persistir o estado no localStorage
   useEffect(() => {
+    // Verificar se existe no localStorage
     const storedState = localStorage.getItem('sidebarCollapsed');
-    if (storedState !== null) {
-      setIsCollapsed(storedState === 'true');
-    } else {
-      // Se não existe no localStorage, definir como expandido por padrão
-      localStorage.setItem('sidebarCollapsed', 'false');
-    }
+    
+    // Definir como não colapsado por padrão, mesmo se existir no localStorage
+    setIsCollapsed(false);
+    
+    // Salvar essa configuração
+    localStorage.setItem('sidebarCollapsed', 'false');
   }, []);
-  
-  // Quando o estado mudar, salvar no localStorage
-  useEffect(() => {
-    localStorage.setItem('sidebarCollapsed', isCollapsed.toString());
-  }, [isCollapsed]);
 
   const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem('sidebarCollapsed', newState.toString());
   };
 
   const sidebarLinks = [
@@ -152,7 +149,6 @@ const CollapsibleSidebar = ({ children }: CollapsibleSidebarProps) => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar />
         <div className="flex-1 overflow-y-auto bg-gray-50">
           {children}
         </div>

@@ -47,7 +47,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({
       const { data, error } = await supabase
         .from('Contratos')
         .select('*')
-        .eq('id', id)
+        .eq('id', parseInt(id))
         .single();
       
       if (error) {
@@ -69,7 +69,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({
           tipo: data.tipo_frota as 'frota' | 'terceiro',
           placaCavalo: data.placa_cavalo,
           placaCarreta: data.placa_carreta || '',
-          motorista: data.motorista || '',
+          motorista: data.motorista_id ? data.motorista_id.toString() : '',
           proprietario: data.proprietario || ''
         });
         
@@ -198,7 +198,8 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({
         status_contrato: 'Em Andamento',
         tipo_frota: dadosContrato.tipo,
         valor_frete: dadosContrato.tipo === 'terceiro' ? dadosFrete?.valorFreteContratado || null : null,
-        valor_carga: dadosDocumentos?.valorTotalCarga || null
+        valor_carga: dadosDocumentos?.valorTotalCarga || null,
+        motorista_id: dadosContrato.motorista ? parseInt(dadosContrato.motorista) : null
       };
       
       let operation;
@@ -207,7 +208,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({
         const { error } = await supabase
           .from('Contratos')
           .update(contratoData)
-          .eq('id', contratoId);
+          .eq('id', parseInt(contratoId));
           
         if (error) throw error;
         operation = 'atualizado';
@@ -242,7 +243,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({
             .from('Canhoto')
             .update({
               cliente: dadosContrato.clienteDestino,
-              motorista: dadosContrato.motorista,
+              motorista: dadosContrato.motorista ? dadosContrato.motorista : null,
               numero_cte: dadosDocumentos?.numeroCTe || null,
               numero_manifesto: dadosDocumentos?.numeroManifesto || null,
               numero_nota_fiscal: primeiraNotaFiscal,
@@ -264,7 +265,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({
             .insert({
               cliente: dadosContrato.clienteDestino,
               contrato_id: dadosContrato.idContrato,
-              motorista: dadosContrato.motorista,
+              motorista: dadosContrato.motorista ? dadosContrato.motorista : null,
               numero_cte: dadosDocumentos?.numeroCTe || null,
               numero_manifesto: dadosDocumentos?.numeroManifesto || null,
               numero_nota_fiscal: primeiraNotaFiscal,
@@ -391,7 +392,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({
           <TabsContent value="cancelamento" className="p-4 space-y-4">
             {contratoId ? (
               <FormularioCancelamento
-                tipoDocumento="Contrato"
+                tipo="Contrato"
                 numeroDocumento={contratoId}
                 onBack={() => setActiveTab("observacoes")}
               />
@@ -410,7 +411,7 @@ const ContratoFormCompleto: React.FC<ContratoFormCompletoProps> = ({
           <TabsContent value="rejeicao" className="p-4 space-y-4">
             {contratoId ? (
               <FormularioRejeicaoContrato
-                contratoId={contratoId}
+                contrato={contratoId}
                 onBack={() => setActiveTab("observacoes")}
               />
             ) : (

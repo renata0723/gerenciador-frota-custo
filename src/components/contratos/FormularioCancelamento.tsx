@@ -1,223 +1,186 @@
 
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { CancelamentoDocumento } from '@/types/canhoto';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { ArrowLeft, Check, X } from 'lucide-react';
+import { logOperation } from '@/utils/logOperations';
 
-export interface FormularioCancelamentoProps {
-  onCancelamentoRealizado?: () => void;
-  onCancel?: () => void;
+interface FormularioCancelamentoProps {
+  tipo: string;
+  numeroDocumento: string;
+  onBack: () => void;
+}
+
+interface CancelamentoFormData {
+  motivo: string;
+  responsavel: string;
+  observacoes: string;
 }
 
 const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({ 
-  onCancelamentoRealizado,
-  onCancel 
+  tipo, 
+  numeroDocumento, 
+  onBack 
 }) => {
-  const [formData, setFormData] = useState<CancelamentoDocumento>({
-    tipo_documento: '',
-    numero_documento: '',
-    motivo: '',
-    responsavel: '',
-    observacoes: '',
-    data_cancelamento: new Date().toISOString().split('T')[0]
-  });
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm<CancelamentoFormData>();
+  const [sucessoCancelamento, setSucessoCancelamento] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.tipo_documento) {
-      toast.error('Selecione o tipo de documento');
-      return;
-    }
-    
-    if (!formData.numero_documento) {
-      toast.error('Informe o número do documento');
-      return;
-    }
-    
-    if (!formData.motivo) {
-      toast.error('Informe o motivo do cancelamento');
-      return;
-    }
-    
-    if (!formData.responsavel) {
-      toast.error('Informe o responsável pelo cancelamento');
-      return;
-    }
-    
+  const onSubmit = async (formData: CancelamentoFormData) => {
     setIsSubmitting(true);
     
     try {
-      // Inserir registro de cancelamento
-      const { error: errorCancelamento } = await supabase
-        .from('Cancelamentos')
-        .insert({
-          tipo_documento: formData.tipo_documento,
-          numero_documento: formData.numero_documento,
-          motivo: formData.motivo,
-          responsavel: formData.responsavel,
-          observacoes: formData.observacoes,
-          data_cancelamento: formData.data_cancelamento
-        });
-      
-      if (errorCancelamento) throw errorCancelamento;
-      
-      // Atualizar status do documento nas tabelas correspondentes
-      const atualizarStatusDocumento = async () => {
-        try {
-          let tabela = '';
-          let campo = '';
-          let valor = '';
-          
-          switch (formData.tipo_documento) {
-            case 'Nota Fiscal':
-              tabela = 'Notas Fiscais';
-              campo = 'numero_nota_fiscal';
-              valor = formData.numero_documento;
-              break;
-            case 'Contrato':
-              tabela = 'Contratos';
-              campo = 'id';
-              valor = formData.numero_documento;
-              break;
-            case 'Manifesto':
-              return; // Implementar quando necessário
-            case 'CT-e':
-              return; // Implementar quando necessário
-            default:
-              return;
-          }
-          
-          if (tabela && campo && valor) {
-            const { error } = await supabase
-              .from(tabela)
-              .update({ status_contrato: 'Cancelado' })
-              .eq(campo, valor);
-            
-            if (error) {
-              console.error(`Erro ao atualizar status do documento na tabela ${tabela}:`, error);
-              throw error;
-            }
-          }
-        } catch (error) {
-          console.error('Erro ao atualizar status do documento:', error);
-          throw error;
-        }
+      // 1. Inserir registro de cancelamento
+      const cancelamentoData = {
+        tipo_documento: tipo,
+        numero_documento: numeroDocumento,
+        motivo: formData.motivo,
+        responsavel: formData.responsavel,
+        observacoes: formData.observacoes,
+        data_cancelamento: format(new Date(), 'yyyy-MM-dd HH:mm:ss')
       };
       
-      await atualizarStatusDocumento();
+      const { error: cancelamentoError } = await supabase
+        .from('Cancelamentos')
+        .insert(cancelamentoData);
       
-      toast.success('Documento cancelado com sucesso!');
+      if (cancelamentoError) throw cancelamentoError;
       
-      if (onCancelamentoRealizado) {
-        onCancelamentoRealizado();
+      // 2. Atualizar o status do documento no sistema
+      let tabelaDocumento = '';
+      
+      if (tipo === 'Contrato') {
+        tabelaDocumento = 'Contratos';
+      } else if (tipo === 'Nota Fiscal') {
+        tabelaDocumento = 'Notas Fiscais';
+      } else if (tipo === 'Canhoto') {
+        tabelaDocumento = 'Canhoto';
       }
+      
+      if (tabelaDocumento) {
+        const { error: atualizacaoError } = await supabase
+          .from(tabelaDocumento)
+          .update({ status_contrato: 'Cancelado' })
+          .eq('id', numeroDocumento);
+        
+        if (atualizacaoError) {
+          console.error('Erro ao atualizar status do documento:', atualizacaoError);
+          toast.error(`Documento cancelado, mas falha ao atualizar seu status.`);
+        }
+      }
+      
+      // Log de operação
+      logOperation('Cancelamentos', `${tipo} cancelado`, `Documento: ${numeroDocumento}, Motivo: ${formData.motivo}`);
+      
+      // Sucesso
+      toast.success(`${tipo} cancelado com sucesso!`);
+      setSucessoCancelamento(true);
     } catch (error) {
-      console.error('Erro ao cancelar documento:', error);
-      toast.error('Ocorreu um erro ao cancelar o documento');
+      console.error('Erro ao processar cancelamento:', error);
+      toast.error('Ocorreu um erro ao processar o cancelamento.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="tipo_documento">Tipo de Documento</Label>
-        <Select 
-          value={formData.tipo_documento} 
-          onValueChange={(value) => handleSelectChange('tipo_documento', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o tipo de documento" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Nota Fiscal">Nota Fiscal</SelectItem>
-            <SelectItem value="Contrato">Contrato</SelectItem>
-            <SelectItem value="Manifesto">Manifesto</SelectItem>
-            <SelectItem value="CT-e">CT-e</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div>
-        <Label htmlFor="numero_documento">Número do Documento</Label>
-        <Input
-          id="numero_documento"
-          name="numero_documento"
-          value={formData.numero_documento}
-          onChange={handleChange}
-          placeholder="Digite o número do documento"
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="motivo">Motivo do Cancelamento</Label>
-        <Select 
-          value={formData.motivo} 
-          onValueChange={(value) => handleSelectChange('motivo', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o motivo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Erro de cadastro">Erro de cadastro</SelectItem>
-            <SelectItem value="Desistência do cliente">Desistência do cliente</SelectItem>
-            <SelectItem value="Documento duplicado">Documento duplicado</SelectItem>
-            <SelectItem value="Prazo excedido">Prazo excedido</SelectItem>
-            <SelectItem value="Outro">Outro</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div>
-        <Label htmlFor="responsavel">Responsável pelo Cancelamento</Label>
-        <Input
-          id="responsavel"
-          name="responsavel"
-          value={formData.responsavel}
-          onChange={handleChange}
-          placeholder="Nome do responsável"
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="observacoes">Observações</Label>
-        <Textarea
-          id="observacoes"
-          name="observacoes"
-          value={formData.observacoes || ''}
-          onChange={handleChange}
-          placeholder="Observações adicionais"
-          rows={3}
-        />
-      </div>
-      
-      <div className="flex justify-end space-x-2 pt-4">
-        {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
+  if (sucessoCancelamento) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+          <Check className="w-8 h-8 text-green-600" />
+        </div>
+        <h3 className="text-xl font-medium text-gray-900 mb-2">Cancelamento concluído</h3>
+        <p className="text-gray-500 mb-6 max-w-md">
+          O {tipo.toLowerCase()} #{numeroDocumento} foi cancelado com sucesso e não estará mais ativo no sistema.
+        </p>
+        <div className="flex space-x-3">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
           </Button>
-        )}
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Processando...' : 'Confirmar Cancelamento'}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex-1">
+          <div className="mb-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-1">
+              Cancelamento de {tipo}
+            </h2>
+            <p className="text-sm text-gray-500">
+              Você está cancelando o {tipo.toLowerCase()} #{numeroDocumento}. Esta ação não pode ser desfeita.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="motivo">Motivo do Cancelamento <span className="text-red-500">*</span></Label>
+              <Input
+                id="motivo"
+                placeholder="Informe o motivo do cancelamento"
+                {...register('motivo', { required: "Motivo é obrigatório" })}
+              />
+              {errors.motivo && (
+                <p className="text-sm text-red-500">{errors.motivo.message}</p>
+              )}
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="responsavel">Responsável pelo Cancelamento <span className="text-red-500">*</span></Label>
+              <Input
+                id="responsavel"
+                placeholder="Nome do responsável pela solicitação"
+                {...register('responsavel', { required: "Responsável é obrigatório" })}
+              />
+              {errors.responsavel && (
+                <p className="text-sm text-red-500">{errors.responsavel.message}</p>
+              )}
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="observacoes">Observações adicionais</Label>
+              <Textarea
+                id="observacoes"
+                placeholder="Informações adicionais sobre o cancelamento"
+                rows={4}
+                {...register('observacoes')}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-between items-center pt-4 border-t">
+        <Button type="button" variant="outline" onClick={onBack}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
         </Button>
+        
+        <div className="flex space-x-2">
+          <Button type="submit" disabled={isSubmitting} className="bg-red-600 hover:bg-red-700">
+            {isSubmitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Processando...
+              </>
+            ) : (
+              <>
+                <X className="w-4 h-4 mr-2" />
+                Confirmar Cancelamento
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   );

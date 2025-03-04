@@ -1,263 +1,228 @@
 
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { ContaContabil } from '@/types/contabilidade';
-import { formataMoeda } from './constants';
-import { formatCurrency, formatDate } from './formatters';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-// Função para adicionar cabeçalho padrão em todos os PDFs gerados
-const adicionarCabecalhoPadrao = (doc: jsPDF, titulo: string) => {
-  // Tenta carregar a logo da empresa do localStorage
-  const logoEmpresa = localStorage.getItem('logoEmpresa');
-  const dadosEmpresa = localStorage.getItem('dadosEmpresa');
-  let empresaInfo = { nome: 'ControlFrota', cnpj: '', endereco: '' };
+interface ReportOptions {
+  title: string;
+  subtitle?: string;
+  landscape?: boolean;
+  filename?: string;
+  columns: { header: string; dataKey: string; width?: number }[];
+  data: any[];
+  logoUrl?: string;
+  empresaNome?: string;
+  empresaEndereco?: string;
+  empresaCnpj?: string;
+}
+
+export const generatePDF = async ({
+  title,
+  subtitle,
+  landscape = false,
+  filename,
+  columns,
+  data,
+  logoUrl,
+  empresaNome,
+  empresaEndereco,
+  empresaCnpj
+}: ReportOptions) => {
+  // Criar documento PDF
+  const doc = new jsPDF({
+    orientation: landscape ? 'landscape' : 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  // Margens padrão (em mm)
+  const marginLeft = 15;
+  const marginTop = 15;
+  const pageWidth = landscape ? 297 : 210;
+  const contentWidth = pageWidth - (marginLeft * 2);
   
-  if (dadosEmpresa) {
+  // Adicionar data atual
+  const dataAtual = format(new Date(), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR });
+  
+  // Configurar cabeçalho com logo e dados da empresa
+  let currentY = marginTop;
+  
+  // Tentar carregar o logo se fornecido
+  if (logoUrl) {
     try {
-      empresaInfo = JSON.parse(dadosEmpresa);
-    } catch (e) {
-      console.error('Erro ao carregar dados da empresa:', e);
+      const img = new Image();
+      img.src = logoUrl;
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+      
+      // Calcular proporção para redimensionar mantendo o aspecto
+      const imgWidth = 40; // largura máxima da logo em mm
+      const imgHeight = (img.height * imgWidth) / img.width;
+      
+      doc.addImage(img, 'JPEG', marginLeft, currentY, imgWidth, imgHeight);
+      
+      // Informações da empresa à direita
+      if (empresaNome) {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(empresaNome, pageWidth - marginLeft - doc.getTextWidth(empresaNome), currentY + 5);
+        
+        if (empresaCnpj) {
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.text(`CNPJ: ${empresaCnpj}`, pageWidth - marginLeft - doc.getTextWidth(`CNPJ: ${empresaCnpj}`), currentY + 10);
+        }
+        
+        if (empresaEndereco) {
+          doc.setFontSize(10);
+          doc.text(empresaEndereco, pageWidth - marginLeft - doc.getTextWidth(empresaEndereco), currentY + 15);
+        }
+      }
+      
+      currentY += imgHeight + 10; // Avançar após a logo
+    } catch (error) {
+      console.error('Erro ao carregar logo:', error);
+      // Se falhar, apenas avançar o Y um pouco para o título
+      currentY += 5;
     }
-  }
-  
-  // Adiciona a logo se existir
-  if (logoEmpresa) {
-    try {
-      doc.addImage(logoEmpresa, 'PNG', 14, 10, 40, 20);
-      // Ajusta o título para não sobrepor a logo
-      doc.setFontSize(16);
-      doc.text(titulo, doc.internal.pageSize.width / 2, 20, { align: 'center' });
-    } catch (e) {
-      console.error('Erro ao adicionar logo:', e);
-      // Centraliza o título se houver erro na logo
-      doc.setFontSize(18);
-      doc.text(titulo, doc.internal.pageSize.width / 2, 20, { align: 'center' });
+  } else if (empresaNome) {
+    // Se não tiver logo mas tiver nome da empresa
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(empresaNome, marginLeft, currentY + 7);
+    
+    if (empresaCnpj) {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`CNPJ: ${empresaCnpj}`, marginLeft, currentY + 14);
     }
-  } else {
-    // Centraliza o título se não houver logo
-    doc.setFontSize(18);
-    doc.text(titulo, doc.internal.pageSize.width / 2, 20, { align: 'center' });
+    
+    if (empresaEndereco) {
+      doc.setFontSize(10);
+      doc.text(empresaEndereco, marginLeft, currentY + 21);
+    }
+    
+    currentY += 30;
   }
   
-  // Adiciona informações da empresa
-  doc.setFontSize(10);
-  doc.text(empresaInfo.nome, doc.internal.pageSize.width - 15, 15, { align: 'right' });
+  // Adicionar título e subtítulo
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
   
-  if (empresaInfo.cnpj) {
-    doc.text(`CNPJ: ${empresaInfo.cnpj}`, doc.internal.pageSize.width - 15, 20, { align: 'right' });
+  // Centralizar título
+  const titleWidth = doc.getTextWidth(title);
+  doc.text(title, (pageWidth - titleWidth) / 2, currentY);
+  currentY += 10;
+  
+  if (subtitle) {
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    const subtitleWidth = doc.getTextWidth(subtitle);
+    doc.text(subtitle, (pageWidth - subtitleWidth) / 2, currentY);
+    currentY += 8;
   }
   
-  if (empresaInfo.endereco) {
-    doc.text(empresaInfo.endereco, doc.internal.pageSize.width - 15, 25, { align: 'right' });
-  }
-  
-  // Adiciona linha separadora após o cabeçalho
+  // Adicionar linha divisória
   doc.setDrawColor(200, 200, 200);
-  doc.line(14, 35, doc.internal.pageSize.width - 14, 35);
+  doc.line(marginLeft, currentY, pageWidth - marginLeft, currentY);
+  currentY += 5;
   
-  // Retorna a posição Y após o cabeçalho para começar o conteúdo
-  return 45; // Posição Y após o cabeçalho
+  // Adicionar data de geração
+  doc.setFontSize(9);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Relatório gerado em: ${dataAtual}`, marginLeft, currentY);
+  currentY += 8;
+  
+  // Preparar dados para tabela
+  const tableData = data.map(item => {
+    const row: any = {};
+    columns.forEach(col => {
+      row[col.dataKey] = item[col.dataKey] != null ? item[col.dataKey].toString() : '';
+    });
+    return row;
+  });
+  
+  // Configurar cabeçalhos da tabela
+  const tableHeaders = columns.map(col => ({
+    header: col.header,
+    dataKey: col.dataKey,
+    width: col.width
+  }));
+  
+  // Adicionar tabela ao documento
+  (doc as any).autoTable({
+    startY: currentY,
+    head: [tableHeaders.map(header => header.header)],
+    body: tableData.map(row => 
+      tableHeaders.map(header => row[header.dataKey])
+    ),
+    margin: { left: marginLeft, right: marginLeft },
+    theme: 'grid',
+    headStyles: {
+      fillColor: [51, 103, 214],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold'
+    },
+    columnStyles: tableHeaders.reduce((styles, header, index) => {
+      if (header.width) {
+        styles[index] = { cellWidth: header.width };
+      }
+      return styles;
+    }, {} as Record<number, any>),
+    didDrawPage: (data: any) => {
+      // Adicionar rodapé em cada página
+      const pageCount = doc.getNumberOfPages();
+      const currentPage = data.pageNumber;
+      
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text(
+        `Página ${currentPage} de ${pageCount}`, 
+        pageWidth - marginLeft - 40, 
+        doc.internal.pageSize.height - 10
+      );
+    }
+  });
+
+  // Salvar ou abrir PDF
+  const finalFilename = filename || `${title.toLowerCase().replace(/\s+/g, '-')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+  doc.save(finalFilename);
+  
+  return doc;
 };
 
-// Função para adicionar rodapé padrão
-const adicionarRodapePadrao = (doc: jsPDF) => {
-  const totalPages = doc.getNumberOfPages();
-  
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
+// Função auxiliar para gerar relatórios a partir de configurações de empresa
+export const generateCompanyReport = async (options: ReportOptions) => {
+  try {
+    // Buscar configurações da empresa do localStorage
+    const empresaDataStr = localStorage.getItem('dadosEmpresa');
+    const logoEmpresa = localStorage.getItem('logoEmpresa');
     
-    // Adiciona linha antes do rodapé
-    doc.setDrawColor(200, 200, 200);
-    doc.line(14, doc.internal.pageSize.height - 20, doc.internal.pageSize.width - 14, doc.internal.pageSize.height - 20);
-    
-    // Adiciona data de geração
-    doc.setFontSize(8);
-    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, doc.internal.pageSize.height - 10);
-    
-    // Adiciona número da página
-    doc.text(`Página ${i} de ${totalPages}`, doc.internal.pageSize.width - 14, doc.internal.pageSize.height - 10, { align: 'right' });
+    let empresaData = null;
+    if (empresaDataStr) {
+      try {
+        empresaData = JSON.parse(empresaDataStr);
+      } catch (e) {
+        console.error('Erro ao processar dados da empresa:', e);
+      }
+    }
+
+    // Mesclar com as opções fornecidas
+    const reportConfig = {
+      ...options,
+      logoUrl: logoEmpresa || options.logoUrl,
+      empresaNome: empresaData?.nome || options.empresaNome || 'ControlFrota',
+      empresaCnpj: empresaData?.cnpj || options.empresaCnpj,
+      empresaEndereco: empresaData?.endereco || options.empresaEndereco
+    };
+
+    return await generatePDF(reportConfig);
+  } catch (error) {
+    console.error('Erro ao gerar relatório:', error);
+    throw error;
   }
-};
-
-export const gerarRelatorioPlanoConta = (contas: ContaContabil[]) => {
-  const doc = new jsPDF();
-  
-  const startY = adicionarCabecalhoPadrao(doc, 'Plano de Contas Contábil');
-  
-  const headers = [['Código', 'Código Red.', 'Nome', 'Tipo', 'Natureza']];
-  const data = contas.map(conta => [
-    conta.codigo,
-    conta.codigo_reduzido,
-    conta.nome,
-    conta.tipo,
-    conta.natureza
-  ]);
-
-  autoTable(doc, {
-    head: headers,
-    body: data,
-    startY: startY,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [41, 65, 171] }
-  });
-
-  adicionarRodapePadrao(doc);
-  doc.save('plano-contas.pdf');
-};
-
-export const gerarRelatorioNotasFiscais = (notas: any[], mes: string) => {
-  const doc = new jsPDF();
-  
-  const startY = adicionarCabecalhoPadrao(doc, `Relatório de Notas Fiscais - ${mes}`);
-  
-  const headers = [['Nº Nota', 'Cliente', 'Valor', 'Data Coleta', 'Status']];
-  const data = notas.map(nota => [
-    nota.id || nota.numero_nota_fiscal,
-    nota.client || nota.cliente_destinatario,
-    formatCurrency(nota.value || nota.valor_nota_fiscal),
-    formatDate(nota.date || nota.data_coleta),
-    nota.status || nota.status_nota
-  ]);
-
-  autoTable(doc, {
-    head: headers,
-    body: data,
-    startY: startY,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [41, 65, 171] }
-  });
-
-  adicionarRodapePadrao(doc);
-  doc.save(`notas-fiscais-${mes}.pdf`);
-};
-
-export const gerarRelatorioContratos = (contratos: any[], periodo: string) => {
-  const doc = new jsPDF();
-  
-  const startY = adicionarCabecalhoPadrao(doc, `Relatório de Contratos - ${periodo}`);
-  
-  const headers = [['Nº Contrato', 'Cliente', 'Origem/Destino', 'Valor Frete', 'Status']];
-  const data = contratos.map(contrato => [
-    contrato.id,
-    contrato.cliente_destino,
-    `${contrato.cidade_origem}/${contrato.cidade_destino}`,
-    formatCurrency(contrato.valor_frete),
-    contrato.status_contrato
-  ]);
-
-  autoTable(doc, {
-    head: headers,
-    body: data,
-    startY: startY,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [41, 65, 171] }
-  });
-
-  adicionarRodapePadrao(doc);
-  doc.save(`contratos-${periodo}.pdf`);
-};
-
-export const gerarRelatorioSaldoPagar = (saldos: any[]) => {
-  const doc = new jsPDF();
-  
-  const startY = adicionarCabecalhoPadrao(doc, 'Relatório de Saldos a Pagar');
-  
-  const headers = [['Parceiro', 'Contratos', 'Valor Total', 'Valor Pago', 'Saldo Restante', 'Vencimento']];
-  const data = saldos.map(saldo => [
-    saldo.parceiro,
-    saldo.contratos_associados || '-',
-    formatCurrency(saldo.valor_total),
-    formatCurrency(saldo.valor_pago),
-    formatCurrency(saldo.valor_total - (saldo.valor_pago || 0)),
-    formatDate(saldo.vencimento || saldo.data_vencimento)
-  ]);
-
-  autoTable(doc, {
-    head: headers,
-    body: data,
-    startY: startY,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [41, 65, 171] }
-  });
-
-  adicionarRodapePadrao(doc);
-  doc.save('saldos-a-pagar.pdf');
-};
-
-export const gerarRelatorioVeiculos = (veiculos: any[]) => {
-  const doc = new jsPDF();
-  
-  const startY = adicionarCabecalhoPadrao(doc, 'Relatório de Veículos');
-  
-  const headers = [['Placa Cavalo', 'Placa Carreta', 'Tipo', 'Status', 'Proprietário']];
-  const data = veiculos.map(veiculo => [
-    veiculo.placa_cavalo,
-    veiculo.placa_carreta || '-',
-    veiculo.tipo_frota === 'frota' ? 'Próprio' : 'Terceirizado',
-    veiculo.status_veiculo || 'Ativo',
-    veiculo.proprietario || '-'
-  ]);
-
-  autoTable(doc, {
-    head: headers,
-    body: data,
-    startY: startY,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [41, 65, 171] }
-  });
-
-  adicionarRodapePadrao(doc);
-  doc.save('veiculos.pdf');
-};
-
-export const gerarRelatorioLancamentosContabeis = (lancamentos: any[], periodo: string) => {
-  const doc = new jsPDF();
-  
-  const startY = adicionarCabecalhoPadrao(doc, `Relatório de Lançamentos Contábeis - ${periodo}`);
-  
-  const headers = [['Data', 'Histórico', 'Conta Débito', 'Conta Crédito', 'Valor']];
-  const data = lancamentos.map(lanc => [
-    formatDate(lanc.data_lancamento),
-    lanc.historico,
-    lanc.conta_debito_nome || lanc.conta_debito,
-    lanc.conta_credito_nome || lanc.conta_credito,
-    formatCurrency(lanc.valor)
-  ]);
-
-  autoTable(doc, {
-    head: headers,
-    body: data,
-    startY: startY,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [41, 65, 171] }
-  });
-
-  adicionarRodapePadrao(doc);
-  doc.save(`lancamentos-contabeis-${periodo}.pdf`);
-};
-
-export const gerarRelatorioDespesasGerais = (despesas: any[], periodo: string) => {
-  const doc = new jsPDF();
-  
-  const startY = adicionarCabecalhoPadrao(doc, `Relatório de Despesas Gerais - ${periodo}`);
-  
-  const headers = [['Data', 'Tipo', 'Valor', 'Descrição', 'Contabilizado']];
-  const data = despesas.map(despesa => [
-    formatDate(despesa.data_despesa),
-    despesa.tipo_despesa || '-',
-    formatCurrency(despesa.valor_despesa),
-    despesa.descricao_detalhada || '-',
-    despesa.contabilizado ? 'Sim' : 'Não'
-  ]);
-
-  autoTable(doc, {
-    head: headers,
-    body: data,
-    startY: startY,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [41, 65, 171] }
-  });
-
-  adicionarRodapePadrao(doc);
-  doc.save(`despesas-gerais-${periodo}.pdf`);
 };
