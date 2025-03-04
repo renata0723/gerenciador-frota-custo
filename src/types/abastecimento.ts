@@ -1,5 +1,4 @@
 
-
 export type AbastecimentoFormData = {
   valor: number;
   quantidade: number;
@@ -42,6 +41,7 @@ export interface NovoAbastecimentoFormProps {
   onCancel: () => void;
   initialData?: Partial<AbastecimentoFormData>;
   tiposCombustivel?: TipoCombustivel[];
+  onSave?: (data: AbastecimentoFormData) => void;
 }
 
 export type TipoCombustivel = {
@@ -49,4 +49,3 @@ export type TipoCombustivel = {
   nome: string;
   descricao?: string;
 };
-

@@ -93,14 +93,15 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({ onSave, onCancel 
       }
       
       // Inserir nova placa
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('Veiculos')
         .insert({
           placa_cavalo: placaCavalo,
           placa_carreta: placaCarreta || null,
           tipo_frota: tipoFrota,
           status_veiculo: 'ativo'
-        });
+        })
+        .select();
       
       if (error) {
         console.error('Erro ao cadastrar veículo:', error);
@@ -147,7 +148,12 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({ onSave, onCancel 
       }
       
       toast.success('Veículo cadastrado com sucesso!');
-      onSave({ placaCavalo, placaCarreta, tipoFrota, proprietario });
+      onSave(data ? data[0] : { 
+        placaCavalo, 
+        placaCarreta, 
+        tipoFrota, 
+        proprietario 
+      });
     } catch (error) {
       console.error('Erro ao cadastrar veículo:', error);
       setErro('Ocorreu um erro ao cadastrar o veículo. Por favor, tente novamente.');

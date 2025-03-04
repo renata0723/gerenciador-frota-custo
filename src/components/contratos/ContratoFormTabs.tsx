@@ -1,156 +1,220 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { CheckCircle2, AlertTriangle, Ban, Loader2 } from 'lucide-react';
 import FormularioDadosContrato from '@/components/contratos/FormularioDadosContrato';
 import FormularioDocumentosRegistros from '@/components/contratos/FormularioDocumentosRegistros';
 import FormularioFreteContratado from '@/components/contratos/FormularioFreteContratado';
 import FormularioObservacoes from '@/components/contratos/FormularioObservacoes';
-import FormularioCancelamento from '@/components/contratos/FormularioCancelamento';
-import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
-import { useContratoForm, ContratoFormTab } from '@/hooks/useContratoForm';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
-interface ContratoFormTabsProps {
-  contratoId?: string;
-  onContratoSalvo?: (contrato: any) => void;
+export type ContratoFormTab = 'dados' | 'documentos' | 'frete' | 'observacoes';
+
+// Tipos para os dados dos formulários
+export interface DadosContratoFormData {
+  dataSaida: string;
+  cidadeOrigem: string;
+  estadoOrigem: string;
+  cidadeDestino: string;
+  estadoDestino: string;
+  clienteDestino: string;
+  placaCavalo: string;
+  placaCarreta: string;
+  tipo: 'frota' | 'terceiro';
+  motorista: string;
+  proprietario?: string;
 }
 
-const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({ contratoId, onContratoSalvo }) => {
-  const {
-    activeTab,
-    setActiveTab,
-    dadosContrato,
-    dadosFrete,
-    dadosDocumentos,
-    dadosObservacoes,
-    carregando,
-    contrato,
-    handleSaveContractData,
-    handleSaveDocumentosData,
-    handleSaveFreightData,
-    handleSaveObservacoesData,
-    handleSaveAllData
-  } = useContratoForm(contratoId, onContratoSalvo);
+export interface DocumentosFormData {
+  numeroManifesto: string[];
+  numeroCTe: string[];
+  valorCarga: number;
+  notasFiscais: any[];
+}
 
-  if (carregando) {
-    return (
-      <div className="flex flex-col items-center justify-center p-10">
-        <Loader2 className="h-12 w-12 text-blue-500 animate-spin mb-4" />
-        <p className="text-lg text-gray-600">Carregando dados do contrato...</p>
-      </div>
-    );
-  }
+export interface FreteContratadoData {
+  valorFreteContratado: number;
+  valorAdiantamento: number;
+  valorPedagio: number;
+  saldoPagar: number;
+  contabilizado: boolean;
+  dataAdiantamento?: string;
+  contaDebito?: string;
+  contaCredito?: string;
+}
 
-  if (activeTab === "cancelamento") {
-    return (
-      <FormularioCancelamento
-        tipo="Contrato"
-        numeroDocumento={contratoId || ""}
-        onBack={() => setActiveTab("dados")}
-        onCancelamentoRealizado={() => {
-          if (onContratoSalvo) onContratoSalvo(contrato);
-        }}
-      />
-    );
-  }
+export interface ObservacoesData {
+  observacoes: string;
+  quemEntregou?: string;
+  dataEntrega?: string;
+}
 
-  if (activeTab === "rejeicao") {
-    return (
-      <FormularioRejeicaoContrato
-        contratoId={contratoId || ""}
-        onBack={() => setActiveTab("dados")}
-        onRejeicaoRealizada={() => {
-          if (onContratoSalvo) onContratoSalvo(contrato);
-        }}
-      />
-    );
-  }
+interface ContratoFormTabsProps {
+  activeTab: ContratoFormTab;
+  setActiveTab: (tab: ContratoFormTab) => void;
+  dadosContrato: DadosContratoFormData;
+  dadosFrete: FreteContratadoData;
+  dadosDocumentos: DocumentosFormData;
+  dadosObservacoes: ObservacoesData;
+  contratoId?: string;
+  onSalvarContrato: (dados: any) => Promise<void>;
+  onFinalizarContrato: () => void;
+  readOnly?: boolean;
+}
+
+const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({
+  activeTab,
+  setActiveTab,
+  dadosContrato,
+  dadosFrete,
+  dadosDocumentos,
+  dadosObservacoes,
+  contratoId,
+  onSalvarContrato,
+  onFinalizarContrato,
+  readOnly = false
+}) => {
+  const [salvando, setSalvando] = useState(false);
+  const [dadosContratoTemp, setDadosContratoTemp] = useState<DadosContratoFormData>(dadosContrato);
+  const [dadosDocumentosTemp, setDadosDocumentosTemp] = useState<DocumentosFormData>(dadosDocumentos);
+  const [dadosFreteTemp, setDadosFreteTemp] = useState<FreteContratadoData>(dadosFrete);
+  const [dadosObservacoesTemp, setDadosObservacoesTemp] = useState<ObservacoesData>(dadosObservacoes);
+
+  const handleSaveContractData = async (data: DadosContratoFormData) => {
+    setSalvando(true);
+    try {
+      setDadosContratoTemp(data);
+      await onSalvarContrato({
+        ...dadosContratoTemp,
+        ...dadosDocumentosTemp,
+        ...dadosFreteTemp,
+        ...dadosObservacoesTemp,
+        ...data
+      });
+      setActiveTab('documentos');
+      toast.success('Dados do contrato salvos com sucesso');
+    } catch (error) {
+      console.error('Erro ao salvar dados do contrato:', error);
+      toast.error('Erro ao salvar dados do contrato');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const handleSaveDocumentosData = async (data: DocumentosFormData) => {
+    setSalvando(true);
+    try {
+      setDadosDocumentosTemp(data);
+      await onSalvarContrato({
+        ...dadosContratoTemp,
+        ...dadosDocumentosTemp,
+        ...dadosFreteTemp,
+        ...dadosObservacoesTemp,
+        ...data
+      });
+      setActiveTab('frete');
+      toast.success('Documentos do contrato salvos com sucesso');
+    } catch (error) {
+      console.error('Erro ao salvar documentos do contrato:', error);
+      toast.error('Erro ao salvar documentos do contrato');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const handleSaveFreightData = async (data: FreteContratadoData) => {
+    setSalvando(true);
+    try {
+      setDadosFreteTemp(data);
+      await onSalvarContrato({
+        ...dadosContratoTemp,
+        ...dadosDocumentosTemp,
+        ...dadosFreteTemp,
+        ...dadosObservacoesTemp,
+        ...data
+      });
+      setActiveTab('observacoes');
+      toast.success('Dados do frete contratado salvos com sucesso');
+    } catch (error) {
+      console.error('Erro ao salvar dados do frete contratado:', error);
+      toast.error('Erro ao salvar dados do frete contratado');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const handleSaveObservacoesData = async (data: ObservacoesData) => {
+    setSalvando(true);
+    try {
+      setDadosObservacoesTemp(data);
+      await onSalvarContrato({
+        ...dadosContratoTemp,
+        ...dadosDocumentosTemp,
+        ...dadosFreteTemp,
+        ...dadosObservacoesTemp,
+        ...data
+      });
+      toast.success('Observações do contrato salvas com sucesso');
+      onFinalizarContrato();
+    } catch (error) {
+      console.error('Erro ao salvar observações do contrato:', error);
+      toast.error('Erro ao salvar observações do contrato');
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   return (
     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ContratoFormTab)} className="w-full">
       <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="dados" disabled={activeTab === "cancelamento" || activeTab === "rejeicao"}>
-          Dados do Contrato
-        </TabsTrigger>
-        <TabsTrigger 
-          value="documentos" 
-          disabled={!dadosContrato || activeTab === "cancelamento" || activeTab === "rejeicao"}
-        >
-          Documentos e Registros
-        </TabsTrigger>
-        <TabsTrigger 
-          value="frete" 
-          disabled={!dadosDocumentos || activeTab === "cancelamento" || activeTab === "rejeicao"}
-        >
-          Frete Contratado
-        </TabsTrigger>
-        <TabsTrigger 
-          value="observacoes" 
-          disabled={!dadosFrete || activeTab === "cancelamento" || activeTab === "rejeicao"}
-        >
-          Observações
-        </TabsTrigger>
+        <TabsTrigger value="dados">Dados do Contrato</TabsTrigger>
+        <TabsTrigger value="documentos">Documentos e Registros</TabsTrigger>
+        <TabsTrigger value="frete">Frete Contratado</TabsTrigger>
+        <TabsTrigger value="observacoes">Observações</TabsTrigger>
       </TabsList>
-
-      <TabsContent value="dados" className="pt-4">
-        <FormularioDadosContrato
-          onSave={handleSaveContractData}
-          initialData={dadosContrato}
-          readOnly={!!contrato?.status_contrato && contrato.status_contrato !== 'Em Andamento'}
+      
+      <TabsContent value="dados" className="p-4 space-y-4">
+        <FormularioDadosContrato 
+          onSave={handleSaveContractData} 
+          onNext={() => setActiveTab("documentos")}
+          initialData={dadosContratoTemp || undefined}
+          readOnly={readOnly}
         />
-        
-        {contrato && (
-          <div className="flex justify-between mt-6">
-            <Button 
-              variant="outline" 
-              className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700"
-              onClick={() => setActiveTab("cancelamento")}
-              type="button"
-            >
-              <Ban className="mr-2 h-4 w-4" />
-              Cancelar Contrato
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 hover:text-amber-700"
-              onClick={() => setActiveTab("rejeicao")}
-              type="button"
-            >
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Rejeitar Contrato
+      </TabsContent>
+      
+      <TabsContent value="documentos" className="p-4 space-y-4">
+        <FormularioDocumentosRegistros 
+          onSubmit={handleSaveDocumentosData}
+          onBack={() => setActiveTab("dados")}
+          initialData={dadosDocumentosTemp || undefined}
+          readOnly={readOnly}
+        />
+      </TabsContent>
+      
+      <TabsContent value="frete" className="p-4 space-y-4">
+        <FormularioFreteContratado 
+          onSave={handleSaveFreightData} 
+          onBack={() => setActiveTab("documentos")}
+          initialData={dadosFreteTemp}
+          dadosContrato={dadosContratoTemp}
+          contrato={dadosContratoTemp}
+        />
+      </TabsContent>
+      
+      <TabsContent value="observacoes" className="p-4 space-y-4">
+        <FormularioObservacoes 
+          onSubmit={handleSaveObservacoesData}
+          onBack={() => setActiveTab("frete")}
+          initialData={dadosObservacoesTemp}
+          readOnly={readOnly}
+        />
+        {!readOnly && (
+          <div className="flex justify-end mt-4">
+            <Button onClick={onFinalizarContrato} disabled={salvando}>
+              Finalizar Contrato
             </Button>
           </div>
         )}
-      </TabsContent>
-
-      <TabsContent value="documentos" className="pt-4">
-        <FormularioDocumentosRegistros
-          initialData={dadosDocumentos}
-          onSave={handleSaveDocumentosData}
-          onBack={() => setActiveTab("dados")}
-          readOnly={!!contrato?.status_contrato && contrato.status_contrato !== 'Em Andamento'}
-        />
-      </TabsContent>
-
-      <TabsContent value="frete" className="pt-4">
-        <FormularioFreteContratado
-          initialData={dadosFrete}
-          dadosContrato={dadosContrato}
-          onSave={handleSaveFreightData}
-          onBack={() => setActiveTab("documentos")}
-          readOnly={!!contrato?.status_contrato && contrato.status_contrato !== 'Em Andamento'}
-        />
-      </TabsContent>
-
-      <TabsContent value="observacoes" className="pt-4">
-        <FormularioObservacoes
-          initialData={dadosObservacoes}
-          onSave={handleSaveObservacoesData}
-          onBack={() => setActiveTab("frete")}
-          readOnly={!!contrato?.status_contrato && contrato.status_contrato !== 'Em Andamento'}
-        />
       </TabsContent>
     </Tabs>
   );

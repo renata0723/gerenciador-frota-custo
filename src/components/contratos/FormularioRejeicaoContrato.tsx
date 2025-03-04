@@ -15,12 +15,14 @@ interface FormularioRejeicaoContratoProps {
   };
   onBack: () => void;
   onSave: () => void;
+  onRejeicaoRealizada?: () => void;
 }
 
 const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
   contrato,
   onBack,
-  onSave
+  onSave,
+  onRejeicaoRealizada
 }) => {
   const [motivo, setMotivo] = useState('');
   const [carregando, setCarregando] = useState(false);
@@ -39,7 +41,7 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
     
     try {
       // Converter o ID para número se necessário para o Supabase
-      const contratoId = parseInt(contrato.id);
+      const contratoId = typeof contrato.id === 'string' ? parseInt(contrato.id) : contrato.id;
       
       // Atualizar o contrato como rejeitado
       const { error } = await supabase
@@ -54,6 +56,7 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
       if (error) throw error;
       
       toast.success('Contrato rejeitado com sucesso');
+      if (onRejeicaoRealizada) onRejeicaoRealizada();
       onSave();
     } catch (error) {
       console.error('Erro ao rejeitar contrato:', error);

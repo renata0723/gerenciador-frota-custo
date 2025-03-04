@@ -1,5 +1,4 @@
 
-
 export interface DadosBancarios {
   banco: string;
   agencia: string;
@@ -57,4 +56,3 @@ export interface SaldoItem extends SaldoPagarItem {
   valor_total: number;
   status: string;
 }
-

@@ -2,44 +2,45 @@
 export type TipoFreteVeiculo = 'propria' | 'terceiro';
 
 export interface VeiculoData {
-  id?: number;
-  placa: string;
-  modelo: string;
-  marca: string;
-  ano: number;
-  tipo: string;
-  capacidade?: number;
-  status: string;
-  km_atual?: number;
-  data_aquisicao?: string;
-  valor_aquisicao?: number;
-  renavam?: string;
-  observacoes?: string;
-  inativo: boolean;
-  motivo_inativacao?: string;
+  placa_cavalo: string;
+  placa_carreta?: string;
+  tipo_frota: TipoFreteVeiculo;
+  status_veiculo: 'ativo' | 'inativo';
   data_inativacao?: string;
+  motivo_inativacao?: string;
+  marca?: string;
+  modelo?: string;
+  ano?: number;
+  renavam?: string;
+  chassi?: string;
+  proprietario?: string;
+  inativo: boolean;
+}
+
+export interface VeiculoSearchResult {
   placa_cavalo: string;
   placa_carreta?: string;
   tipo_frota: TipoFreteVeiculo;
   status_veiculo: string;
+  proprietario?: string;
 }
 
-export interface VeiculoFormData {
-  id?: number;
-  placa: string;
-  modelo: string;
-  marca: string;
-  ano: number;
-  tipo: 'cavalo' | 'carreta' | 'truck' | 'outro';
-  capacidade?: number;
-  status: 'ativo' | 'inativo' | 'manutencao';
-  km_atual?: number;
-  data_aquisicao?: string;
-  valor_aquisicao?: number;
-  renavam?: string;
-  observacoes?: string;
-  proprietario?: string;
-  tipo_frota: TipoFreteVeiculo;
-  placa_cavalo?: string;
+export interface VeiculoEditFormProps {
+  onSubmit: (data: VeiculoData) => void;
+  onCancel: () => void;
+  initialData?: Partial<VeiculoData>;
+}
+
+export interface VeiculoFormValues {
+  placa_cavalo: string;
   placa_carreta?: string;
+  tipo_frota: TipoFreteVeiculo;
+  status_veiculo?: string;
+  proprietario?: string;
+}
+
+export interface ProprietarioVeiculo {
+  id?: number;
+  nome: string;
+  documento?: string;
 }
