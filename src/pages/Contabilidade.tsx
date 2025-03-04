@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -89,18 +90,23 @@ const Contabilidade = () => {
         {menuItems.map((item, index) => (
           <Card 
             key={index} 
-            className="hover:shadow-md transition-shadow cursor-pointer"
+            className="hover:shadow-md transition-shadow cursor-pointer border border-gray-200 overflow-hidden"
             onClick={item.onClick}
           >
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-xl">{item.title}</CardTitle>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between bg-gray-50 border-b">
+              <div>
+                <CardTitle className="text-lg font-medium">{item.title}</CardTitle>
+                <CardDescription className="text-sm mt-1">{item.description}</CardDescription>
+              </div>
+              <div className="ml-4 p-2 rounded-lg bg-white shadow-sm">
                 {item.icon}
               </div>
-              <CardDescription>{item.description}</CardDescription>
             </CardHeader>
-            <CardContent className="pt-2">
-              <Button variant="ghost" className="p-0 h-auto">
+            <CardContent className="pt-4 pb-4">
+              <Button 
+                variant="ghost" 
+                className="text-sistema-primary hover:bg-sistema-primary/10 flex items-center"
+              >
                 Acessar <FilePlus className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>

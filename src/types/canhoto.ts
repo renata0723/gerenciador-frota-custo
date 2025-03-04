@@ -15,3 +15,22 @@ export interface Canhoto {
   status?: string;
   saldo_a_pagar?: number;
 }
+
+export interface CanhotoPendente {
+  id: number;
+  contrato_id: string;
+  cliente: string;
+  data_entrega_cliente: string | null;
+  status: string;
+}
+
+export interface CancelamentoDocumento {
+  id: number;
+  documento_id: string;
+  tipo_documento: string;
+  motivo: string;
+  data_cancelamento: string;
+  observacoes?: string;
+  usuario_cancelamento: string;
+  status: string;
+}

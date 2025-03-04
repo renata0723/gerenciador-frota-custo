@@ -158,7 +158,7 @@ export interface Balancete {
   saldo_atual: number;
   natureza: 'devedora' | 'credora';
   nivel: number;
-  status: StatusItem;
+  status?: string;
   created_at?: string;
   updated_at?: string;
 }

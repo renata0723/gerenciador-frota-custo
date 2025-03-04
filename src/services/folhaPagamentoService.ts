@@ -1,121 +1,126 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { FolhaPagamento } from '@/types/contabilidade';
-import { logOperation } from '@/utils/logOperations';
+import { toast } from 'sonner';
+import { FolhaPagamento, StatusItem } from '@/types/folhaPagamento';
 
 export const listarFolhaPagamento = async (): Promise<FolhaPagamento[]> => {
   try {
     const { data, error } = await supabase
-      .from('Folha_Pagamento')
+      .from('FolhaPagamento')
       .select('*')
       .order('data_pagamento', { ascending: false });
-    
+
     if (error) {
-      console.error('Erro ao buscar folha de pagamento:', error);
-      logOperation('Folha de Pagamento', 'Erro ao buscar registros', false);
+      console.error('Erro ao listar folha de pagamento:', error);
+      toast.error('Erro ao listar registros de folha de pagamento');
       return [];
     }
-    
-    return data || [];
+
+    return data.map(item => ({
+      ...item,
+      status: item.status as StatusItem
+    })) || [];
   } catch (error) {
     console.error('Erro ao listar folha de pagamento:', error);
-    logOperation('Folha de Pagamento', 'Erro ao listar registros', false);
+    toast.error('Erro ao listar registros de folha de pagamento');
     return [];
   }
 };
 
-export const buscarFolhaPagamento = async (id: number): Promise<FolhaPagamento | null> => {
+export const obterFolhaPagamentoPorId = async (id: number): Promise<FolhaPagamento | null> => {
   try {
     const { data, error } = await supabase
-      .from('Folha_Pagamento')
+      .from('FolhaPagamento')
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
-      console.error('Erro ao buscar registro de folha de pagamento:', error);
-      logOperation('Folha de Pagamento', 'Erro ao buscar registro específico', false);
+      console.error('Erro ao obter registro de folha de pagamento:', error);
       return null;
     }
-    
-    return data;
+
+    return {
+      ...data,
+      status: data.status as StatusItem
+    };
   } catch (error) {
-    console.error('Erro ao buscar registro de folha de pagamento:', error);
-    logOperation('Folha de Pagamento', 'Erro ao buscar registro específico', false);
+    console.error('Erro ao obter registro de folha de pagamento:', error);
     return null;
   }
 };
 
-export const criarRegistroFolhaPagamento = async (folha: Partial<FolhaPagamento>): Promise<FolhaPagamento | null> => {
+export const adicionarFolhaPagamento = async (folhaPagamento: FolhaPagamento): Promise<FolhaPagamento | null> => {
   try {
     const { data, error } = await supabase
-      .from('Folha_Pagamento')
-      .insert([folha])
+      .from('FolhaPagamento')
+      .insert(folhaPagamento)
       .select()
       .single();
-    
+
     if (error) {
-      console.error('Erro ao criar registro de folha de pagamento:', error);
-      logOperation('Folha de Pagamento', 'Erro ao criar registro', false);
+      console.error('Erro ao adicionar registro de folha de pagamento:', error);
+      toast.error('Erro ao adicionar registro de folha de pagamento');
       return null;
     }
-    
-    logOperation('Folha de Pagamento', 'Registro criado com sucesso', true);
-    return data;
+
+    toast.success('Registro de folha de pagamento adicionado com sucesso');
+    return {
+      ...data,
+      status: data.status as StatusItem
+    };
   } catch (error) {
-    console.error('Erro ao criar registro de folha de pagamento:', error);
-    logOperation('Folha de Pagamento', 'Erro ao criar registro', false);
+    console.error('Erro ao adicionar registro de folha de pagamento:', error);
+    toast.error('Erro ao adicionar registro de folha de pagamento');
     return null;
   }
 };
 
-export const atualizarRegistroFolhaPagamento = async (id: number, folha: Partial<FolhaPagamento>): Promise<FolhaPagamento | null> => {
+export const atualizarFolhaPagamento = async (id: number, folhaPagamento: FolhaPagamento): Promise<FolhaPagamento | null> => {
   try {
     const { data, error } = await supabase
-      .from('Folha_Pagamento')
-      .update(folha)
+      .from('FolhaPagamento')
+      .update(folhaPagamento)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) {
       console.error('Erro ao atualizar registro de folha de pagamento:', error);
-      logOperation('Folha de Pagamento', 'Erro ao atualizar registro', false);
+      toast.error('Erro ao atualizar registro de folha de pagamento');
       return null;
     }
-    
-    logOperation('Folha de Pagamento', 'Registro atualizado com sucesso', true);
-    return data;
+
+    toast.success('Registro de folha de pagamento atualizado com sucesso');
+    return {
+      ...data,
+      status: data.status as StatusItem
+    };
   } catch (error) {
     console.error('Erro ao atualizar registro de folha de pagamento:', error);
-    logOperation('Folha de Pagamento', 'Erro ao atualizar registro', false);
+    toast.error('Erro ao atualizar registro de folha de pagamento');
     return null;
   }
 };
 
-export const excluirRegistroFolhaPagamento = async (id: number): Promise<boolean> => {
+export const excluirFolhaPagamento = async (id: number): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('Folha_Pagamento')
+      .from('FolhaPagamento')
       .delete()
       .eq('id', id);
-    
+
     if (error) {
       console.error('Erro ao excluir registro de folha de pagamento:', error);
-      logOperation('Folha de Pagamento', 'Erro ao excluir registro', false);
+      toast.error('Erro ao excluir registro de folha de pagamento');
       return false;
     }
-    
-    logOperation('Folha de Pagamento', 'Registro excluído com sucesso', true);
+
+    toast.success('Registro de folha de pagamento excluído com sucesso');
     return true;
   } catch (error) {
     console.error('Erro ao excluir registro de folha de pagamento:', error);
-    logOperation('Folha de Pagamento', 'Erro ao excluir registro', false);
+    toast.error('Erro ao excluir registro de folha de pagamento');
     return false;
   }
 };
-
-// Aliases para manter compatibilidade
-export const atualizarFolhaPagamento = atualizarRegistroFolhaPagamento;
-export const criarFolhaPagamento = criarRegistroFolhaPagamento;
-export const excluirFolhaPagamento = excluirRegistroFolhaPagamento;
