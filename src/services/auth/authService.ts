@@ -11,7 +11,7 @@ export const autenticarUsuario = async (email: string, senha: string): Promise<U
       .from('Usuarios')
       .select('*')
       .eq('email', email)
-      .eq('senha', senha) // Em produção, usar hash de senha
+      .eq('senha', senha)
       .maybeSingle();
     
     if (error) {
