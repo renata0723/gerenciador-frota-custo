@@ -14,6 +14,7 @@ export interface CanhotoPendente {
   data_entrega_cliente?: string;
   data_programada_pagamento?: string;
   saldo_a_pagar?: number;
+  observacoes?: string;
 }
 
 export interface Canhoto extends CanhotoPendente {

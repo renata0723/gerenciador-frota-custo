@@ -45,15 +45,16 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
         throw contratoError;
       }
       
-      // Registrar rejeição
+      // Registrar rejeição na tabela Cancelamentos com tipo "Rejeicao"
       const { error: rejeicaoError } = await supabase
-        .from('Rejeicoes')
+        .from('Cancelamentos')
         .insert({
-          contrato_id: contrato,
+          tipo_documento: 'Rejeicao',
+          numero_documento: contrato,
           motivo,
           observacoes,
           responsavel,
-          data_rejeicao: new Date().toISOString()
+          data_cancelamento: new Date().toISOString()
         });
         
       if (rejeicaoError) {
