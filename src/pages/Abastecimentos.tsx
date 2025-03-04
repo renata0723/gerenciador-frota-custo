@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
@@ -11,7 +10,7 @@ import TipoCombustivelForm from '@/components/abastecimentos/TipoCombustivelForm
 import { AbastecimentoItem, TipoCombustivel, AbastecimentoFormData } from '@/types/abastecimento';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { formatarValorMonetario, formatarData } from '@/utils/formatters';
+import { formatCurrency, formatDate } from '@/utils/constants';
 import { Badge } from '@/components/ui/badge';
 
 const Abastecimentos = () => {
@@ -91,31 +90,32 @@ const Abastecimentos = () => {
   const handleSaveAbastecimento = async (formData: AbastecimentoFormData) => {
     try {
       const novoAbastecimento = {
-        data_abastecimento: formData.data,
+        data_abastecimento: formData.data_abastecimento,
         placa_veiculo: formData.placa,
         motorista_solicitante: formData.motorista,
-        tipo_combustivel: formData.tipoCombustivel,
+        tipo_combustivel: formData.tipo_combustivel,
         quantidade: formData.quantidade,
         valor_abastecimento: formData.valor,
         quilometragem: formData.quilometragem,
         posto: formData.posto,
         responsavel_autorizacao: formData.responsavel,
         itens_abastecidos: formData.itens,
-        valor_total: formData.valor, // Valor total
+        valor_total: formData.valor * formData.quantidade,
         contrato_id: formData.contrato_id || null,
         contabilizado: formData.contabilizado || false,
         conta_debito: formData.conta_debito || null,
-        conta_credito: formData.conta_credito || null
+        conta_credito: formData.conta_credito || null,
+        status: 'ativo'
       };
 
       // Se contabilizado, cria o lançamento contábil
       if (formData.contabilizado && formData.conta_debito && formData.conta_credito) {
         const lancamentoContabil = {
-          data_lancamento: formData.data,
-          data_competencia: formData.data,
+          data_lancamento: formData.data_abastecimento,
+          data_competencia: formData.data_abastecimento,
           conta_debito: formData.conta_debito,
           conta_credito: formData.conta_credito,
-          valor: formData.valor,
+          valor: formData.valor * formData.quantidade,
           historico: `Abastecimento - Veículo ${formData.placa} - Posto ${formData.posto}`,
           status: 'ativo'
         };
@@ -207,8 +207,9 @@ const Abastecimentos = () => {
                 <DialogTitle>Registrar Abastecimento</DialogTitle>
               </DialogHeader>
               <NovoAbastecimentoForm 
-                tiposCombustivel={tiposCombustivel} 
-                onSave={handleSaveAbastecimento}
+                onSubmit={handleSaveAbastecimento}
+                onCancel={() => setNovoAbastecimentoOpen(false)}
+                tiposCombustivel={tiposCombustivel}
               />
             </DialogContent>
           </Dialog>
@@ -253,11 +254,11 @@ const Abastecimentos = () => {
                   ) : (
                     abastecimentos.map((abastecimento, index) => (
                       <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap">{formatarData(abastecimento.data_abastecimento)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{formatDate(abastecimento.data_abastecimento)}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{abastecimento.placa_veiculo}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{abastecimento.tipo_combustivel}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{abastecimento.quilometragem}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{formatarValorMonetario(abastecimento.valor_total || 0)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(abastecimento.valor_total || 0)}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{abastecimento.posto}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{abastecimento.motorista_solicitante}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{getNomeContrato(abastecimento.contrato_id)}</td>
@@ -304,7 +305,6 @@ const Abastecimentos = () => {
                       <td colSpan={7} className="px-6 py-4 text-center">Nenhum abastecimento recente</td>
                     </tr>
                   ) : (
-                    // Aqui podemos filtrar somente os abastecimentos recentes (30 dias)
                     abastecimentos
                       .filter(a => {
                         if (!a.data_abastecimento) return false;
@@ -316,11 +316,11 @@ const Abastecimentos = () => {
                       })
                       .map((abastecimento, index) => (
                         <tr key={index}>
-                          <td className="px-6 py-4 whitespace-nowrap">{formatarData(abastecimento.data_abastecimento)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{formatDate(abastecimento.data_abastecimento)}</td>
                           <td className="px-6 py-4 whitespace-nowrap">{abastecimento.placa_veiculo}</td>
                           <td className="px-6 py-4 whitespace-nowrap">{abastecimento.tipo_combustivel}</td>
                           <td className="px-6 py-4 whitespace-nowrap">{abastecimento.quilometragem}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{formatarValorMonetario(abastecimento.valor_total || 0)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(abastecimento.valor_total || 0)}</td>
                           <td className="px-6 py-4 whitespace-nowrap">{getNomeContrato(abastecimento.contrato_id)}</td>
                           <td className="px-6 py-4 whitespace-nowrap">{calcularConsumoMedio(abastecimento)}</td>
                         </tr>

@@ -69,13 +69,13 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
           
         if (error) throw error;
       } else if (tipo === 'CTE') {
-        // Para documentos CTe
+        // Para documentos CTE, usar tabela correta 
         const { error } = await supabase
-          .from('CTe')
+          .from('Notas Fiscais') // Usando a tabela que existe no sistema
           .update({
-            status: 'Cancelado'
+            status_nota: 'Cancelado'
           })
-          .eq('numero', numeroDocumento);
+          .eq('numero_nota_fiscal', numeroDocumento);
           
         if (error) throw error;
       }

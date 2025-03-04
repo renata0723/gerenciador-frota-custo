@@ -41,23 +41,26 @@ export const CONTAS_CONTABEIS = {
   DESPESA_MANUTENCAO: '4.1.2.01',
   DESPESA_SALARIOS: '4.1.3.01',
   DESPESA_ADMINISTRATIVA: '4.2.1.01',
+  DESPESAS_VIAGEM: '4.1.4.01',
 };
 
-// Status para pagamentos
-export const statusSaldoPagar = [
-  { value: 'pendente', label: 'Pendente' },
-  { value: 'parcial', label: 'Parcial' },
-  { value: 'pago', label: 'Pago' },
-  { value: 'cancelado', label: 'Cancelado' },
-  { value: 'liberado', label: 'Liberado' },
-];
+// Status para pagamentos como objeto para facilitar o acesso por propriedade
+export const STATUS_SALDO_PAGAR = {
+  PENDENTE: 'pendente',
+  PARCIAL: 'parcial',
+  PAGO: 'pago',
+  CANCELADO: 'cancelado',
+  LIBERADO: 'liberado',
+};
 
-// Definição das propriedades para acesso facilitado
-statusSaldoPagar.PENDENTE = 'pendente';
-statusSaldoPagar.PARCIAL = 'parcial';
-statusSaldoPagar.PAGO = 'pago';
-statusSaldoPagar.CANCELADO = 'cancelado';
-statusSaldoPagar.LIBERADO = 'liberado';
+// Status para pagamentos como array para componentes de seleção
+export const statusSaldoPagar = [
+  { value: STATUS_SALDO_PAGAR.PENDENTE, label: 'Pendente' },
+  { value: STATUS_SALDO_PAGAR.PARCIAL, label: 'Parcial' },
+  { value: STATUS_SALDO_PAGAR.PAGO, label: 'Pago' },
+  { value: STATUS_SALDO_PAGAR.CANCELADO, label: 'Cancelado' },
+  { value: STATUS_SALDO_PAGAR.LIBERADO, label: 'Liberado' },
+];
 
 export const ANO_ATUAL = new Date().getFullYear();
 
@@ -100,3 +103,34 @@ export const PERCENTUAIS_PRESUNCAO = {
   TRANSPORTE_CARGAS: 0.08, // 8% para IRPJ
   TRANSPORTE_CARGAS_CSLL: 0.12, // 12% para CSLL
 };
+
+// Lista de estados brasileiros para formulários
+export const estadosBrasileiros = [
+  { sigla: 'AC', nome: 'Acre' },
+  { sigla: 'AL', nome: 'Alagoas' },
+  { sigla: 'AP', nome: 'Amapá' },
+  { sigla: 'AM', nome: 'Amazonas' },
+  { sigla: 'BA', nome: 'Bahia' },
+  { sigla: 'CE', nome: 'Ceará' },
+  { sigla: 'DF', nome: 'Distrito Federal' },
+  { sigla: 'ES', nome: 'Espírito Santo' },
+  { sigla: 'GO', nome: 'Goiás' },
+  { sigla: 'MA', nome: 'Maranhão' },
+  { sigla: 'MT', nome: 'Mato Grosso' },
+  { sigla: 'MS', nome: 'Mato Grosso do Sul' },
+  { sigla: 'MG', nome: 'Minas Gerais' },
+  { sigla: 'PA', nome: 'Pará' },
+  { sigla: 'PB', nome: 'Paraíba' },
+  { sigla: 'PR', nome: 'Paraná' },
+  { sigla: 'PE', nome: 'Pernambuco' },
+  { sigla: 'PI', nome: 'Piauí' },
+  { sigla: 'RJ', nome: 'Rio de Janeiro' },
+  { sigla: 'RN', nome: 'Rio Grande do Norte' },
+  { sigla: 'RS', nome: 'Rio Grande do Sul' },
+  { sigla: 'RO', nome: 'Rondônia' },
+  { sigla: 'RR', nome: 'Roraima' },
+  { sigla: 'SC', nome: 'Santa Catarina' },
+  { sigla: 'SP', nome: 'São Paulo' },
+  { sigla: 'SE', nome: 'Sergipe' },
+  { sigla: 'TO', nome: 'Tocantins' }
+];

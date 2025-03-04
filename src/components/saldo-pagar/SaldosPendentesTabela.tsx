@@ -1,21 +1,32 @@
 
 import React from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  DollarSign, 
+  Ban, 
+  Info, 
+  CheckCircle, 
+  AlertCircle, 
+  ClockIcon, 
+  Loader2 
+} from 'lucide-react';
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, XCircle, CheckCircle, AlertTriangle } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { SaldoItem } from '@/types/saldoPagar';
-import { formatCurrency } from '@/utils/constants';
+import { formatCurrency, formatDate, STATUS_SALDO_PAGAR } from '@/utils/constants';
 
 interface SaldosPendentesProps {
   saldos: SaldoItem[];
@@ -26,6 +37,23 @@ interface SaldosPendentesProps {
   somenteLeitura?: boolean;
 }
 
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case STATUS_SALDO_PAGAR.PENDENTE:
+      return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">Pendente</Badge>;
+    case STATUS_SALDO_PAGAR.PARCIAL:
+      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">Parcial</Badge>;
+    case STATUS_SALDO_PAGAR.PAGO:
+      return <Badge className="bg-green-500">Pago</Badge>;
+    case STATUS_SALDO_PAGAR.CANCELADO:
+      return <Badge variant="destructive">Cancelado</Badge>;
+    case STATUS_SALDO_PAGAR.LIBERADO:
+      return <Badge className="bg-blue-500">Liberado</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+};
+
 const SaldosPendentesTabela: React.FC<SaldosPendentesProps> = ({
   saldos,
   onPagar,
@@ -34,51 +62,20 @@ const SaldosPendentesTabela: React.FC<SaldosPendentesProps> = ({
   isLoading = false,
   somenteLeitura = false
 }) => {
-  const getBadgeVariant = (status: string): string => {
-    switch (status) {
-      case 'pendente':
-        return 'secondary';
-      case 'parcial':
-        return 'default';
-      case 'pago':
-        return 'success';
-      case 'cancelado':
-        return 'destructive';
-      case 'liberado':
-        return 'outline';
-      default:
-        return 'default';
-    }
-  };
-
-  const formatarData = (dataString?: string) => {
-    if (!dataString) return '-';
-    try {
-      const data = new Date(dataString);
-      return format(data, 'dd/MM/yyyy', { locale: ptBR });
-    } catch (error) {
-      return dataString;
-    }
-  };
-
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <Skeleton key={n} className="w-full h-12" />
-        ))}
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+        <span className="ml-2 text-gray-500">Carregando saldos...</span>
       </div>
     );
   }
 
   if (saldos.length === 0) {
     return (
-      <div className="text-center py-10">
-        <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-semibold text-gray-900">Nenhum saldo encontrado</h3>
-        <p className="mt-1 text-sm text-gray-500">
-          Não existem registros de saldo a pagar nesta categoria.
-        </p>
+      <div className="text-center py-8 bg-gray-50 rounded-md">
+        <AlertCircle className="h-8 w-8 mx-auto text-gray-400" />
+        <p className="mt-2 text-gray-500">Nenhum saldo encontrado.</p>
       </div>
     );
   }
@@ -88,7 +85,6 @@ const SaldosPendentesTabela: React.FC<SaldosPendentesProps> = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>ID</TableHead>
             <TableHead>Parceiro</TableHead>
             <TableHead>Contratos</TableHead>
             <TableHead>Vencimento</TableHead>
@@ -101,58 +97,103 @@ const SaldosPendentesTabela: React.FC<SaldosPendentesProps> = ({
         <TableBody>
           {saldos.map((saldo) => (
             <TableRow key={saldo.id}>
-              <TableCell className="font-medium">{saldo.id}</TableCell>
-              <TableCell>{saldo.parceiro}</TableCell>
-              <TableCell>
-                {saldo.contratos_associados || "-"}
+              <TableCell className="font-medium">
+                {saldo.parceiro}
               </TableCell>
-              <TableCell>{formatarData(saldo.vencimento)}</TableCell>
+              <TableCell>
+                {saldo.contratos_associados || 'N/A'}
+              </TableCell>
+              <TableCell>
+                {saldo.vencimento ? formatDate(saldo.vencimento) : 'N/A'}
+              </TableCell>
               <TableCell className="text-right">
-                {formatCurrency(saldo.valor_total)}
+                {formatCurrency(saldo.valor_total || 0)}
               </TableCell>
               <TableCell className="text-right">
-                {saldo.valor_pago ? formatCurrency(saldo.valor_pago) : "R$ 0,00"}
+                {saldo.valor_pago ? formatCurrency(saldo.valor_pago) : 'R$ 0,00'}
               </TableCell>
               <TableCell>
-                <Badge variant={getBadgeVariant(saldo.status)}>
-                  {saldo.status}
-                </Badge>
+                {getStatusBadge(saldo.status)}
               </TableCell>
-              <TableCell>
-                {!somenteLeitura && (
-                  <div className="flex justify-end space-x-1">
-                    {saldo.status !== 'cancelado' && saldo.status !== 'pago' && (
-                      <>
-                        <Button 
-                          variant="default" 
-                          size="sm"
-                          onClick={() => onPagar(saldo)}
-                          disabled={saldo.status !== 'liberado'}
+              <TableCell className="text-right">
+                <div className="flex justify-end space-x-1">
+                  {!somenteLeitura && saldo.status !== STATUS_SALDO_PAGAR.PAGO && saldo.status !== STATUS_SALDO_PAGAR.CANCELADO && (
+                    <>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => onPagar(saldo)}
+                            >
+                              <DollarSign className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Registrar Pagamento</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => onCancelar(saldo)}
+                            >
+                              <Ban className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Cancelar Saldo</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      {saldo.status !== STATUS_SALDO_PAGAR.LIBERADO && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => onLiberar(saldo)}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Liberar para Pagamento</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </>
+                  )}
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
                         >
-                          <DollarSign className="h-4 w-4" />
+                          <Info className="h-4 w-4" />
                         </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => onCancelar(saldo)}
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
-                        
-                        {saldo.status !== 'liberado' && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => onLiberar(saldo)}
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ver Detalhes</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </TableCell>
             </TableRow>
           ))}

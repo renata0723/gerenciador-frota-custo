@@ -1,4 +1,5 @@
 
+
 export type AbastecimentoFormData = {
   valor: number;
   quantidade: number;
@@ -11,8 +12,8 @@ export type AbastecimentoFormData = {
   responsavel?: string;
   motorista?: string;
   data_abastecimento: string; // Campo obrigatório
-  placa?: string;
-  tipo_combustivel?: string;
+  placa: string;
+  tipo_combustivel: string;
   itens?: string;
 };
 
@@ -40,7 +41,6 @@ export interface NovoAbastecimentoFormProps {
   onSubmit: (data: AbastecimentoFormData) => void;
   onCancel: () => void;
   initialData?: Partial<AbastecimentoFormData>;
-  onSave?: (formData: AbastecimentoFormData) => Promise<void>;
   tiposCombustivel?: TipoCombustivel[];
 }
 
@@ -49,3 +49,4 @@ export type TipoCombustivel = {
   nome: string;
   descricao?: string;
 };
+

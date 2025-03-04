@@ -10,14 +10,15 @@ import { CONTAS_CONTABEIS } from '@/utils/constants';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import DatePicker from '@/components/ui/DatePicker';
-import { AbastecimentoFormData, NovoAbastecimentoFormProps } from '@/types/abastecimento';
+import { AbastecimentoFormData, NovoAbastecimentoFormProps, TipoCombustivel } from '@/types/abastecimento';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/constants';
 
 const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({ 
   onSubmit, 
   onCancel,
-  initialData
+  initialData,
+  tiposCombustivel = []
 }) => {
   const [valor, setValor] = useState(initialData?.valor || 0);
   const [quantidade, setQuantidade] = useState(initialData?.quantidade || 0);
@@ -31,19 +32,23 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
   const [placa, setPlaca] = useState(initialData?.placa || '');
   const [tipoCombustivel, setTipoCombustivel] = useState(initialData?.tipo_combustivel || '');
   const [contabilizado, setContabilizado] = useState(initialData?.contabilizado || false);
-  const [contaDebito, setContaDebito] = useState(initialData?.conta_debito || CONTAS_CONTABEIS.COMBUSTIVEL);
+  const [contaDebito, setContaDebito] = useState(initialData?.conta_debito || CONTAS_CONTABEIS.DESPESA_COMBUSTIVEL);
   const [contaCredito, setContaCredito] = useState(initialData?.conta_credito || CONTAS_CONTABEIS.CAIXA);
   const [itens, setItens] = useState(initialData?.itens || '');
   
   const [valorTotal, setValorTotal] = useState(0);
-  const [tiposCombustivel, setTiposCombustivel] = useState<{id: string, nome: string}[]>([]);
+  const [listaTiposCombustivel, setListaTiposCombustivel] = useState<TipoCombustivel[]>(tiposCombustivel || []);
   const [placas, setPlacas] = useState<{placa_cavalo: string}[]>([]);
   
   // Buscar tipos de combustível e placas ao carregar o componente
   useEffect(() => {
-    fetchTiposCombustivel();
+    if (tiposCombustivel && tiposCombustivel.length > 0) {
+      setListaTiposCombustivel(tiposCombustivel);
+    } else {
+      fetchTiposCombustivel();
+    }
     fetchPlacas();
-  }, []);
+  }, [tiposCombustivel]);
   
   // Calcular valor total quando valor ou quantidade mudar
   useEffect(() => {
@@ -57,7 +62,7 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
         .select('id, nome');
       
       if (error) throw error;
-      if (data) setTiposCombustivel(data);
+      if (data) setListaTiposCombustivel(data);
     } catch (error) {
       console.error('Erro ao buscar tipos de combustível:', error);
       toast.error('Não foi possível carregar os tipos de combustível');
@@ -162,7 +167,7 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {tiposCombustivel.map((tipo) => (
+                  {listaTiposCombustivel.map((tipo) => (
                     <SelectItem key={tipo.id} value={tipo.id}>
                       {tipo.nome}
                     </SelectItem>
@@ -283,7 +288,7 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
                     <SelectValue placeholder="Selecione a conta" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={CONTAS_CONTABEIS.COMBUSTIVEL}>Combustível (4.1.1.01)</SelectItem>
+                    <SelectItem value={CONTAS_CONTABEIS.DESPESA_COMBUSTIVEL}>Combustível (4.1.1.01)</SelectItem>
                     <SelectItem value={CONTAS_CONTABEIS.DESPESAS_VIAGEM}>Despesas de Viagem (4.1.4.01)</SelectItem>
                   </SelectContent>
                 </Select>

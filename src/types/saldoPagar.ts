@@ -1,4 +1,5 @@
 
+
 export interface DadosBancarios {
   banco: string;
   agencia: string;
@@ -14,7 +15,7 @@ export interface SaldoPagarItem {
   valor_pago?: number;
   saldo_restante?: number;
   contratos_associados?: string;
-  dadosBancarios?: string | DadosBancarios;
+  dadosBancarios?: DadosBancarios | string;
   data_pagamento?: string;
   vencimento?: string;
   banco_pagamento?: string;
@@ -24,7 +25,7 @@ export interface SaldoPagarItem {
 export interface ParceiroInfo {
   nome: string;
   documento?: string;
-  dadosBancarios?: DadosBancarios;
+  dadosBancarios?: DadosBancarios | string;
   id?: number;
 }
 
@@ -54,9 +55,6 @@ export interface SaldoItem extends SaldoPagarItem {
   id: number;
   parceiro: string;
   valor_total: number;
-  valor_pago?: number;
-  saldo_restante?: number;
-  contratos_associados?: string;
   status: string;
-  vencimento?: string;
 }
+

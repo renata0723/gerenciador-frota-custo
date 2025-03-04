@@ -3,28 +3,31 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CreditCard, AlertCircle } from 'lucide-react';
-import { ParceiroInfo } from '@/types/saldoPagar';
+import { ParceiroInfo, DadosBancarios } from '@/types/saldoPagar';
 
 interface DadosBancariosParceirosProps {
   parceiro: ParceiroInfo;
 }
 
 const DadosBancariosParceiro: React.FC<DadosBancariosParceirosProps> = ({ parceiro }) => {
-  // Verificar se os dados bancários existem e estão em formato string
+  // Verificar se os dados bancários existem
   const temDadosBancarios = parceiro.dadosBancarios !== undefined && 
-                            parceiro.dadosBancarios !== null && 
-                            parceiro.dadosBancarios !== '';
+                           parceiro.dadosBancarios !== null && 
+                           parceiro.dadosBancarios !== '';
   
-  // Se for string, tentar fazer parse para objeto
-  let dadosBancariosObj: any = null;
-  if (temDadosBancarios && typeof parceiro.dadosBancarios === 'string') {
-    try {
-      dadosBancariosObj = JSON.parse(parceiro.dadosBancarios);
-    } catch (e) {
-      console.error('Erro ao fazer parse dos dados bancários:', e);
+  // Preparar o objeto de dados bancários
+  let dadosBancariosObj: DadosBancarios | null = null;
+  
+  if (temDadosBancarios) {
+    if (typeof parceiro.dadosBancarios === 'string') {
+      try {
+        dadosBancariosObj = JSON.parse(parceiro.dadosBancarios as string);
+      } catch (e) {
+        console.error('Erro ao fazer parse dos dados bancários:', e);
+      }
+    } else {
+      dadosBancariosObj = parceiro.dadosBancarios as DadosBancarios;
     }
-  } else if (temDadosBancarios && typeof parceiro.dadosBancarios === 'object') {
-    dadosBancariosObj = parceiro.dadosBancarios;
   }
 
   // Se não há dados bancários ou ocorreu erro no parse
