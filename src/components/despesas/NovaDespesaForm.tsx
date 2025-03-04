@@ -1,260 +1,243 @@
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { CalendarIcon, ArrowLeft } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { toast } from 'sonner';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { logOperation } from '@/utils/logOperations';
 
-interface NovaDespesaFormProps {
-  onSave: (data: any) => void;
-  onCancel: () => void;
+// Schema de validação
+const despesaSchema = z.object({
+  data: z.date({
+    required_error: 'Data é obrigatória',
+  }),
+  valor: z.coerce.number({
+    required_error: 'Valor é obrigatório',
+    invalid_type_error: 'Valor deve ser um número',
+  }).positive('Valor deve ser positivo'),
+  tipo: z.string({
+    required_error: 'Tipo de despesa é obrigatório',
+  }),
+  descricao: z.string().min(5, 'Descrição deve ter pelo menos 5 caracteres').max(300, 'Descrição não pode exceder 300 caracteres'),
+  contabilizar: z.boolean().optional().default(false),
+});
+
+type DespesaFormValues = z.infer<typeof despesaSchema>;
+
+export interface NovaDespesaFormProps {
+  onDespesaAdicionada?: () => void;
 }
 
-const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({ onSave, onCancel }) => {
-  const [dataDespesa, setDataDespesa] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [tipoDespesa, setTipoDespesa] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [valor, setValor] = useState('');
-  const [categoria, setCategoria] = useState('');
-  const [contabilizado, setContabilizado] = useState(false);
-  const [rateio, setRateio] = useState(false);
-  const [contratoId, setContratoId] = useState('');
-  const [contaContabil, setContaContabil] = useState('');
-  
-  const [tiposDespesa, setTiposDespesa] = useState<string[]>([]);
-  const [categorias, setCategorias] = useState<string[]>([]);
-  const [contas, setContas] = useState<any[]>([]);
-  const [contratos, setContratos] = useState<any[]>([]);
-  const [contratosSelecionados, setContratosSelecionados] = useState<string[]>([]);
-  
-  useEffect(() => {
-    carregarDadosIniciais();
-  }, []);
-  
-  const carregarDadosIniciais = async () => {
+const tiposDespesa = [
+  { id: 'descarga', label: 'Descarga' },
+  { id: 'reentrega', label: 'Reentrega' },
+  { id: 'no-show', label: 'No-Show (Cliente não recebeu)' },
+  { id: 'pedagio', label: 'Pedágio' },
+  { id: 'alimentacao', label: 'Alimentação' },
+  { id: 'hospedagem', label: 'Hospedagem' },
+  { id: 'combustivel', label: 'Combustível (não registrado em abastecimento)' },
+  { id: 'manutencao', label: 'Manutenção (não registrada em manutenções)' },
+  { id: 'multa', label: 'Multa' },
+  { id: 'outras', label: 'Outras despesas' },
+];
+
+const NovaDespesaForm: React.FC<NovaDespesaFormProps> = ({ onDespesaAdicionada }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const form = useForm<DespesaFormValues>({
+    resolver: zodResolver(despesaSchema),
+    defaultValues: {
+      data: new Date(),
+      valor: undefined,
+      tipo: '',
+      descricao: '',
+      contabilizar: false,
+    },
+  });
+
+  const handleSubmit = async (data: DespesaFormValues) => {
+    setIsLoading(true);
     try {
-      // Carregar tipos de despesa
-      setTiposDespesa([
-        'Deslocamento', 'Alimentação', 'Hospedagem', 'Manutenção', 
-        'Combustível', 'Pedágio', 'Administrativo', 'Descarga', 
-        'Reentrega', 'No-show', 'Outros'
-      ]);
+      const { error } = await supabase
+        .from('Despesas')
+        .insert({
+          data_despesa: format(data.data, 'yyyy-MM-dd'),
+          valor: data.valor,
+          tipo_despesa: data.tipo,
+          descricao: data.descricao,
+          contabilizar: data.contabilizar,
+        });
+
+      if (error) throw error;
+
+      toast.success('Despesa cadastrada com sucesso');
+      logOperation('Despesas', 'Cadastro de despesa', `Tipo: ${data.tipo}, Valor: R$ ${data.valor.toFixed(2)}`);
       
-      // Carregar categorias
-      setCategorias([
-        'Operacional', 'Administrativo', 'Financeiro', 
-        'Comercial', 'Impostos', 'Outros'
-      ]);
-      
-      // Carregar contas contábeis
-      const { data: contasData, error: contasError } = await supabase
-        .from('Plano_Contas')
-        .select('codigo, nome')
-        .eq('tipo', 'despesa')
-        .eq('status', 'ativo');
-        
-      if (contasError) {
-        console.error('Erro ao carregar contas contábeis:', contasError);
-      } else if (contasData) {
-        setContas(contasData);
-      }
-      
-      // Carregar contratos ativos
-      const { data: contratosData, error: contratosError } = await supabase
-        .from('Contratos')
-        .select('id, cliente_destino, cidade_destino')
-        .eq('status_contrato', 'Em Andamento');
-        
-      if (contratosError) {
-        console.error('Erro ao carregar contratos:', contratosError);
-      } else if (contratosData) {
-        setContratos(contratosData);
+      // Se houver uma função de callback, chamá-la
+      if (onDespesaAdicionada) {
+        onDespesaAdicionada();
+      } else {
+        // Caso contrário, redirecionar para a lista de despesas
+        navigate('/despesas');
       }
     } catch (error) {
-      console.error('Erro ao carregar dados iniciais:', error);
+      console.error('Erro ao cadastrar despesa:', error);
+      toast.error('Erro ao cadastrar despesa.');
+    } finally {
+      setIsLoading(false);
     }
   };
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!dataDespesa || !tipoDespesa || !valor) {
-      toast.error('Por favor, preencha os campos obrigatórios');
-      return;
-    }
-    
-    const valorNumerico = parseFloat(valor.replace(',', '.'));
-    if (isNaN(valorNumerico)) {
-      toast.error('Valor inválido');
-      return;
-    }
-    
-    const dadosDespesa = {
-      data_despesa: dataDespesa,
-      tipo_despesa: tipoDespesa,
-      descricao_detalhada: descricao,
-      valor_despesa: valorNumerico,
-      categoria,
-      contabilizado,
-      rateio,
-      contrato_id: contratoId,
-      conta_contabil: contaContabil
-    };
-    
-    onSave(dadosDespesa);
-  };
-  
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="dataDespesa">Data da Despesa *</Label>
-          <Input
-            id="dataDespesa"
-            type="date"
-            value={dataDespesa}
-            onChange={(e) => setDataDespesa(e.target.value)}
-            required
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="tipoDespesa">Tipo de Despesa *</Label>
-          <Select 
-            value={tipoDespesa} 
-            onValueChange={setTipoDespesa}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              {tiposDespesa.map((tipo) => (
-                <SelectItem key={tipo} value={tipo}>
-                  {tipo}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="valor">Valor *</Label>
-          <Input
-            id="valor"
-            type="text"
-            value={valor}
-            onChange={(e) => setValor(e.target.value)}
-            placeholder="0,00"
-            required
-          />
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="categoria">Categoria</Label>
-          <Select 
-            value={categoria} 
-            onValueChange={setCategoria}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione a categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              {categorias.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="contaContabil">Conta Contábil</Label>
-          <Select 
-            value={contaContabil} 
-            onValueChange={setContaContabil}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione a conta contábil" />
-            </SelectTrigger>
-            <SelectContent>
-              {contas.map((conta) => (
-                <SelectItem key={conta.codigo} value={conta.codigo}>
-                  {conta.codigo} - {conta.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="descricao">Descrição Detalhada</Label>
-        <Textarea
-          id="descricao"
-          value={descricao}
-          onChange={(e) => setDescricao(e.target.value)}
-          placeholder="Descreva os detalhes da despesa"
-          rows={3}
-        />
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="contabilizado"
-            checked={contabilizado}
-            onCheckedChange={setContabilizado}
-          />
-          <Label htmlFor="contabilizado">Contabilizado</Label>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="rateio"
-            checked={rateio}
-            onCheckedChange={setRateio}
-          />
-          <Label htmlFor="rateio">Rateio entre contratos</Label>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="contratoId">Contrato Relacionado</Label>
-        <Select 
-          value={contratoId} 
-          onValueChange={setContratoId}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o contrato (opcional)" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">Nenhum contrato</SelectItem>
-            {contratos.map((contrato) => (
-              <SelectItem key={contrato.id} value={contrato.id.toString()}>
-                #{contrato.id} - {contrato.cliente_destino} ({contrato.cidade_destino})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancelar
-        </Button>
-        <Button type="submit">
-          Salvar Despesa
-        </Button>
-      </div>
-    </form>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Nova Despesa</CardTitle>
+        <CardDescription>
+          Cadastre uma nova despesa geral
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="data"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data da Despesa</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "dd/MM/yyyy", { locale: ptBR })
+                            ) : (
+                              <span>Selecione uma data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="valor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor (R$)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0,00"
+                        step="0.01"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tipo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Despesa</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo de despesa" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {tiposDespesa.map((tipo) => (
+                          <SelectItem key={tipo.id} value={tipo.id}>
+                            {tipo.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="descricao"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição Detalhada</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Descreva os detalhes da despesa"
+                      className="min-h-[100px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate('/despesas')}
+                className="flex items-center"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Salvando...' : 'Salvar Despesa'}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -70,12 +70,8 @@ const Login = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img 
-            src="/lovable-uploads/71799dec-cc99-4b56-acca-9a51cb405da0.png" 
-            alt="SLog Controladoria" 
-            className="mx-auto h-24 mb-4" 
-          />
-          <h2 className="text-2xl font-bold text-gray-900">Sistema de Gestão de Frota</h2>
+          <h1 className="text-2xl font-bold text-blue-700">ControlFrota</h1>
+          <h2 className="text-xl font-bold text-gray-900">Sistema de Gestão de Frota</h2>
           <p className="text-gray-600 mt-1">Faça login para acessar o sistema</p>
         </div>
         

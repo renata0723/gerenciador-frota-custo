@@ -55,7 +55,7 @@ interface CollapsibleSidebarProps {
 }
 
 const CollapsibleSidebar = ({ children }: CollapsibleSidebarProps) => {
-  // Sempre iniciar como não colapsado (expandido)
+  // Iniciar como não colapsado (expandido)
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   
@@ -64,11 +64,14 @@ const CollapsibleSidebar = ({ children }: CollapsibleSidebarProps) => {
     // Verificar se existe no localStorage
     const storedState = localStorage.getItem('sidebarCollapsed');
     
-    // Definir como não colapsado por padrão, mesmo se existir no localStorage
-    setIsCollapsed(false);
-    
-    // Salvar essa configuração
-    localStorage.setItem('sidebarCollapsed', 'false');
+    if (storedState) {
+      setIsCollapsed(storedState === 'true');
+    } else {
+      // Definir como não colapsado por padrão
+      setIsCollapsed(false);
+      // Salvar essa configuração
+      localStorage.setItem('sidebarCollapsed', 'false');
+    }
   }, []);
 
   const toggleCollapse = () => {

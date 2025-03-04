@@ -1,162 +1,183 @@
 
 import React, { useState } from 'react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { logOperation } from '@/utils/logOperations';
 
+// Schema de validação
+const cancelamentoSchema = z.object({
+  motivoCancelamento: z.string()
+    .min(5, { message: 'O motivo do cancelamento deve ter pelo menos 5 caracteres' })
+    .max(500, { message: 'O motivo do cancelamento não pode exceder 500 caracteres' }),
+  observacaoAdicional: z.string().optional(),
+});
+
+type CancelamentoFormValues = z.infer<typeof cancelamentoSchema>;
+
 export interface FormularioCancelamentoProps {
   tipo: string;
-  numeroDocumento: string;
+  numeroDocumento: string | number;
   onBack: () => void;
-  onCancel?: () => void;
-  onCancelamentoRealizado?: () => void;
 }
 
 const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({ 
   tipo, 
   numeroDocumento, 
-  onBack,
-  onCancel,
-  onCancelamentoRealizado
+  onBack 
 }) => {
-  const [motivo, setMotivo] = useState('');
-  const [observacoes, setObservacoes] = useState('');
-  const [responsavel, setResponsavel] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!motivo || !responsavel) {
-      toast.error('Por favor, preencha o motivo e o responsável pelo cancelamento');
-      return;
-    }
-    
+  const [erro, setErro] = useState<string | null>(null);
+
+  const form = useForm<CancelamentoFormValues>({
+    resolver: zodResolver(cancelamentoSchema),
+    defaultValues: {
+      motivoCancelamento: '',
+      observacaoAdicional: '',
+    },
+  });
+
+  const onSubmit = async (data: CancelamentoFormValues) => {
     setLoading(true);
-    
+    setErro(null);
+
     try {
-      // Registrar o cancelamento
-      const { error: cancelamentoError } = await supabase
-        .from('Cancelamentos')
-        .insert({
-          tipo_documento: tipo,
-          numero_documento: numeroDocumento,
-          motivo,
-          responsavel,
-          observacoes,
-          data_cancelamento: new Date().toISOString()
-        });
-        
-      if (cancelamentoError) {
-        throw cancelamentoError;
+      let tableName = '';
+      let statusField = '';
+      
+      // Determinar a tabela com base no tipo
+      switch (tipo) {
+        case 'Contrato':
+          tableName = 'Contratos';
+          statusField = 'status_contrato';
+          break;
+        case 'Nota Fiscal':
+          tableName = 'Notas';
+          statusField = 'status';
+          break;
+        case 'Abastecimento':
+          tableName = 'Abastecimentos';
+          statusField = 'status';
+          break;
+        default:
+          throw new Error('Tipo de documento não suportado');
       }
-      
-      // Atualizar o status do documento cancelado
-      if (tipo === 'Contrato') {
-        const { error: contratoError } = await supabase
-          .from('Contratos')
-          .update({ status_contrato: 'Cancelado' })
-          .eq('id', parseInt(numeroDocumento));
-          
-        if (contratoError) {
-          throw contratoError;
-        }
-      } else if (tipo === 'Nota Fiscal') {
-        const { error: notaError } = await supabase
-          .from('Notas Fiscais')
-          .update({ status_nota: 'cancelada' })
-          .eq('numero_nota_fiscal', numeroDocumento);
-          
-        if (notaError) {
-          throw notaError;
-        }
+
+      // Converter numeroDocumento para número se for string
+      const idNumerico = typeof numeroDocumento === 'string' ? 
+        parseInt(numeroDocumento, 10) : numeroDocumento;
+
+      // Atualizar status para "Cancelado"
+      const { error } = await supabase
+        .from(tableName)
+        .update({
+          [statusField]: 'Cancelado',
+          motivo_cancelamento: data.motivoCancelamento,
+          observacao_cancelamento: data.observacaoAdicional,
+          data_cancelamento: new Date().toISOString(),
+        })
+        .eq('id', idNumerico);
+
+      if (error) {
+        throw error;
       }
+
+      toast.success(`${tipo} cancelado com sucesso`);
+      logOperation(tableName, `Cancelamento de ${tipo.toLowerCase()}`, `ID: ${numeroDocumento}`);
       
-      // Registrar operação no log
-      logOperation(
-        'Cancelamentos', 
-        `${tipo} cancelado`, 
-        `ID: ${numeroDocumento}, Motivo: ${motivo}, Responsável: ${responsavel}`
-      );
-      
-      toast.success(`${tipo} cancelado com sucesso!`);
-      
-      // Limpar formulário
-      setMotivo('');
-      setObservacoes('');
-      setResponsavel('');
-      
-      // Notificar o componente pai sobre o cancelamento
-      if (onCancelamentoRealizado) {
-        onCancelamentoRealizado();
-      }
+      onBack();
     } catch (error) {
-      console.error('Erro ao cancelar documento:', error);
-      toast.error(`Erro ao cancelar ${tipo.toLowerCase()}`);
+      console.error(`Erro ao cancelar ${tipo}:`, error);
+      setErro(`Ocorreu um erro ao tentar cancelar o ${tipo.toLowerCase()}. Tente novamente.`);
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-        <div className="flex">
-          <div className="ml-3">
-            <p className="text-sm text-red-700">
-              Atenção! O cancelamento do {tipo.toLowerCase()} irá impactar todas as operações relacionadas a ele.
-              Esta ação não pode ser desfeita.
-            </p>
-          </div>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="motivo">Motivo do Cancelamento <span className="text-red-500">*</span></Label>
-        <Input
-          id="motivo"
-          value={motivo}
-          onChange={(e) => setMotivo(e.target.value)}
-          placeholder="Informe o motivo do cancelamento"
-          required
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="responsavel">Responsável pelo Cancelamento <span className="text-red-500">*</span></Label>
-        <Input
-          id="responsavel"
-          value={responsavel}
-          onChange={(e) => setResponsavel(e.target.value)}
-          placeholder="Nome do responsável"
-          required
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="observacoes">Observações</Label>
-        <Textarea
-          id="observacoes"
-          value={observacoes}
-          onChange={(e) => setObservacoes(e.target.value)}
-          placeholder="Observações adicionais (opcional)"
-          rows={4}
-        />
-      </div>
-      
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onBack || onCancel}>
-          Voltar
-        </Button>
-        <Button type="submit" variant="destructive" disabled={loading}>
-          {loading ? 'Cancelando...' : `Cancelar ${tipo}`}
-        </Button>
-      </div>
-    </form>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-destructive">Cancelamento de {tipo}</CardTitle>
+        <CardDescription>
+          Forneça um motivo para o cancelamento
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {erro && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{erro}</AlertDescription>
+              </Alert>
+            )}
+
+            <FormField
+              control={form.control}
+              name="motivoCancelamento"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Motivo do Cancelamento*</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      {...field} 
+                      placeholder="Descreva o motivo do cancelamento" 
+                      className="min-h-[100px]"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="observacaoAdicional"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Observação Adicional</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      {...field} 
+                      placeholder="Observações adicionais (opcional)" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-between pt-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onBack}
+                className="flex items-center"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+              </Button>
+              <Button 
+                type="submit"
+                variant="destructive"
+                disabled={loading}
+              >
+                {loading ? 'Processando...' : 'Cancelar'}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 };
 

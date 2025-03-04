@@ -1,151 +1,153 @@
 
 import React, { useState } from 'react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { logOperation } from '@/utils/logOperations';
 
+// Schema de validação
+const rejeicaoSchema = z.object({
+  motivoRejeicao: z.string()
+    .min(5, { message: 'O motivo da rejeição deve ter pelo menos 5 caracteres' })
+    .max(500, { message: 'O motivo da rejeição não pode exceder 500 caracteres' }),
+  observacaoAdicional: z.string().optional(),
+});
+
+type RejeicaoFormValues = z.infer<typeof rejeicaoSchema>;
+
 export interface FormularioRejeicaoContratoProps {
-  contrato: string;
+  contrato: string | number;
   onBack: () => void;
-  onSave?: (data: any) => void;
 }
 
-const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({ 
-  contrato, 
-  onBack,
-  onSave
-}) => {
-  const [motivo, setMotivo] = useState('');
-  const [observacoes, setObservacoes] = useState('');
-  const [responsavel, setResponsavel] = useState('');
+const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({ contrato, onBack }) => {
   const [loading, setLoading] = useState(false);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!motivo || !responsavel) {
-      toast.error('Por favor, preencha o motivo e o responsável pela rejeição');
-      return;
-    }
-    
+  const [erro, setErro] = useState<string | null>(null);
+
+  const form = useForm<RejeicaoFormValues>({
+    resolver: zodResolver(rejeicaoSchema),
+    defaultValues: {
+      motivoRejeicao: '',
+      observacaoAdicional: '',
+    },
+  });
+
+  const onSubmit = async (data: RejeicaoFormValues) => {
     setLoading(true);
-    
+    setErro(null);
+
     try {
-      // Atualizar status do contrato
-      const { error: contratoError } = await supabase
+      // Atualizar status do contrato para "Rejeitado"
+      const { error } = await supabase
         .from('Contratos')
-        .update({ status_contrato: 'Rejeitado' })
-        .eq('id', parseInt(contrato));
-        
-      if (contratoError) {
-        throw contratoError;
+        .update({
+          status_contrato: 'Rejeitado',
+          motivo_rejeicao: data.motivoRejeicao,
+          observacao_rejeicao: data.observacaoAdicional,
+          data_rejeicao: new Date().toISOString(),
+        })
+        .eq('id', contrato);
+
+      if (error) {
+        throw error;
       }
+
+      toast.success('Contrato rejeitado com sucesso');
+      logOperation('Contratos', 'Rejeição de contrato', `ID: ${contrato}`);
       
-      // Registrar rejeição na tabela Cancelamentos com tipo "Rejeicao"
-      const { error: rejeicaoError } = await supabase
-        .from('Cancelamentos')
-        .insert({
-          tipo_documento: 'Rejeicao',
-          numero_documento: contrato,
-          motivo,
-          observacoes,
-          responsavel,
-          data_cancelamento: new Date().toISOString()
-        });
-        
-      if (rejeicaoError) {
-        throw rejeicaoError;
-      }
-      
-      // Registrar operação no log
-      logOperation(
-        'Contratos', 
-        'Contrato rejeitado', 
-        `ID: ${contrato}, Motivo: ${motivo}, Responsável: ${responsavel}`
-      );
-      
-      toast.success('Contrato rejeitado com sucesso!');
-      
-      if (onSave) {
-        onSave({
-          contrato_id: contrato,
-          motivo,
-          observacoes,
-          responsavel
-        });
-      }
-      
-      // Limpar formulário
-      setMotivo('');
-      setObservacoes('');
-      setResponsavel('');
+      onBack();
     } catch (error) {
       console.error('Erro ao rejeitar contrato:', error);
-      toast.error('Erro ao rejeitar o contrato');
+      setErro('Ocorreu um erro ao tentar rejeitar o contrato. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-        <div className="flex">
-          <div className="ml-3">
-            <p className="text-sm text-yellow-700">
-              Atenção! A rejeição do contrato irá marcar o contrato como rejeitado no sistema.
-              Esta ação não pode ser desfeita.
-            </p>
-          </div>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="motivo">Motivo da Rejeição <span className="text-red-500">*</span></Label>
-        <Input
-          id="motivo"
-          value={motivo}
-          onChange={(e) => setMotivo(e.target.value)}
-          placeholder="Informe o motivo da rejeição"
-          required
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="responsavel">Responsável pela Rejeição <span className="text-red-500">*</span></Label>
-        <Input
-          id="responsavel"
-          value={responsavel}
-          onChange={(e) => setResponsavel(e.target.value)}
-          placeholder="Nome do responsável"
-          required
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="observacoes">Observações</Label>
-        <Textarea
-          id="observacoes"
-          value={observacoes}
-          onChange={(e) => setObservacoes(e.target.value)}
-          placeholder="Observações adicionais (opcional)"
-          rows={4}
-        />
-      </div>
-      
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onBack}>
-          Voltar
-        </Button>
-        <Button type="submit" variant="destructive" disabled={loading}>
-          {loading ? 'Rejeitando...' : 'Rejeitar Contrato'}
-        </Button>
-      </div>
-    </form>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-destructive">Rejeição de Contrato</CardTitle>
+        <CardDescription>
+          Forneça um motivo para a rejeição deste contrato
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {erro && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{erro}</AlertDescription>
+              </Alert>
+            )}
+
+            <FormField
+              control={form.control}
+              name="motivoRejeicao"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Motivo da Rejeição*</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      {...field} 
+                      placeholder="Descreva o motivo da rejeição do contrato" 
+                      className="min-h-[100px]"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="observacaoAdicional"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Observação Adicional</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      {...field} 
+                      placeholder="Observações adicionais (opcional)" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-between pt-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onBack}
+                className="flex items-center"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+              </Button>
+              <Button 
+                type="submit"
+                variant="destructive"
+                disabled={loading}
+              >
+                {loading ? 'Processando...' : 'Rejeitar Contrato'}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 };
 
