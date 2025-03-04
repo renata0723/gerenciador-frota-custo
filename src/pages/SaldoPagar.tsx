@@ -6,19 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, FileCheck } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from '@/utils/formatters';
-
 import { SaldoPagarItem } from '@/types/contabilidade';
 
 const SaldoPagar = () => {
   const [saldos, setSaldos] = useState<SaldoPagarItem[]>([]);
-  const [novoSaldo, setNovoSaldo] = useState<SaldoPagarItem>({
+  const [novoSaldo, setNovoSaldo] = useState<Partial<SaldoPagarItem>>({
     parceiro: '',
     valor_total: 0,
-    vencimento: '',
+    vencimento: ''
   });
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [editandoSaldo, setEditandoSaldo] = useState<SaldoPagarItem | null>(null);
@@ -27,10 +25,34 @@ const SaldoPagar = () => {
   useEffect(() => {
     // Aqui você buscaria os dados do backend
     // Substitua este exemplo com sua lógica real
-    const dataMock: SaldoPagarItem[] = [
-      { id: 1, parceiro: 'Fornecedor A', valor_total: 1500, valor_pago: 500, saldo_restante: 1000, vencimento: '2024-05-10', status: 'pendente' },
-      { id: 2, parceiro: 'Fornecedor B', valor_total: 2500, valor_pago: 2500, saldo_restante: 0, vencimento: '2024-05-15', status: 'concluido' },
-      { id: 3, parceiro: 'Fornecedor C', valor_total: 800, valor_pago: 0, saldo_restante: 800, vencimento: '2024-05-20', status: 'pendente' },
+    const dataMock = [
+      {
+        id: 1,
+        parceiro: 'Fornecedor A',
+        valor_total: 1500,
+        valor_pago: 500,
+        saldo_restante: 1000,
+        vencimento: '2024-05-10',
+        status: 'pendente' as const
+      },
+      {
+        id: 2,
+        parceiro: 'Fornecedor B',
+        valor_total: 2500,
+        valor_pago: 2500,
+        saldo_restante: 0,
+        vencimento: '2024-05-15',
+        status: 'concluido' as const
+      },
+      {
+        id: 3,
+        parceiro: 'Fornecedor C',
+        valor_total: 800,
+        valor_pago: 0,
+        saldo_restante: 800,
+        vencimento: '2024-05-20',
+        status: 'pendente' as const
+      }
     ];
     setSaldos(dataMock);
   }, []);
@@ -51,7 +73,6 @@ const SaldoPagar = () => {
 
   const renderStatusBadge = (status?: string) => {
     if (!status) return "Pendente";
-    
     switch (status) {
       case 'pendente':
         return "Pendente";
@@ -66,38 +87,52 @@ const SaldoPagar = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setNovoSaldo(prev => ({ ...prev, [name]: value }));
+    setNovoSaldo(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleCreate = () => {
     // Aqui você enviaria os dados para o backend
     // Substitua este exemplo com sua lógica real
     const novoId = saldos.length > 0 ? Math.max(...saldos.map(s => s.id || 0)) + 1 : 1;
-    const novoItem: SaldoPagarItem = { ...novoSaldo, id: novoId, status: 'pendente' };
+    const novoItem: SaldoPagarItem = {
+      ...novoSaldo as SaldoPagarItem,
+      id: novoId,
+      status: 'pendente'
+    };
     setSaldos(prev => [...prev, novoItem]);
-    setNovoSaldo({ parceiro: '', valor_total: 0, vencimento: '' });
+    setNovoSaldo({
+      parceiro: '',
+      valor_total: 0,
+      vencimento: ''
+    });
   };
 
   const handleEdit = (id: number) => {
     const saldo = saldos.find(s => s.id === id);
     if (saldo) {
       setEditandoId(id);
-      setEditandoSaldo({ ...saldo });
+      setEditandoSaldo({...saldo});
     }
   };
 
   const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setEditandoSaldo(prev => prev ? ({ ...prev, [name]: value }) : null);
+    if (editandoSaldo) {
+      setEditandoSaldo(prev => prev ? {
+        ...prev,
+        [name]: value
+      } : null);
+    }
   };
 
   const handleUpdate = () => {
     if (editandoSaldo) {
       // Aqui você enviaria os dados atualizados para o backend
       // Substitua este exemplo com sua lógica real
-      setSaldos(prev =>
-        prev.map(s => (s.id === editandoId ? { ...editandoSaldo } : s))
-      );
+      setSaldos(prev => prev.map(s => s.id === editandoId ? editandoSaldo : s));
       setEditandoId(null);
       setEditandoSaldo(null);
     }
@@ -116,40 +151,43 @@ const SaldoPagar = () => {
 
   return (
     <PageLayout>
-      <PageHeader title="Saldo a Pagar" description="Gerencie os saldos a pagar aos seus fornecedores" />
-
+      <PageHeader 
+        title="Saldo a Pagar" 
+        description="Gerencie os saldos a pagar aos seus fornecedores"
+      />
+      
       <Card className="p-6 mt-4">
         <CardContent>
           <h3 className="text-lg font-semibold mb-4">Adicionar Novo Saldo</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="parceiro">Parceiro</Label>
-              <Input
-                type="text"
-                id="parceiro"
-                name="parceiro"
-                value={novoSaldo.parceiro}
-                onChange={handleInputChange}
+              <Input 
+                type="text" 
+                id="parceiro" 
+                name="parceiro" 
+                value={novoSaldo.parceiro} 
+                onChange={handleInputChange} 
               />
             </div>
             <div>
               <Label htmlFor="valor_total">Valor Total</Label>
-              <Input
-                type="number"
-                id="valor_total"
-                name="valor_total"
-                value={novoSaldo.valor_total}
-                onChange={handleInputChange}
+              <Input 
+                type="number" 
+                id="valor_total" 
+                name="valor_total" 
+                value={novoSaldo.valor_total} 
+                onChange={handleInputChange} 
               />
             </div>
             <div>
               <Label htmlFor="vencimento">Vencimento</Label>
-              <Input
-                type="date"
-                id="vencimento"
-                name="vencimento"
-                value={novoSaldo.vencimento}
-                onChange={handleInputChange}
+              <Input 
+                type="date" 
+                id="vencimento" 
+                name="vencimento" 
+                value={novoSaldo.vencimento} 
+                onChange={handleInputChange} 
               />
             </div>
           </div>
@@ -186,14 +224,16 @@ const SaldoPagar = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {saldos.map(item => (
+                  {saldos.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>{item.parceiro}</TableCell>
                       <TableCell>{formatCurrency(item.valor_total)}</TableCell>
                       <TableCell>{formatCurrency(item.valor_pago || 0)}</TableCell>
                       <TableCell>{formatCurrency(item.saldo_restante || 0)}</TableCell>
                       <TableCell>{item.vencimento}</TableCell>
-                      <TableCell className={statusColor(item.status)}>{renderStatusBadge(item.status)}</TableCell>
+                      <TableCell className={statusColor(item.status)}>
+                        {renderStatusBadge(item.status)}
+                      </TableCell>
                       <TableCell className="text-right">
                         {editandoId === item.id ? (
                           <div className="flex justify-end gap-2">
@@ -227,32 +267,32 @@ const SaldoPagar = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="parceiro">Parceiro</Label>
-                <Input
-                  type="text"
-                  id="parceiro"
-                  name="parceiro"
-                  value={editandoSaldo.parceiro}
-                  onChange={handleEditInputChange}
+                <Input 
+                  type="text" 
+                  id="parceiro" 
+                  name="parceiro" 
+                  value={editandoSaldo.parceiro} 
+                  onChange={handleEditInputChange} 
                 />
               </div>
               <div>
                 <Label htmlFor="valor_total">Valor Total</Label>
-                <Input
-                  type="number"
-                  id="valor_total"
-                  name="valor_total"
-                  value={editandoSaldo.valor_total}
-                  onChange={handleEditInputChange}
+                <Input 
+                  type="number" 
+                  id="valor_total" 
+                  name="valor_total" 
+                  value={editandoSaldo.valor_total} 
+                  onChange={handleEditInputChange} 
                 />
               </div>
               <div>
                 <Label htmlFor="vencimento">Vencimento</Label>
-                <Input
-                  type="date"
-                  id="vencimento"
-                  name="vencimento"
-                  value={editandoSaldo.vencimento}
-                  onChange={handleEditInputChange}
+                <Input 
+                  type="date" 
+                  id="vencimento" 
+                  name="vencimento" 
+                  value={editandoSaldo.vencimento} 
+                  onChange={handleEditInputChange} 
                 />
               </div>
             </div>

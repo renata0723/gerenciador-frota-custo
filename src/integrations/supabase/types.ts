@@ -83,6 +83,72 @@ export type Database = {
           },
         ]
       }
+      Apuracao_Custo_Resultado: {
+        Row: {
+          created_at: string | null
+          custo_combustivel: number
+          custo_km: number | null
+          custo_manutencao: number
+          custo_pneus: number
+          custo_salarios: number
+          despesas_administrativas: number
+          despesas_financeiras: number
+          id: number
+          km_rodados: number
+          margem_lucro: number | null
+          observacoes: string | null
+          outros_custos: number
+          periodo_fim: string
+          periodo_inicio: string
+          receita_fretes: number
+          resultado_bruto: number | null
+          resultado_liquido: number | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          custo_combustivel?: number
+          custo_km?: number | null
+          custo_manutencao?: number
+          custo_pneus?: number
+          custo_salarios?: number
+          despesas_administrativas?: number
+          despesas_financeiras?: number
+          id?: number
+          km_rodados?: number
+          margem_lucro?: number | null
+          observacoes?: string | null
+          outros_custos?: number
+          periodo_fim: string
+          periodo_inicio: string
+          receita_fretes?: number
+          resultado_bruto?: number | null
+          resultado_liquido?: number | null
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          custo_combustivel?: number
+          custo_km?: number | null
+          custo_manutencao?: number
+          custo_pneus?: number
+          custo_salarios?: number
+          despesas_administrativas?: number
+          despesas_financeiras?: number
+          id?: number
+          km_rodados?: number
+          margem_lucro?: number | null
+          observacoes?: string | null
+          outros_custos?: number
+          periodo_fim?: string
+          periodo_inicio?: string
+          receita_fretes?: number
+          resultado_bruto?: number | null
+          resultado_liquido?: number | null
+          status?: string
+        }
+        Relationships: []
+      }
       Cancelamentos: {
         Row: {
           created_at: string | null

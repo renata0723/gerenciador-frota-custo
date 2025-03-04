@@ -56,7 +56,7 @@ const Contabilidade = () => {
       title: 'Balanço Patrimonial',
       description: 'Visualize ativos, passivos e patrimônio líquido',
       icon: <TrendingUp className="h-8 w-8 text-amber-500" />,
-      onClick: () => navigate('/contabilidade/balanco-patrimonial')
+      onClick: () => navigate('/contabilidade/balanco')
     },
     {
       title: 'Folha de Pagamento',
