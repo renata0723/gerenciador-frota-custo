@@ -82,16 +82,18 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({ onSave, onCancel 
         .maybeSingle();
       
       if (erroConsulta) {
+        console.error('Erro ao verificar placa:', erroConsulta);
         throw erroConsulta;
       }
       
       if (placaExistente) {
         setErro("Esta placa já está cadastrada no sistema");
+        setCarregando(false);
         return;
       }
       
       // Inserir nova placa
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('Veiculos')
         .insert({
           placa_cavalo: placaCavalo,
@@ -101,6 +103,7 @@ const CadastroPlacaForm: React.FC<CadastroPlacaFormProps> = ({ onSave, onCancel 
         });
       
       if (error) {
+        console.error('Erro ao cadastrar veículo:', error);
         throw error;
       }
       

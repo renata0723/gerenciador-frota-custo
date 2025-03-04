@@ -1,38 +1,45 @@
 
 export type TipoFreteVeiculo = 'propria' | 'terceiro';
-export type StatusVeiculo = 'ativo' | 'inativo';
 
 export interface VeiculoData {
   id?: number;
+  placa: string;
+  modelo: string;
+  marca: string;
+  ano: number;
+  tipo: string;
+  capacidade?: number;
+  status: string;
+  km_atual?: number;
+  data_aquisicao?: string;
+  valor_aquisicao?: number;
+  renavam?: string;
+  observacoes?: string;
+  inativo: boolean;
+  motivo_inativacao?: string;
+  data_inativacao?: string;
   placa_cavalo: string;
   placa_carreta?: string;
   tipo_frota: TipoFreteVeiculo;
-  status_veiculo: StatusVeiculo;
-  motivo_inativacao?: string;
-  data_inativacao?: string;
-  proprietario?: string;
-  created_at?: string;
-  updated_at?: string;
-  marca_cavalo?: string;
-  modelo_cavalo?: string;
-  ano_cavalo?: number;
-  marca_carreta?: string;
-  modelo_carreta?: string;
-  ano_carreta?: number;
+  status_veiculo: string;
 }
 
 export interface VeiculoFormData {
-  placa_cavalo: string;
-  placa_carreta: string;
-  tipo_frota: TipoFreteVeiculo;
-  status_veiculo: StatusVeiculo;
+  id?: number;
+  placa: string;
+  modelo: string;
+  marca: string;
+  ano: number;
+  tipo: 'cavalo' | 'carreta' | 'truck' | 'outro';
+  capacidade?: number;
+  status: 'ativo' | 'inativo' | 'manutencao';
+  km_atual?: number;
+  data_aquisicao?: string;
+  valor_aquisicao?: number;
+  renavam?: string;
+  observacoes?: string;
   proprietario?: string;
-  modelo_cavalo?: string;
-  ano_cavalo?: number;
-  marca_cavalo?: string;
-  capacidade_cavalo?: number;
-  modelo_carreta?: string;
-  ano_carreta?: number;
-  marca_carreta?: string;
-  capacidade_carreta?: number;
+  tipo_frota: TipoFreteVeiculo;
+  placa_cavalo?: string;
+  placa_carreta?: string;
 }

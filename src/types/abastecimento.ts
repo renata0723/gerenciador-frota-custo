@@ -35,3 +35,15 @@ export type AbastecimentoItem = {
   contrato_id?: string;
   itens_abastecidos?: string;
 };
+
+export interface NovoAbastecimentoFormProps {
+  onSubmit: (data: AbastecimentoFormData) => void;
+  onCancel: () => void;
+  initialData?: Partial<AbastecimentoFormData>;
+}
+
+export type TipoCombustivel = {
+  id: string;
+  nome: string;
+  descricao?: string;
+};

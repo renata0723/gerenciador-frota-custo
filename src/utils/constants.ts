@@ -61,7 +61,7 @@ export const estadosBrasileiros = [
   { sigla: 'TO', nome: 'Tocantins' }
 ];
 
-// Adicionando as funções de formatação que estão faltando
+// Formatações e funções úteis
 export const formatCurrency = formataMoeda;
 
 export const formatDate = (date: string | Date): string => {
@@ -79,6 +79,13 @@ export const statusSaldoPagar = [
   { value: 'pago', label: 'Pago' },
   { value: 'cancelado', label: 'Cancelado' }
 ];
+
+// Constantes para referências dos status
+statusSaldoPagar.PENDENTE = statusSaldoPagar[0].value;
+statusSaldoPagar.PARCIAL = statusSaldoPagar[1].value;
+statusSaldoPagar.PAGO = statusSaldoPagar[2].value;
+statusSaldoPagar.CANCELADO = statusSaldoPagar[3].value;
+statusSaldoPagar.LIBERADO = 'liberado';
 
 // Constantes para status de documentos e operações
 export const STATUS_NOTAS = {

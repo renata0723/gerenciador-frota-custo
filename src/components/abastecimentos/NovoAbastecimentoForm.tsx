@@ -1,504 +1,320 @@
+
 import React, { useState, useEffect } from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, ArrowLeft, Save } from 'lucide-react';
-import { NovoAbastecimentoFormProps } from '@/types/abastecimento';
 import { Switch } from '@/components/ui/switch';
-import { supabase } from '@/integrations/supabase/client';
+import { CONTAS_CONTABEIS } from '@/utils/constants';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import ContabilizacaoOption from '../contratos/frete/ContabilizacaoOption';
-
-const formSchema = z.object({
-  data: z.string().min(1, "Data é obrigatória"),
-  placa: z.string().min(1, "Placa é obrigatória"),
-  motorista: z.string().min(1, "Motorista é obrigatório"),
-  tipoCombustivel: z.string().min(1, "Tipo de combustível é obrigatório"),
-  valor: z.number().min(0.01, "Valor deve ser maior que zero"),
-  quantidade: z.number().min(0.01, "Quantidade deve ser maior que zero"),
-  quilometragem: z.number().min(1, "Quilometragem é obrigatória"),
-  posto: z.string().min(1, "Posto é obrigatório"),
-  responsavel: z.string().min(1, "Responsável é obrigatório"),
-  itens: z.string(),
-  contrato_id: z.string().optional(),
-  contabilizado: z.boolean().default(false),
-  conta_debito: z.string().optional(),
-  conta_credito: z.string().optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
+import DatePicker from '@/components/ui/DatePicker';
+import { AbastecimentoFormData, NovoAbastecimentoFormProps } from '@/types/abastecimento';
+import { supabase } from '@/integrations/supabase/client';
+import { formatCurrency } from '@/utils/constants';
 
 const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({ 
-  tiposCombustivel, 
-  onSave, 
-  initialData,
-  onCancel
+  onSubmit, 
+  onCancel,
+  initialData
 }) => {
-  const [loading, setLoading] = useState(false);
-  const [isContabilizado, setIsContabilizado] = useState(initialData?.contabilizado || false);
-  const [contratos, setContratos] = useState<{ id: string; origem_destino: string }[]>([]);
-  const [planoContas, setPlanoContas] = useState<{ codigo: string; nome: string }[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
+  const [valor, setValor] = useState(initialData?.valor || 0);
+  const [quantidade, setQuantidade] = useState(initialData?.quantidade || 0);
+  const [posto, setPosto] = useState(initialData?.posto || '');
+  const [quilometragem, setQuilometragem] = useState<number | undefined>(initialData?.quilometragem);
+  const [dataAbastecimento, setDataAbastecimento] = useState<Date>(
+    initialData?.data_abastecimento ? new Date(initialData.data_abastecimento) : new Date()
+  );
+  const [responsavel, setResponsavel] = useState(initialData?.responsavel || '');
+  const [motorista, setMotorista] = useState(initialData?.motorista || '');
+  const [placa, setPlaca] = useState(initialData?.placa || '');
+  const [tipoCombustivel, setTipoCombustivel] = useState(initialData?.tipo_combustivel || '');
+  const [contabilizado, setContabilizado] = useState(initialData?.contabilizado || false);
+  const [contaDebito, setContaDebito] = useState(initialData?.conta_debito || CONTAS_CONTABEIS.COMBUSTIVEL);
+  const [contaCredito, setContaCredito] = useState(initialData?.conta_credito || CONTAS_CONTABEIS.CAIXA);
+  const [itens, setItens] = useState(initialData?.itens || '');
+  
+  const [valorTotal, setValorTotal] = useState(0);
+  const [tiposCombustivel, setTiposCombustivel] = useState<{id: string, nome: string}[]>([]);
+  const [placas, setPlacas] = useState<{placa_cavalo: string}[]>([]);
+  
+  // Buscar tipos de combustível e placas ao carregar o componente
   useEffect(() => {
-    // Carregar contratos ativos
-    const carregarContratos = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('Contratos')
-          .select('id, cidade_origem, cidade_destino')
-          .eq('status_contrato', 'Em Andamento')
-          .order('id', { ascending: false });
-
-        if (error) throw error;
-
-        if (data) {
-          const contratosFormatados = data.map(contrato => ({
-            id: contrato.id.toString(),
-            origem_destino: `${contrato.id} - ${contrato.cidade_origem} → ${contrato.cidade_destino}`
-          }));
-          setContratos(contratosFormatados);
-        }
-      } catch (err) {
-        console.error('Erro ao carregar contratos:', err);
-      }
-    };
-
-    // Carregar plano de contas (contas de despesa)
-    const carregarPlanoContas = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('Plano_Contas')
-          .select('codigo, nome')
-          .eq('tipo', 'Despesa')
-          .order('codigo');
-
-        if (error) throw error;
-
-        if (data) {
-          setPlanoContas(data);
-        }
-      } catch (err) {
-        console.error('Erro ao carregar plano de contas:', err);
-      }
-    };
-
-    carregarContratos();
-    carregarPlanoContas();
+    fetchTiposCombustivel();
+    fetchPlacas();
   }, []);
-
-  const defaultValues: Partial<FormData> = {
-    data: initialData?.data || new Date().toISOString().split('T')[0],
-    placa: initialData?.placa || '',
-    motorista: initialData?.motorista || '',
-    tipoCombustivel: initialData?.tipoCombustivel || '',
-    valor: initialData?.valor || 0,
-    quantidade: initialData?.quantidade || 0,
-    quilometragem: initialData?.quilometragem || 0,
-    posto: initialData?.posto || '',
-    responsavel: initialData?.responsavel || '',
-    itens: initialData?.itens || '',
-    contrato_id: initialData?.contrato_id || '',
-    contabilizado: initialData?.contabilizado || false,
-    conta_debito: initialData?.conta_debito || '',
-    conta_credito: initialData?.conta_credito || '',
-  };
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues
-  });
-
-  const valorWatch = form.watch('valor');
-  const quantidadeWatch = form.watch('quantidade');
-
+  
   // Calcular valor total quando valor ou quantidade mudar
   useEffect(() => {
-    if (valorWatch && quantidadeWatch) {
-      const valorTotal = valorWatch * quantidadeWatch;
-      // Atualizar o campo de itens com o valor calculado
-      form.setValue('itens', `Combustível: ${quantidadeWatch} litros = R$ ${valorTotal.toFixed(2)}`);
-    }
-  }, [valorWatch, quantidadeWatch, form]);
-
-  const onSubmit = (data: FormData) => {
-    setLoading(true);
-    setError(null);
-    
-    // Validar contas contábeis se estiver contabilizado
-    if (data.contabilizado) {
-      if (!data.conta_debito) {
-        setError('É necessário informar a conta de débito para contabilização');
-        setLoading(false);
-        return;
-      }
-      if (!data.conta_credito) {
-        setError('É necessário informar a conta de crédito para contabilização');
-        setLoading(false);
-        return;
-      }
-    }
-    
+    setValorTotal(valor * quantidade);
+  }, [valor, quantidade]);
+  
+  const fetchTiposCombustivel = async () => {
     try {
-      // Calcular valor total
-      const valorTotal = data.valor * data.quantidade;
+      const { data, error } = await supabase
+        .from('TiposCombustivel')
+        .select('id, nome');
       
-      onSave({
-        data: data.data,
-        placa: data.placa,
-        motorista: data.motorista,
-        tipoCombustivel: data.tipoCombustivel,
-        valor: data.valor,
-        quantidade: data.quantidade,
-        quilometragem: data.quilometragem,
-        posto: data.posto,
-        responsavel: data.responsavel,
-        itens: data.itens,
-        contrato_id: data.contrato_id,
-        contabilizado: isContabilizado,
-        conta_debito: isContabilizado ? data.conta_debito : undefined,
-        conta_credito: isContabilizado ? data.conta_credito : undefined
-      });
-    } catch (err) {
-      console.error('Erro ao processar formulário:', err);
-      setError('Ocorreu um erro ao processar o formulário');
-    } finally {
-      setLoading(false);
+      if (error) throw error;
+      if (data) setTiposCombustivel(data);
+    } catch (error) {
+      console.error('Erro ao buscar tipos de combustível:', error);
+      toast.error('Não foi possível carregar os tipos de combustível');
     }
+  };
+  
+  const fetchPlacas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Veiculos')
+        .select('placa_cavalo')
+        .eq('status_veiculo', 'ativo');
+      
+      if (error) throw error;
+      if (data) setPlacas(data);
+    } catch (error) {
+      console.error('Erro ao buscar placas:', error);
+      toast.error('Não foi possível carregar as placas dos veículos');
+    }
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!dataAbastecimento) {
+      toast.error('Data de abastecimento é obrigatória');
+      return;
+    }
+    
+    if (!placa) {
+      toast.error('Selecione a placa do veículo');
+      return;
+    }
+    
+    if (!tipoCombustivel) {
+      toast.error('Selecione o tipo de combustível');
+      return;
+    }
+    
+    if (valor <= 0 || quantidade <= 0) {
+      toast.error('Valor e quantidade devem ser maiores que zero');
+      return;
+    }
+    
+    const formattedData: AbastecimentoFormData = {
+      valor,
+      quantidade,
+      contabilizado,
+      conta_debito: contaDebito,
+      conta_credito: contaCredito,
+      data_abastecimento: dataAbastecimento.toISOString().split('T')[0],
+      posto,
+      quilometragem,
+      responsavel,
+      motorista,
+      placa,
+      tipo_combustivel: tipoCombustivel,
+      itens
+    };
+    
+    onSubmit(formattedData);
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Dados do Abastecimento</CardTitle>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="data"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data do Abastecimento</FormLabel>
-                    <FormControl>
-                      <DatePicker
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={(date) => {
-                          if (date) {
-                            field.onChange(date.toISOString().split('T')[0]);
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="contrato_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contrato / Viagem (Opcional)</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o contrato" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="">Nenhum contrato</SelectItem>
-                        {contratos.map((contrato) => (
-                          <SelectItem key={contrato.id} value={contrato.id}>
-                            {contrato.origem_destino}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="placa"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Placa do Veículo</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Ex: ABC-1234" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="motorista"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Motorista Solicitante</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Nome do motorista" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="quilometragem"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quilometragem</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        placeholder="Km atual do veículo"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="posto"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Posto</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Nome do posto" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="responsavel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Responsável pela Autorização</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Quem autorizou" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="tipoCombustivel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Combustível</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o combustível" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {tiposCombustivel.map((tipo) => (
-                          <SelectItem key={tipo.id} value={tipo.id}>
-                            {tipo.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Novo Abastecimento</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="dataAbastecimento">Data do Abastecimento*</Label>
+              <DatePicker
+                value={dataAbastecimento}
+                onChange={(date) => setDataAbastecimento(date)}
               />
             </div>
             
-            <div className="border-t pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="valor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Valor Unitário (R$/L)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number"
-                          step="0.01"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          placeholder="0.00"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="quantidade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantidade (Litros)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number"
-                          step="0.01"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          placeholder="0.00"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <div>
+              <Label htmlFor="placa">Placa do Veículo*</Label>
+              <Select value={placa} onValueChange={setPlaca}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a placa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {placas.map((p) => (
+                    <SelectItem key={p.placa_cavalo} value={p.placa_cavalo}>
+                      {p.placa_cavalo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="tipoCombustivel">Tipo de Combustível*</Label>
+              <Select value={tipoCombustivel} onValueChange={setTipoCombustivel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tiposCombustivel.map((tipo) => (
+                    <SelectItem key={tipo.id} value={tipo.id}>
+                      {tipo.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="posto">Posto</Label>
+              <Input
+                id="posto"
+                value={posto}
+                onChange={(e) => setPosto(e.target.value)}
+                placeholder="Nome do posto"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="valor">Valor Unitário (R$)*</Label>
+              <Input
+                id="valor"
+                type="number"
+                step="0.01"
+                min="0"
+                value={valor}
+                onChange={(e) => setValor(parseFloat(e.target.value) || 0)}
+                placeholder="0,00"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="quantidade">Quantidade (L)*</Label>
+              <Input
+                id="quantidade"
+                type="number"
+                step="0.01"
+                min="0"
+                value={quantidade}
+                onChange={(e) => setQuantidade(parseFloat(e.target.value) || 0)}
+                placeholder="0,00"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="valorTotal">Valor Total</Label>
+              <Input
+                id="valorTotal"
+                value={formatCurrency(valorTotal)}
+                readOnly
+                className="bg-gray-50"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="quilometragem">Quilometragem</Label>
+              <Input
+                id="quilometragem"
+                type="number"
+                min="0"
+                value={quilometragem || ''}
+                onChange={(e) => setQuilometragem(parseInt(e.target.value) || undefined)}
+                placeholder="Quilometragem atual"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="motorista">Motorista</Label>
+              <Input
+                id="motorista"
+                value={motorista}
+                onChange={(e) => setMotorista(e.target.value)}
+                placeholder="Nome do motorista"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="responsavel">Responsável pela Autorização</Label>
+            <Input
+              id="responsavel"
+              value={responsavel}
+              onChange={(e) => setResponsavel(e.target.value)}
+              placeholder="Nome do responsável"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="itens">Itens Abastecidos</Label>
+            <Textarea
+              id="itens"
+              value={itens}
+              onChange={(e) => setItens(e.target.value)}
+              placeholder="Diesel, Arla, etc."
+              rows={2}
+            />
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="contabilizado"
+              checked={contabilizado}
+              onCheckedChange={setContabilizado}
+            />
+            <Label htmlFor="contabilizado">Contabilizar abastecimento</Label>
+          </div>
+          
+          {contabilizado && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-md bg-gray-50">
+              <div>
+                <Label htmlFor="contaDebito">Conta Débito</Label>
+                <Select value={contaDebito} onValueChange={setContaDebito}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={CONTAS_CONTABEIS.COMBUSTIVEL}>Combustível (4.1.1.01)</SelectItem>
+                    <SelectItem value={CONTAS_CONTABEIS.DESPESAS_VIAGEM}>Despesas de Viagem (4.1.4.01)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
-              <div className="mt-4">
-                <FormField
-                  control={form.control}
-                  name="itens"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição do Abastecimento</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          {...field} 
-                          placeholder="Descrição dos itens abastecidos"
-                          rows={3}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div>
+                <Label htmlFor="contaCredito">Conta Crédito</Label>
+                <Select value={contaCredito} onValueChange={setContaCredito}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={CONTAS_CONTABEIS.CAIXA}>Caixa (1.1.1.01)</SelectItem>
+                    <SelectItem value={CONTAS_CONTABEIS.BANCOS}>Bancos (1.1.1.02)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            
-            <div className="border-t pt-6">
-              <ContabilizacaoOption
-                isContabilizado={isContabilizado}
-                setIsContabilizado={setIsContabilizado}
-              />
-              
-              {isContabilizado && (
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="conta_debito"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Conta Débito</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value || ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione a conta de débito" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {planoContas.map((conta) => (
-                              <SelectItem key={conta.codigo} value={conta.codigo}>
-                                {conta.codigo} - {conta.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="conta_credito"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Conta Crédito</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value || ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione a conta de crédito" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {planoContas.map((conta) => (
-                              <SelectItem key={conta.codigo} value={conta.codigo}>
-                                {conta.codigo} - {conta.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-            </div>
-          </CardContent>
+          )}
           
-          <CardFooter className="flex justify-between">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onCancel}
-              disabled={loading}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
             </Button>
-            <Button 
-              type="submit"
-              disabled={loading}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {loading ? "Processando..." : "Salvar Abastecimento"}
+            <Button type="submit">
+              Salvar Abastecimento
             </Button>
-          </CardFooter>
-        </Card>
-      </form>
-    </Form>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

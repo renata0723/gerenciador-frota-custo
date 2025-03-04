@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AlertTriangle } from 'lucide-react';
 
 interface ContratoNaoSalvoProps {
   onVoltar: () => void;
@@ -9,14 +10,18 @@ interface ContratoNaoSalvoProps {
 
 const ContratoNaoSalvo: React.FC<ContratoNaoSalvoProps> = ({ onVoltar }) => {
   return (
-    <div className="flex flex-col items-center justify-center p-12">
-      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-      <h3 className="text-lg font-medium mb-2">Contrato ainda não salvo</h3>
-      <p className="text-muted-foreground text-center mb-4">É necessário salvar o contrato antes de poder realizar esta ação.</p>
-      <Button variant="outline" onClick={onVoltar}>
-        Voltar para dados do contrato
-      </Button>
-    </div>
+    <Card>
+      <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center min-h-[300px]">
+        <AlertTriangle className="h-16 w-16 text-amber-500 mb-4" />
+        <h2 className="text-xl font-semibold mb-2 text-center">Contrato Não Salvo</h2>
+        <p className="text-gray-600 mb-6 text-center max-w-md">
+          Você precisa salvar os dados básicos do contrato antes de acessar esta funcionalidade.
+        </p>
+        <Button onClick={onVoltar} variant="default">
+          Voltar para o Início
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
 

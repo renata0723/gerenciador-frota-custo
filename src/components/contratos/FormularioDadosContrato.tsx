@@ -1,20 +1,23 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { DatePicker } from '@/components/ui/date-picker';
-import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { estadosBrasileiros } from '@/utils/constants';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, Calendar, Truck } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CadastroPlacaForm from './CadastroPlacaForm';
 import CadastroMotoristaForm from './CadastroMotoristaForm';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
 
 export interface DadosContratoFormData {
   idContrato: string;
@@ -31,122 +34,162 @@ export interface DadosContratoFormData {
   proprietario: string;
 }
 
-interface FormularioDadosContratoProps {
+export interface FormularioDadosContratoProps {
   onSave: (data: DadosContratoFormData) => void;
-  initialData?: DadosContratoFormData;
   onNext?: () => void;
+  initialData?: DadosContratoFormData;
 }
 
-const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({ 
-  onSave, 
-  initialData,
-  onNext 
+const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
+  onSave,
+  onNext,
+  initialData
 }) => {
-  const [idContrato, setIdContrato] = useState<string>(initialData?.idContrato || '');
+  // Estados para os campos do formulário
+  const [idContrato, setIdContrato] = useState(initialData?.idContrato || '');
   const [dataSaida, setDataSaida] = useState<Date | undefined>(
-    initialData?.dataSaida ? new Date(initialData.dataSaida) : undefined
+    initialData?.dataSaida ? new Date(initialData.dataSaida) : new Date()
   );
-  const [cidadeOrigem, setCidadeOrigem] = useState<string>(initialData?.cidadeOrigem || '');
-  const [estadoOrigem, setEstadoOrigem] = useState<string>(initialData?.estadoOrigem || '');
-  const [cidadeDestino, setCidadeDestino] = useState<string>(initialData?.cidadeDestino || '');
-  const [estadoDestino, setEstadoDestino] = useState<string>(initialData?.estadoDestino || '');
-  const [clienteDestino, setClienteDestino] = useState<string>(initialData?.clienteDestino || '');
+  const [cidadeOrigem, setCidadeOrigem] = useState(initialData?.cidadeOrigem || '');
+  const [estadoOrigem, setEstadoOrigem] = useState(initialData?.estadoOrigem || 'SP');
+  const [cidadeDestino, setCidadeDestino] = useState(initialData?.cidadeDestino || '');
+  const [estadoDestino, setEstadoDestino] = useState(initialData?.estadoDestino || '');
+  const [clienteDestino, setClienteDestino] = useState(initialData?.clienteDestino || '');
   const [tipo, setTipo] = useState<'frota' | 'terceiro'>(initialData?.tipo || 'frota');
-  const [placaCavalo, setPlacaCavalo] = useState<string>(initialData?.placaCavalo || '');
-  const [placaCarreta, setPlacaCarreta] = useState<string>(initialData?.placaCarreta || '');
-  const [motorista, setMotorista] = useState<string>(initialData?.motorista || '');
-  const [proprietario, setProprietario] = useState<string>(initialData?.proprietario || '');
-
-  const [veiculos, setVeiculos] = useState<any[]>([]);
+  const [placaCavalo, setPlacaCavalo] = useState(initialData?.placaCavalo || '');
+  const [placaCarreta, setPlacaCarreta] = useState(initialData?.placaCarreta || '');
+  const [motorista, setMotorista] = useState(initialData?.motorista || '');
+  const [proprietario, setProprietario] = useState(initialData?.proprietario || '');
+  
+  // Estados para listas de opções
+  const [placasVeiculos, setPlacasVeiculos] = useState<any[]>([]);
   const [motoristas, setMotoristas] = useState<any[]>([]);
   const [proprietarios, setProprietarios] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
   
-  // Dialogs para cadastro
-  const [showNovaPlacaDialog, setShowNovaPlacaDialog] = useState(false);
-  const [showNovoMotoristaDialog, setShowNovoMotoristaDialog] = useState(false);
-  const [showNovoProprietarioDialog, setShowNovoProprietarioDialog] = useState(false);
-
+  // Estados para modais
+  const [modalCadastroPlaca, setModalCadastroPlaca] = useState(false);
+  const [modalCadastroMotorista, setModalCadastroMotorista] = useState(false);
+  
+  // Carregar opções ao iniciar
   useEffect(() => {
-    carregarDados();
+    carregarPlacas();
+    carregarMotoristas();
+    carregarProprietarios();
+    
+    // Se não tiver ID do contrato, gerar um novo
+    if (!initialData?.idContrato) {
+      gerarNovoIdContrato();
+    }
   }, []);
-
-  const carregarDados = async () => {
+  
+  const gerarNovoIdContrato = async () => {
+    try {
+      // Obter a data atual formatada YYYYMMDD
+      const dataAtual = format(new Date(), 'yyyyMMdd');
+      
+      // Consultar contratos do dia para gerar número sequencial
+      const { data, error } = await supabase
+        .from('Contratos')
+        .select('id')
+        .gte('created_at', `${format(new Date(), 'yyyy-MM-dd')}T00:00:00`)
+        .order('id', { ascending: false })
+        .limit(1);
+        
+      if (error) throw error;
+      
+      // Gerar número sequencial
+      let sequencial = '001';
+      if (data && data.length > 0) {
+        // Extrair o número sequencial do último contrato do dia
+        const ultimoId = String(data[0].id);
+        if (ultimoId.length >= 3) {
+          const ultimoSequencial = parseInt(ultimoId.substring(ultimoId.length - 3));
+          sequencial = String(ultimoSequencial + 1).padStart(3, '0');
+        }
+      }
+      
+      // Definir novo ID no formato YYYYMMDDXXX
+      // Exemplo: 20240101001
+      const novoId = `${dataAtual}${sequencial}`;
+      setIdContrato(novoId);
+        
+    } catch (error) {
+      console.error('Erro ao gerar ID do contrato:', error);
+      // Fallback: timestamp + 3 dígitos aleatórios
+      const timestamp = Date.now();
+      const aleatorio = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      setIdContrato(`${timestamp}${aleatorio}`);
+    }
+  };
+  
+  const carregarPlacas = async () => {
     setCarregando(true);
     try {
-      // Carregar veículos
-      const { data: veiculosData } = await supabase
+      const { data, error } = await supabase
         .from('Veiculos')
         .select('*')
-        .order('placa_cavalo', { ascending: true });
-      
-      if (veiculosData) {
-        setVeiculos(veiculosData);
-      }
-      
-      // Carregar motoristas
-      const { data: motoristasData } = await supabase
-        .from('Motoristas')
-        .select('*')
-        .order('nome', { ascending: true });
-      
-      if (motoristasData) {
-        setMotoristas(motoristasData);
-      }
-      
-      // Carregar proprietários
-      const { data: proprietariosData } = await supabase
-        .from('Proprietarios')
-        .select('*')
-        .order('nome', { ascending: true });
-      
-      if (proprietariosData) {
-        setProprietarios(proprietariosData);
-      }
+        .eq('status_veiculo', 'ativo');
+        
+      if (error) throw error;
+      if (data) setPlacasVeiculos(data);
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-      setError('Ocorreu um erro ao carregar os dados. Por favor, tente novamente.');
+      console.error('Erro ao carregar veículos:', error);
+      setErro('Não foi possível carregar os veículos');
     } finally {
       setCarregando(false);
     }
   };
-
-  const handleCidadeOrigemChange = (value: string) => {
-    setCidadeOrigem(value);
-    
-    // Extrair o estado se a cidade estiver no formato "Cidade/UF"
-    const partes = value.split('/');
-    if (partes.length > 1) {
-      setEstadoOrigem(partes[1].trim());
+  
+  const carregarMotoristas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Motorista')
+        .select('id, nome');
+        
+      if (error) throw error;
+      if (data) setMotoristas(data);
+    } catch (error) {
+      console.error('Erro ao carregar motoristas:', error);
     }
   };
-
-  const handleCidadeDestinoChange = (value: string) => {
-    setCidadeDestino(value);
-    
-    // Extrair o estado se a cidade estiver no formato "Cidade/UF"
-    const partes = value.split('/');
-    if (partes.length > 1) {
-      setEstadoDestino(partes[1].trim());
+  
+  const carregarProprietarios = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Proprietarios')
+        .select('nome');
+        
+      if (error) throw error;
+      if (data) setProprietarios(data);
+    } catch (error) {
+      console.error('Erro ao carregar proprietários:', error);
     }
   };
-
-  const handleSubmit = () => {
-    if (!idContrato || !dataSaida || !cidadeOrigem || !estadoOrigem || !cidadeDestino || !estadoDestino || !clienteDestino || !placaCavalo) {
-      setError('Por favor, preencha todos os campos obrigatórios.');
+  
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validar dados
+    if (!idContrato || !dataSaida || !cidadeOrigem || !estadoOrigem || 
+        !cidadeDestino || !estadoDestino || !clienteDestino || !placaCavalo || !motorista) {
+      toast.error('Preencha todos os campos obrigatórios');
       return;
     }
-
+    
     // Se for terceirizado, proprietário é obrigatório
     if (tipo === 'terceiro' && !proprietario) {
-      setError('Para veículos terceirizados, o proprietário é obrigatório.');
+      toast.error('Proprietário é obrigatório para veículos terceirizados');
       return;
     }
-
-    const contratoData: DadosContratoFormData = {
+    
+    // Formatar objeto de dados
+    const formattedDate = format(dataSaida || new Date(), 'yyyy-MM-dd');
+    
+    const formData: DadosContratoFormData = {
       idContrato,
-      dataSaida: dataSaida.toISOString().split('T')[0],
+      dataSaida: formattedDate,
       cidadeOrigem,
       estadoOrigem,
       cidadeDestino,
@@ -159,292 +202,278 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
       proprietario
     };
     
-    onSave(contratoData);
-    
-    if (onNext) {
-      onNext();
-    }
+    // Enviar dados
+    onSave(formData);
+    if (onNext) onNext();
   };
-
-  const handleNovaPlaca = (data: any) => {
-    setShowNovaPlacaDialog(false);
-    carregarDados();
+  
+  const handleCadastroPlacaSuccess = (data: any) => {
+    setModalCadastroPlaca(false);
+    setPlacaCavalo(data.placaCavalo);
+    if (data.placaCarreta) setPlacaCarreta(data.placaCarreta);
+    if (data.tipoFrota === 'terceiro') setTipo('terceiro');
+    if (data.proprietario) setProprietario(data.proprietario);
+    carregarPlacas();
     toast.success('Veículo cadastrado com sucesso!');
   };
   
-  const handleNovoMotorista = (data: any) => {
-    setShowNovoMotoristaDialog(false);
-    carregarDados();
+  const handleCadastroMotoristaSuccess = (data: any) => {
+    setModalCadastroMotorista(false);
+    setMotorista(String(data.id));
+    carregarMotoristas();
     toast.success('Motorista cadastrado com sucesso!');
-  };
-  
-  const handleNovoProprietario = (data: any) => {
-    setShowNovoProprietarioDialog(false);
-    carregarDados();
-    toast.success('Proprietário cadastrado com sucesso!');
   };
 
   return (
-    <>
+    <form onSubmit={handleSave}>
       <Card>
-        <CardContent className="pt-6 space-y-4">
-          {error && (
-            <Alert variant="destructive">
+        <CardContent className="pt-6">
+          {erro && (
+            <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{erro}</AlertDescription>
             </Alert>
           )}
           
-          <div>
-            <Label htmlFor="idContrato">Número do Contrato</Label>
-            <Input
-              id="idContrato"
-              value={idContrato}
-              onChange={(e) => setIdContrato(e.target.value)}
-              className="mt-1"
-              placeholder="Número do contrato"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="dataSaida">Data de Saída</Label>
-            <div className="mt-1">
-              <DatePicker
-                date={dataSaida}
-                onDateChange={setDataSaida}
-                placeholder="Selecione a data de saída"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="cidadeOrigem">Cidade de Origem</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="space-y-2">
+              <Label htmlFor="idContrato">Número do Contrato*</Label>
               <Input
-                id="cidadeOrigem"
-                value={cidadeOrigem}
-                onChange={(e) => handleCidadeOrigemChange(e.target.value)}
-                className="mt-1"
-                placeholder="Cidade/UF"
+                id="idContrato"
+                value={idContrato}
+                onChange={(e) => setIdContrato(e.target.value)}
+                placeholder="Número do contrato"
               />
             </div>
-            <div>
-              <Label htmlFor="estadoOrigem">Estado de Origem</Label>
-              <Select
-                value={estadoOrigem}
-                onValueChange={setEstadoOrigem}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Selecione o estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {estadosBrasileiros.map((estado) => (
-                    <SelectItem key={estado.sigla} value={estado.sigla}>
-                      {estado.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            
+            <div className="space-y-2">
+              <Label htmlFor="dataSaida">Data de Saída*</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dataSaida && "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {dataSaida ? (
+                      format(dataSaida, 'PPP', { locale: ptBR })
+                    ) : (
+                      <span>Selecione a data</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={dataSaida}
+                    onSelect={setDataSaida}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <div className="space-y-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <Label htmlFor="cidadeOrigem">Cidade de Origem*</Label>
+                <Input
+                  id="cidadeOrigem"
+                  value={cidadeOrigem}
+                  onChange={(e) => setCidadeOrigem(e.target.value)}
+                  placeholder="Cidade de origem"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="estadoOrigem">Estado*</Label>
+                <Select value={estadoOrigem} onValueChange={setEstadoOrigem}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {estadosBrasileiros.map((estado) => (
+                      <SelectItem key={estado.sigla} value={estado.sigla}>
+                        {estado.sigla} - {estado.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <Label htmlFor="cidadeDestino">Cidade de Destino*</Label>
+                <Input
+                  id="cidadeDestino"
+                  value={cidadeDestino}
+                  onChange={(e) => setCidadeDestino(e.target.value)}
+                  placeholder="Cidade de destino"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="estadoDestino">Estado*</Label>
+                <Select value={estadoDestino} onValueChange={setEstadoDestino}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {estadosBrasileiros.map((estado) => (
+                      <SelectItem key={estado.sigla} value={estado.sigla}>
+                        {estado.sigla} - {estado.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
             <div>
-              <Label htmlFor="cidadeDestino">Cidade de Destino</Label>
+              <Label htmlFor="clienteDestino">Cliente Destinatário*</Label>
               <Input
-                id="cidadeDestino"
-                value={cidadeDestino}
-                onChange={(e) => handleCidadeDestinoChange(e.target.value)}
-                className="mt-1"
-                placeholder="Cidade/UF"
-              />
-            </div>
-            <div>
-              <Label htmlFor="estadoDestino">Estado de Destino</Label>
-              <Select
-                value={estadoDestino}
-                onValueChange={setEstadoDestino}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Selecione o estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {estadosBrasileiros.map((estado) => (
-                    <SelectItem key={estado.sigla} value={estado.sigla}>
-                      {estado.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="clienteDestino">Cliente Destinatário</Label>
-            <Input
-              id="clienteDestino"
-              value={clienteDestino}
-              onChange={(e) => setClienteDestino(e.target.value)}
-              className="mt-1"
-              placeholder="Nome do cliente destinatário"
-            />
-          </div>
-
-          <div>
-            <Label>Tipo de Frota</Label>
-            <RadioGroup
-              value={tipo}
-              onValueChange={(value) => setTipo(value as 'frota' | 'terceiro')}
-              className="flex space-x-4 mt-1"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="frota" id="frota" />
-                <Label htmlFor="frota" className="cursor-pointer">Própria</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="terceiro" id="terceiro" />
-                <Label htmlFor="terceiro" className="cursor-pointer">Terceirizada</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div className="flex justify-between">
-                <Label htmlFor="placaCavalo">Placa do Cavalo</Label>
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  className="h-6 p-0 text-blue-600"
-                  onClick={() => setShowNovaPlacaDialog(true)}
-                >
-                  + Novo
-                </Button>
-              </div>
-              <Select
-                value={placaCavalo}
-                onValueChange={setPlacaCavalo}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Selecione a placa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {veiculos.map((veiculo) => (
-                    <SelectItem key={veiculo.placa_cavalo} value={veiculo.placa_cavalo}>
-                      {veiculo.placa_cavalo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="placaCarreta">Placa da Carreta</Label>
-              <Input
-                id="placaCarreta"
-                value={placaCarreta}
-                onChange={(e) => setPlacaCarreta(e.target.value)}
-                className="mt-1"
-                placeholder="Placa da carreta (opcional)"
+                id="clienteDestino"
+                value={clienteDestino}
+                onChange={(e) => setClienteDestino(e.target.value)}
+                placeholder="Nome do cliente destinatário"
               />
             </div>
           </div>
-
-          <div>
-            <div className="flex justify-between">
-              <Label htmlFor="motorista">Motorista</Label>
-              <Button 
-                type="button" 
-                variant="link" 
-                className="h-6 p-0 text-blue-600"
-                onClick={() => setShowNovoMotoristaDialog(true)}
-              >
-                + Novo
-              </Button>
-            </div>
-            <Select
-              value={motorista}
-              onValueChange={setMotorista}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Selecione o motorista" />
-              </SelectTrigger>
-              <SelectContent>
-                {motoristas.map((mot) => (
-                  <SelectItem key={mot.id} value={mot.id.toString()}>
-                    {mot.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {tipo === 'terceiro' && (
+          
+          <div className="space-y-6 mb-4">
             <div>
-              <div className="flex justify-between">
-                <Label htmlFor="proprietario">Proprietário</Label>
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  className="h-6 p-0 text-blue-600"
-                  onClick={() => setShowNovoProprietarioDialog(true)}
-                >
-                  + Novo
-                </Button>
-              </div>
-              <Select
-                value={proprietario}
-                onValueChange={setProprietario}
+              <Label>Tipo de Frete*</Label>
+              <RadioGroup
+                value={tipo}
+                onValueChange={(v) => setTipo(v as 'frota' | 'terceiro')}
+                className="flex space-x-4 mt-2"
               >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Selecione o proprietário" />
-                </SelectTrigger>
-                <SelectContent>
-                  {proprietarios.map((prop) => (
-                    <SelectItem key={prop.id} value={prop.nome}>
-                      {prop.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="frota" id="frota" />
+                  <Label htmlFor="frota" className="cursor-pointer">Frota Própria</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="terceiro" id="terceiro" />
+                  <Label htmlFor="terceiro" className="cursor-pointer">Frete Terceirizado</Label>
+                </div>
+              </RadioGroup>
             </div>
-          )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="placaCavalo">Placa do Cavalo*</Label>
+                  <Dialog open={modalCadastroPlaca} onOpenChange={setModalCadastroPlaca}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 text-xs">
+                        <Truck className="mr-1 h-3 w-3" />
+                        Nova Placa
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Cadastrar Nova Placa de Cavalo</DialogTitle>
+                      </DialogHeader>
+                      <CadastroPlacaForm 
+                        onSave={handleCadastroPlacaSuccess}
+                        onCancel={() => setModalCadastroPlaca(false)}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <Select value={placaCavalo} onValueChange={setPlacaCavalo}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a placa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {placasVeiculos.map((veiculo) => (
+                      <SelectItem key={veiculo.placa_cavalo} value={veiculo.placa_cavalo}>
+                        {veiculo.placa_cavalo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="placaCarreta">Placa da Carreta</Label>
+                <Input
+                  id="placaCarreta"
+                  value={placaCarreta}
+                  onChange={(e) => setPlacaCarreta(e.target.value)}
+                  placeholder="Placa da carreta (opcional)"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="motorista">Motorista*</Label>
+                  <Dialog open={modalCadastroMotorista} onOpenChange={setModalCadastroMotorista}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 text-xs">
+                        Novo Motorista
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Cadastrar Novo Motorista</DialogTitle>
+                      </DialogHeader>
+                      <CadastroMotoristaForm 
+                        onSave={handleCadastroMotoristaSuccess}
+                        onCancel={() => setModalCadastroMotorista(false)}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <Select value={motorista} onValueChange={setMotorista}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o motorista" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {motoristas.map((m) => (
+                      <SelectItem key={m.id} value={String(m.id)}>
+                        {m.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {tipo === 'terceiro' && (
+                <div>
+                  <Label htmlFor="proprietario">Proprietário*</Label>
+                  <Select value={proprietario} onValueChange={setProprietario}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o proprietário" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {proprietarios.map((p) => (
+                        <SelectItem key={p.nome} value={p.nome}>
+                          {p.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
+            <Button type="submit">
+              {onNext ? 'Continuar' : 'Salvar Dados'}
+            </Button>
+          </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button
-            type="button"
-            variant="outline"
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-          >
-            {onNext ? 'Próximo' : 'Salvar'}
-          </Button>
-        </CardFooter>
       </Card>
-
-      {/* Diálogo para cadastro de nova placa */}
-      <Dialog open={showNovaPlacaDialog} onOpenChange={setShowNovaPlacaDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cadastro de Novo Veículo</DialogTitle>
-          </DialogHeader>
-          <CadastroPlacaForm onSave={handleNovaPlaca} onCancel={() => setShowNovaPlacaDialog(false)} />
-        </DialogContent>
-      </Dialog>
-
-      {/* Diálogo para cadastro de novo motorista */}
-      <Dialog open={showNovoMotoristaDialog} onOpenChange={setShowNovoMotoristaDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cadastro de Novo Motorista</DialogTitle>
-          </DialogHeader>
-          <CadastroMotoristaForm onSave={handleNovoMotorista} onCancel={() => setShowNovoMotoristaDialog(false)} />
-        </DialogContent>
-      </Dialog>
-    </>
+    </form>
   );
 };
 
