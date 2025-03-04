@@ -57,13 +57,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <div className="text-center mb-6">
-          <div className="flex justify-center mb-4">
-            <img 
-              src="/lovable-uploads/89eb445f-8719-46a7-b90b-9e5a76639ded.png" 
-              alt="SSLOG Transportes Logo" 
-              className="h-24 object-contain"
-            />
-          </div>
+          <h1 className="text-4xl font-bold text-blue-500 mb-2">SSLOG TRANSPORTES LTDA</h1>
           <h2 className="text-lg text-gray-600">Sistema de Controle de Frotas e Logística</h2>
         </div>
         
@@ -76,7 +70,7 @@ const Login = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@controlfrota.com.br"
+                placeholder="seu@email.com"
                 required
               />
             </div>

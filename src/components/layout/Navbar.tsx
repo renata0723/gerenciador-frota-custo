@@ -21,11 +21,7 @@ const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen, showPro
           <Menu className="h-6 w-6" />
         </button>
         
-        <img 
-          src="/lovable-uploads/89eb445f-8719-46a7-b90b-9e5a76639ded.png" 
-          alt="SSLOG Logo" 
-          className="h-8 hidden md:block" 
-        />
+        <h1 className="text-xl font-bold text-blue-500">SSLOG TRANSPORTES</h1>
       </div>
 
       <div className="flex items-center space-x-4">
