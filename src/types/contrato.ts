@@ -47,6 +47,14 @@ export interface ObservacoesData {
   operadorEntrega: string;
 }
 
+export interface CanhotoDados {
+  data_recebimento_canhoto?: string;
+  data_entrega_cliente?: string;
+  data_programada_pagamento?: string;
+  responsavel_recebimento?: string;
+  status?: string;
+}
+
 export interface ContratoCompleto {
   id: number;
   idContrato: string;
@@ -78,8 +86,11 @@ export interface ContratoCompleto {
   dataEntregaOperacao: string;
   operadorEntrega: string;
   status: string;
+  status_contrato: string;
+  canhoto?: CanhotoDados;
   dataCriacao: string;
   dataAtualizacao: string;
+  valor_frete?: number;
 }
 
 // Interface para props dos componentes de formulário
@@ -106,4 +117,10 @@ export interface FormularioObservacoesProps {
   onBack?: () => void;
   initialData?: ObservacoesData;
   readOnly?: boolean;
+}
+
+export interface CanhotoFormProps {
+  contrato: ContratoCompleto;
+  onSubmit: (data: Partial<CanhotoDados>) => void;
+  onCancel: () => void;
 }

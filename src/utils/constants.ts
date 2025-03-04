@@ -23,17 +23,6 @@ export const CONTAS_CONTABEIS = {
   DESPESAS_VIAGEM: '41501'
 };
 
-// Exportamos as funções de formatação diretamente
-export { 
-  formatarValorMonetario, 
-  formatarData, 
-  formatCurrency, 
-  formatDate, 
-  formataMoeda,
-  formatarCPF,
-  formatCPF
-} from './formatters';
-
 // Status para saldo a pagar
 export const STATUS_SALDO_PAGAR = {
   PENDENTE: { value: 'pendente', label: 'Pendente' },
@@ -152,3 +141,31 @@ export const CODIGOS_REDUZIDOS = {
   DEPRECIACAO: '4401',
   DESPESAS_FINANCEIRAS: '4501'
 };
+
+// Status para contratos
+export const STATUS_CONTRATO = {
+  ABERTO: 'aberto',
+  EM_ANDAMENTO: 'em_andamento',
+  CONCLUIDO: 'concluido',
+  CANCELADO: 'cancelado',
+  AGUARDANDO_CANHOTO: 'aguardando_canhoto',
+  FINALIZADO: 'finalizado'
+};
+
+// Status para notas fiscais
+export const STATUS_NOTA = {
+  AGUARDANDO_SAIDA: 'aguardando_saida',
+  EM_ROTA: 'em_rota',
+  ENTREGUE: 'entregue',
+  CANCELADA: 'cancelada',
+  AGUARDANDO_CANHOTO: 'aguardando_canhoto',
+  FINALIZADA: 'finalizada'
+};
+
+// Tipos de manutenção
+export const TIPOS_MANUTENCAO = {
+  PREVENTIVA: 'preventiva',
+  CORRETIVA: 'corretiva'
+};
+
+// Exportamos as funções de formatação do arquivo utils/formatters

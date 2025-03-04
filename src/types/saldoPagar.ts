@@ -66,3 +66,24 @@ export interface SaldoPagarItem {
   status: string;
   contratos_associados?: string;
 }
+
+// Definição de status do saldo a pagar em objeto com propriedades value e label
+export interface StatusSaldoPagar {
+  value: string;
+  label: string;
+}
+
+// Definição dos tipos para componentes de saldo a pagar
+export interface SaldosPendentesProps {
+  saldos: SaldoItem[];
+  onSubmit: (saldo: SaldoItem) => void;
+  onNext?: () => void;
+  somenteLeitura?: boolean;
+  isLoading?: boolean;
+}
+
+export interface FormularioPagamentoProps {
+  saldo: SaldoItem;
+  onSubmit: (pagamento: PagamentoSaldo) => void;
+  onCancel: () => void;
+}

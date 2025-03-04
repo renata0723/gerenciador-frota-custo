@@ -8,8 +8,11 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { formatCurrency } from '@/utils/formatters';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { InfoIcon } from 'lucide-react';
+import { InfoIcon, CalendarIcon } from 'lucide-react';
 import { bancos } from '@/utils/constants';
+import { Switch } from '@/components/ui/switch';
+import { supabase } from '@/integrations/supabase/client';
+import { ContaContabil } from '@/types/contabilidade';
 
 interface FreteContratadoFormProps {
   contrato?: any;
@@ -27,6 +30,33 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onS
   );
   const [metodoPagamentoAdiantamento, setMetodoPagamentoAdiantamento] = useState(initialData?.metodoPagamentoAdiantamento || '');
   const [bancoPagamentoAdiantamento, setBancoPagamentoAdiantamento] = useState(initialData?.bancoPagamentoAdiantamento || '');
+  const [contabilizado, setContabilizado] = useState(initialData?.contabilizado || false);
+  const [contaDebito, setContaDebito] = useState(initialData?.contaDebito || '');
+  const [contaCredito, setContaCredito] = useState(initialData?.contaCredito || '');
+  const [planoContas, setPlanoContas] = useState<ContaContabil[]>([]);
+  
+  // Carregar plano de contas
+  useEffect(() => {
+    const carregarPlanoContas = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('Plano_Contas')
+          .select('*')
+          .order('codigo', { ascending: true });
+          
+        if (error) {
+          console.error('Erro ao carregar plano de contas:', error);
+          return;
+        }
+        
+        setPlanoContas(data || []);
+      } catch (error) {
+        console.error('Erro ao carregar plano de contas:', error);
+      }
+    };
+    
+    carregarPlanoContas();
+  }, []);
   
   // Calcular saldo a pagar quando valores são alterados
   useEffect(() => {
@@ -42,6 +72,11 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onS
       return;
     }
     
+    if (contabilizado && (!contaDebito || !contaCredito)) {
+      toast.error('Para contabilizar o frete, selecione as contas de débito e crédito.');
+      return;
+    }
+    
     // Preparar dados para envio
     const data = {
       valorFreteContratado,
@@ -51,6 +86,9 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onS
       dataAdiantamento: dataAdiantamento ? dataAdiantamento.toISOString().split('T')[0] : null,
       metodoPagamentoAdiantamento: valorAdiantamento > 0 ? metodoPagamentoAdiantamento : null,
       bancoPagamentoAdiantamento: valorAdiantamento > 0 ? bancoPagamentoAdiantamento : null,
+      contabilizado,
+      contaDebito: contabilizado ? contaDebito : null,
+      contaCredito: contabilizado ? contaCredito : null,
       contratoId: contrato?.id
     };
     
@@ -172,6 +210,63 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onS
             </div>
           </div>
         )}
+        
+        {/* Seção de contabilização */}
+        <div className="border p-4 rounded-md">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-medium">Contabilização</h3>
+            <div className="flex items-center space-x-2">
+              <Switch 
+                checked={contabilizado} 
+                onCheckedChange={setContabilizado} 
+                id="contabilizado"
+              />
+              <Label htmlFor="contabilizado">Contabilizar frete</Label>
+            </div>
+          </div>
+          
+          {contabilizado && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <Label htmlFor="contaDebito">Conta de Débito</Label>
+                <Select value={contaDebito} onValueChange={setContaDebito}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta de débito" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {planoContas
+                      .filter(conta => conta.tipo === 'despesa' || conta.tipo === 'ativo')
+                      .map(conta => (
+                        <SelectItem key={conta.codigo} value={conta.codigo}>
+                          {conta.codigo} - {conta.nome}
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="contaCredito">Conta de Crédito</Label>
+                <Select value={contaCredito} onValueChange={setContaCredito}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta de crédito" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {planoContas
+                      .filter(conta => conta.tipo === 'passivo' || conta.tipo === 'patrimonio')
+                      .map(conta => (
+                        <SelectItem key={conta.codigo} value={conta.codigo}>
+                          {conta.codigo} - {conta.nome}
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </div>
         
         <div className="flex justify-end pt-4">
           <Button type="submit">

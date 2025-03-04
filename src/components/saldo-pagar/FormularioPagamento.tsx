@@ -5,173 +5,152 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { bancos } from '@/utils/constants';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { SaldoPagarItem, PagamentoSaldo } from '@/types/saldoPagar';
-import { formatCurrency } from '@/utils/formatters';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoIcon } from 'lucide-react';
+import { bancos } from '@/utils/constants';
+import { formatCurrency } from '@/utils/formatters';
+import { SaldoItem, PagamentoSaldo } from '@/types/saldoPagar';
 
-interface FormularioPagamentoProps {
-  saldo: SaldoPagarItem;
-  onSave: (pagamento: PagamentoSaldo) => void;
+export interface FormularioPagamentoProps {
+  saldo: SaldoItem;
+  onSubmit: (pagamento: PagamentoSaldo) => void;
   onCancel: () => void;
 }
 
 const FormularioPagamento: React.FC<FormularioPagamentoProps> = ({ 
   saldo, 
-  onSave, 
+  onSubmit, 
   onCancel 
 }) => {
-  const [valorPago, setValorPago] = useState<number>(saldo.saldo_restante);
+  const [valorPagamento, setValorPagamento] = useState<number>(saldo.saldo_restante);
   const [dataPagamento, setDataPagamento] = useState<Date | undefined>(new Date());
-  const [bancoPagamento, setBancoPagamento] = useState<string>('');
+  const [bancoPagamento, setBancoPagamento] = useState<string>(saldo.banco_pagamento || '');
   const [observacoes, setObservacoes] = useState<string>('');
-  const [erro, setErro] = useState<string | null>(null);
-
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setErro(null);
-    
-    // Validações
-    if (!valorPago || valorPago <= 0) {
-      setErro('O valor pago deve ser maior que zero.');
-      return;
-    }
-    
-    if (valorPago > saldo.saldo_restante) {
-      setErro(`O valor pago não pode ser maior que o saldo restante (${formatCurrency(saldo.saldo_restante)}).`);
-      return;
-    }
     
     if (!dataPagamento) {
-      setErro('A data de pagamento é obrigatória.');
+      alert('Por favor, informe a data de pagamento');
+      return;
+    }
+    
+    if (valorPagamento <= 0) {
+      alert('O valor do pagamento deve ser maior que zero');
+      return;
+    }
+    
+    if (valorPagamento > saldo.saldo_restante) {
+      alert(`O valor do pagamento não pode ser maior que o saldo restante (${formatCurrency(saldo.saldo_restante)})`);
       return;
     }
     
     if (!bancoPagamento) {
-      setErro('Selecione o banco de pagamento.');
+      alert('Por favor, selecione o banco de pagamento');
       return;
     }
-
-    // Formatar dados para envio
+    
     const pagamento: PagamentoSaldo = {
       id: saldo.id,
-      valor_pago: valorPago,
-      data_pagamento: format(dataPagamento, 'yyyy-MM-dd'),
+      valor_pago: valorPagamento,
+      data_pagamento: dataPagamento.toISOString().split('T')[0],
       banco_pagamento: bancoPagamento,
-      observacoes: observacoes || undefined
+      observacoes: observacoes
     };
     
-    try {
-      onSave(pagamento);
-    } catch (error) {
-      console.error('Erro ao salvar pagamento:', error);
-      toast.error('Ocorreu um erro ao processar o pagamento');
-      setErro('Ocorreu um erro ao processar o pagamento. Por favor, tente novamente.');
-    }
+    onSubmit(pagamento);
   };
-
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Registrar Pagamento</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {erro && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{erro}</AlertDescription>
-            </Alert>
-          )}
+          <Alert className="bg-blue-50">
+            <InfoIcon className="h-4 w-4" />
+            <AlertDescription>
+              Efetue o pagamento para {saldo.parceiro}
+            </AlertDescription>
+          </Alert>
           
-          <div className="p-4 bg-gray-50 rounded-md">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm text-gray-500">Parceiro</Label>
-                <p className="font-medium">{saldo.parceiro}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-500">Valor Total</Label>
-                <p className="font-medium">{formatCurrency(saldo.valor_total)}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-500">Já Pago</Label>
-                <p className="font-medium">{formatCurrency(saldo.valor_pago)}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-500">Saldo a Pagar</Label>
-                <p className="font-medium text-blue-600">{formatCurrency(saldo.saldo_restante)}</p>
-              </div>
+          <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Valor Total</p>
+              <p className="font-semibold">{formatCurrency(saldo.valor_total)}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Valor Já Pago</p>
+              <p className="font-semibold">{formatCurrency(saldo.valor_pago)}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Saldo Restante</p>
+              <p className="font-semibold text-blue-600">{formatCurrency(saldo.saldo_restante)}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Vencimento</p>
+              <p className="font-semibold">{new Date(saldo.vencimento).toLocaleDateString('pt-BR')}</p>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div>
-              <Label htmlFor="valorPago">Valor do Pagamento*</Label>
+              <Label htmlFor="valorPagamento">Valor do Pagamento*</Label>
               <Input
-                id="valorPago"
+                id="valorPagamento"
                 type="number"
                 step="0.01"
-                min="0.01"
+                min="0"
                 max={saldo.saldo_restante}
-                value={valorPago}
-                onChange={(e) => setValorPago(parseFloat(e.target.value) || 0)}
+                value={valorPagamento}
+                onChange={(e) => setValorPagamento(Number(e.target.value))}
                 required
               />
             </div>
             
             <div>
               <Label htmlFor="dataPagamento">Data do Pagamento*</Label>
-              <DatePicker 
-                value={dataPagamento} 
-                onChange={setDataPagamento} 
+              <DatePicker
+                value={dataPagamento}
+                onChange={setDataPagamento}
                 placeholder="Selecione a data"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="bancoPagamento">Banco do Pagamento*</Label>
+              <Select value={bancoPagamento} onValueChange={setBancoPagamento}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o banco" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bancos.map(banco => (
+                    <SelectItem key={banco.codigo} value={banco.codigo}>
+                      {banco.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="observacoes">Observações</Label>
+              <Textarea
+                id="observacoes"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                placeholder="Observações sobre o pagamento"
+                rows={3}
               />
             </div>
           </div>
           
-          <div>
-            <Label htmlFor="bancoPagamento">Banco do Pagamento*</Label>
-            <Select value={bancoPagamento} onValueChange={setBancoPagamento} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o banco" />
-              </SelectTrigger>
-              <SelectContent>
-                {bancos.map(banco => (
-                  <SelectItem key={banco.codigo} value={banco.codigo}>
-                    {banco.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <Label htmlFor="observacoes">Observações</Label>
-            <Textarea
-              id="observacoes"
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-              placeholder="Observações adicionais sobre este pagamento"
-              className="min-h-[80px]"
-            />
-          </div>
-          
           <div className="flex justify-end space-x-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onCancel}
-            >
+            <Button type="button" variant="outline" onClick={onCancel}>
               Cancelar
             </Button>
             <Button type="submit">
-              Registrar Pagamento
+              Confirmar Pagamento
             </Button>
           </div>
         </form>
