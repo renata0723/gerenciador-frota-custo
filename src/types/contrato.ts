@@ -53,6 +53,7 @@ export interface CanhotoDados {
   data_programada_pagamento?: string;
   responsavel_recebimento?: string;
   status?: string;
+  saldo_a_pagar?: number;
 }
 
 export interface ContratoCompleto {
@@ -91,6 +92,16 @@ export interface ContratoCompleto {
   dataCriacao: string;
   dataAtualizacao: string;
   valor_frete?: number;
+
+  // Campos para compatibilidade com o backend
+  data_saida?: string;
+  cidade_origem?: string;
+  cidade_destino?: string;
+  cliente_destino?: string;
+  placa_cavalo?: string;
+  placa_carreta?: string;
+  tipo_frota?: string;
+  valor_carga?: number;
 }
 
 // Interface para props dos componentes de formulário
@@ -123,4 +134,17 @@ export interface CanhotoFormProps {
   contrato: ContratoCompleto;
   onSubmit: (data: Partial<CanhotoDados>) => void;
   onCancel: () => void;
+}
+
+export interface FormularioCancelamentoProps {
+  numeroDocumento: string;
+  onBack?: () => void;
+  onCancelamentoRealizado?: () => void;
+  onCancel?: () => void;
+}
+
+export interface FormularioRejeicaoContratoProps {
+  contrato: {id: string | number};
+  onBack?: () => void;
+  onSave: (data: any) => void;
 }

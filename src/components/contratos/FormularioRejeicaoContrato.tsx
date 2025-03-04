@@ -1,119 +1,116 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, ThumbsDown } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { AlertTriangle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface FormularioRejeicaoContratoProps {
-  contrato: {
-    id: string;
-  };
-  onBack: () => void;
-  onSave: () => void;
-  onRejeicaoRealizada?: () => void;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { FormularioRejeicaoContratoProps } from '@/types/contrato';
+import { Label } from '@/components/ui/label';
 
 const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
   contrato,
   onBack,
-  onSave,
-  onRejeicaoRealizada
+  onSave
 }) => {
   const [motivo, setMotivo] = useState('');
-  const [carregando, setCarregando] = useState(false);
+  const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErro(null);
     
     if (!motivo) {
-      setErro('O motivo de rejeição é obrigatório');
+      toast.error('Informe o motivo da rejeição');
       return;
     }
-    
-    setCarregando(true);
-    
+
+    setEnviando(true);
+    setErro(null);
+
     try {
-      // Converter o ID para número se necessário para o Supabase
-      const contratoId = typeof contrato.id === 'string' ? parseInt(contrato.id) : contrato.id;
-      
-      // Atualizar o contrato como rejeitado
+      // Atualizar o status do contrato para rejeitado
       const { error } = await supabase
         .from('Contratos')
-        .update({
+        .update({ 
           rejeitado: true,
           motivo_rejeicao: motivo,
-          status_contrato: 'Rejeitado'
+          status_contrato: 'rejeitado'
         })
-        .eq('id', contratoId);
-        
-      if (error) throw error;
-      
+        .eq('id', contrato.id);
+
+      if (error) {
+        throw error;
+      }
+
       toast.success('Contrato rejeitado com sucesso');
-      if (onRejeicaoRealizada) onRejeicaoRealizada();
-      onSave();
+      onSave({ motivo });
+      
+      if (onBack) {
+        onBack();
+      }
     } catch (error) {
       console.error('Erro ao rejeitar contrato:', error);
-      setErro('Ocorreu um erro ao rejeitar o contrato. Por favor, tente novamente.');
-      toast.error('Erro ao rejeitar contrato');
+      setErro('Ocorreu um erro ao processar a rejeição. Tente novamente.');
     } finally {
-      setCarregando(false);
+      setEnviando(false);
     }
   };
-  
+
   return (
-    <Card>
-      <CardHeader className="bg-orange-50">
-        <CardTitle className="text-lg font-semibold flex items-center text-orange-700">
-          <ThumbsDown className="mr-2 h-5 w-5" />
-          Rejeição de Contrato
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit}>
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <Alert variant="warning" className="mb-6 bg-yellow-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Atenção! A rejeição do contrato impedirá que ele seja processado. Esta ação não pode ser desfeita.
+            </AlertDescription>
+          </Alert>
+
           {erro && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{erro}</AlertDescription>
             </Alert>
           )}
-          
-          <div>
-            <div className="mb-4 p-4 bg-gray-50 rounded-md">
-              <h3 className="font-medium mb-2">Detalhes do Contrato</h3>
-              <p><span className="font-medium">Número:</span> {contrato.id}</p>
+
+          <div className="p-4 bg-gray-50 rounded-md">
+            <h3 className="font-semibold">Detalhes do Contrato</h3>
+            <div className="mt-2">
+              <p><span className="font-medium">Número do Contrato:</span> {contrato.id}</p>
             </div>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="motivo">Motivo da Rejeição*</Label>
-            <Textarea
-              id="motivo"
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              className="min-h-[100px]"
-              placeholder="Informe detalhadamente o motivo da rejeição deste contrato"
-              required
-            />
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="motivo">Motivo da Rejeição*</Label>
+              <Textarea
+                id="motivo"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder="Informe o motivo da rejeição do contrato"
+                required
+                className="min-h-[100px]"
+              />
+            </div>
           </div>
-          
+
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onBack} disabled={carregando}>
-              Voltar
-            </Button>
-            <Button type="submit" variant="destructive" disabled={carregando}>
-              {carregando ? 'Processando...' : 'Rejeitar Contrato'}
+            {onBack && (
+              <Button type="button" variant="outline" onClick={onBack}>
+                Voltar
+              </Button>
+            )}
+            <Button type="submit" variant="destructive" disabled={enviando}>
+              {enviando ? 'Processando...' : 'Rejeitar Contrato'}
             </Button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </form>
   );
 };
 

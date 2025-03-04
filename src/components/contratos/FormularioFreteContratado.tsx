@@ -4,16 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import FreteContratadoForm from './FreteContratadoForm';
-
-export interface FormularioFreteContratadoProps {
-  onSave: (data: any) => void;
-  onBack?: () => void;
-  onNext?: () => void;
-  initialData?: any;
-  dadosContrato?: any;
-  contrato?: any;
-  readOnly?: boolean;
-}
+import { FormularioFreteContratadoProps } from '@/types/contrato';
 
 const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({ 
   contrato, 

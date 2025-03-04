@@ -12,7 +12,7 @@ import { InfoIcon, CalendarIcon } from 'lucide-react';
 import { bancos } from '@/utils/constants';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
-import { ContaContabil } from '@/types/contabilidade';
+import { ContaContabil, TipoConta } from '@/types/contabilidade';
 
 interface FreteContratadoFormProps {
   contrato?: any;
@@ -49,7 +49,19 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onS
           return;
         }
         
-        setPlanoContas(data || []);
+        // Converter os dados para o formato esperado de ContaContabil
+        const contasContabeis: ContaContabil[] = (data || []).map(conta => ({
+          codigo: conta.codigo,
+          codigo_reduzido: conta.codigo_reduzido,
+          conta_pai: conta.conta_pai,
+          natureza: conta.natureza,
+          nivel: conta.nivel,
+          nome: conta.nome,
+          status: conta.status,
+          tipo: conta.tipo as TipoConta
+        }));
+        
+        setPlanoContas(contasContabeis);
       } catch (error) {
         console.error('Erro ao carregar plano de contas:', error);
       }

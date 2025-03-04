@@ -1,78 +1,82 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { formatCurrency } from '@/utils/constants';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { formatCurrency } from '@/utils/formatters'; // Corrigindo o import
 
 interface ValoresFreteFormProps {
   valorFreteContratado: number;
-  onValorFreteChange: (valor: number) => void;
+  setValorFreteContratado: (valor: number) => void;
   valorAdiantamento: number;
-  onValorAdiantamentoChange: (valor: number) => void;
+  setValorAdiantamento: (valor: number) => void;
   valorPedagio: number;
-  onValorPedagioChange: (valor: number) => void;
+  setValorPedagio: (valor: number) => void;
+  saldoPagar: number;
 }
 
 const ValoresFreteForm: React.FC<ValoresFreteFormProps> = ({
   valorFreteContratado,
-  onValorFreteChange,
+  setValorFreteContratado,
   valorAdiantamento,
-  onValorAdiantamentoChange,
+  setValorAdiantamento,
   valorPedagio,
-  onValorPedagioChange
+  setValorPedagio,
+  saldoPagar
 }) => {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">Valores do Frete</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-3">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="valorFreteContratado">Valor do Frete Contratado (R$)</Label>
-            <Input
-              id="valorFreteContratado"
-              type="number"
-              step="0.01"
-              min="0"
-              value={valorFreteContratado}
-              onChange={(e) => onValorFreteChange(parseFloat(e.target.value) || 0)}
-              className="mt-1"
-              placeholder="0,00"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="valorAdiantamento">Valor do Adiantamento (R$)</Label>
-            <Input
-              id="valorAdiantamento"
-              type="number"
-              step="0.01"
-              min="0"
-              max={valorFreteContratado}
-              value={valorAdiantamento}
-              onChange={(e) => onValorAdiantamentoChange(parseFloat(e.target.value) || 0)}
-              className="mt-1"
-              placeholder="0,00"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="valorPedagio">Valor do Pedágio (R$)</Label>
-            <Input
-              id="valorPedagio"
-              type="number"
-              step="0.01"
-              min="0"
-              value={valorPedagio}
-              onChange={(e) => onValorPedagioChange(parseFloat(e.target.value) || 0)}
-              className="mt-1"
-              placeholder="0,00"
-            />
-          </div>
+    <Card className="p-4 shadow-sm border">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <Label htmlFor="valorFreteContratado">Valor do Frete*</Label>
+          <Input
+            id="valorFreteContratado"
+            type="number"
+            min="0"
+            step="0.01"
+            value={valorFreteContratado}
+            onChange={(e) => setValorFreteContratado(parseFloat(e.target.value) || 0)}
+            placeholder="0,00"
+            required
+          />
         </div>
-      </CardContent>
+        
+        <div>
+          <Label htmlFor="valorAdiantamento">Adiantamento</Label>
+          <Input
+            id="valorAdiantamento"
+            type="number"
+            min="0"
+            max={valorFreteContratado}
+            step="0.01"
+            value={valorAdiantamento}
+            onChange={(e) => setValorAdiantamento(parseFloat(e.target.value) || 0)}
+            placeholder="0,00"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="valorPedagio">Pedágio</Label>
+          <Input
+            id="valorPedagio"
+            type="number"
+            min="0"
+            step="0.01"
+            value={valorPedagio}
+            onChange={(e) => setValorPedagio(parseFloat(e.target.value) || 0)}
+            placeholder="0,00"
+          />
+        </div>
+      </div>
+      
+      <div className="mt-4 p-3 bg-gray-50 rounded border">
+        <div className="flex justify-between items-center">
+          <span className="font-medium">Saldo a Pagar:</span>
+          <span className="text-blue-600 font-semibold">
+            {formatCurrency(saldoPagar)}
+          </span>
+        </div>
+      </div>
     </Card>
   );
 };

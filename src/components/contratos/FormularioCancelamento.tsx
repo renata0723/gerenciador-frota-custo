@@ -1,156 +1,178 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { AlertCircle, AlertTriangle } from 'lucide-react';
+import { DatePicker } from '@/components/ui/date-picker';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { Label } from '@/components/ui/label';
+import { FormularioCancelamentoProps } from '@/types/contrato';
 
-interface FormularioCancelamentoProps {
-  contratoId: string;
-  onCancel: () => void;
-  onSuccess: () => void;
-}
-
-const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({ 
-  contratoId, 
-  onCancel, 
-  onSuccess 
+const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
+  numeroDocumento,
+  onBack,
+  onCancelamentoRealizado,
+  onCancel
 }) => {
   const [motivo, setMotivo] = useState('');
-  const [tipoMotivo, setTipoMotivo] = useState('');
   const [observacoes, setObservacoes] = useState('');
-  const [loading, setLoading] = useState(false);
-  
+  const [dataCancelamento, setDataCancelamento] = useState<Date | undefined>(new Date());
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!motivo || !tipoMotivo) {
-      toast.error('Por favor, preencha todos os campos obrigatórios');
+    if (!motivo) {
+      toast.error('Informe o motivo do cancelamento');
       return;
     }
-    
-    setLoading(true);
-    
+
+    if (!dataCancelamento) {
+      toast.error('Informe a data do cancelamento');
+      return;
+    }
+
+    setEnviando(true);
+    setErro(null);
+
     try {
-      // Atualizar o contrato para cancelado
-      const { error: contratoError } = await supabase
+      // Verificar se o contrato existe
+      const { data: contrato, error: contratoError } = await supabase
         .from('Contratos')
-        .update({
-          status_contrato: 'cancelado',
-          motivo_rejeicao: `${tipoMotivo}: ${motivo}`
-        })
-        .eq('id', parseInt(contratoId));
-      
+        .select('*')
+        .eq('id', numeroDocumento)
+        .single();
+
       if (contratoError) {
-        throw contratoError;
+        setErro('Contrato não encontrado');
+        setEnviando(false);
+        return;
       }
-      
+
       // Registrar o cancelamento
       const { error: cancelamentoError } = await supabase
         .from('Cancelamentos')
         .insert({
-          tipo_documento: 'contrato',
-          numero_documento: contratoId,
-          motivo: `${tipoMotivo}: ${motivo}`,
-          observacoes: observacoes,
-          responsavel: 'Usuário do Sistema', // Idealmente vem de um contexto de autenticação
-          data_cancelamento: new Date().toISOString()
+          tipo_documento: 'Contrato',
+          numero_documento: numeroDocumento,
+          motivo,
+          observacoes,
+          data_cancelamento: dataCancelamento,
+          responsavel: 'Usuário Atual' // Ideal: Obter do contexto de autenticação
         });
-      
+
       if (cancelamentoError) {
         throw cancelamentoError;
       }
-      
+
+      // Atualizar o status do contrato
+      const { error: atualizacaoError } = await supabase
+        .from('Contratos')
+        .update({ status_contrato: 'cancelado' })
+        .eq('id', numeroDocumento);
+
+      if (atualizacaoError) {
+        throw atualizacaoError;
+      }
+
       toast.success('Contrato cancelado com sucesso');
-      onSuccess();
+      
+      if (onCancelamentoRealizado) {
+        onCancelamentoRealizado();
+      }
     } catch (error) {
       console.error('Erro ao cancelar contrato:', error);
-      toast.error('Ocorreu um erro ao cancelar o contrato. Tente novamente.');
+      setErro('Ocorreu um erro ao processar o cancelamento. Tente novamente.');
     } finally {
-      setLoading(false);
+      setEnviando(false);
     }
   };
-  
+
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <Alert variant="destructive" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Atenção! Esta ação cancelará o contrato #{contratoId} e não poderá ser desfeita.
-          </AlertDescription>
-        </Alert>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="tipoMotivo">Tipo de Motivo*</Label>
-            <Select 
-              value={tipoMotivo} 
-              onValueChange={setTipoMotivo}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo de motivo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cliente">Cliente</SelectItem>
-                <SelectItem value="motorista">Motorista</SelectItem>
-                <SelectItem value="veiculo">Veículo</SelectItem>
-                <SelectItem value="operacional">Operacional</SelectItem>
-                <SelectItem value="financeiro">Financeiro</SelectItem>
-                <SelectItem value="outro">Outro</SelectItem>
-              </SelectContent>
-            </Select>
+    <form onSubmit={handleSubmit}>
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <Alert variant="destructive" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Atenção! Esta ação não pode ser desfeita. O cancelamento será registrado permanentemente.
+            </AlertDescription>
+          </Alert>
+
+          {erro && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{erro}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="p-4 bg-gray-50 rounded-md">
+            <h3 className="font-semibold">Detalhes do Documento</h3>
+            <div className="mt-2">
+              <p><span className="font-medium">Tipo:</span> Contrato</p>
+              <p><span className="font-medium">Número:</span> {numeroDocumento}</p>
+            </div>
           </div>
-          
-          <div>
-            <Label htmlFor="motivo">Motivo do Cancelamento*</Label>
-            <Textarea
-              id="motivo"
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Descreva o motivo do cancelamento"
-              required
-              rows={3}
-            />
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="dataCancelamento">Data de Cancelamento*</Label>
+              <DatePicker
+                value={dataCancelamento}
+                onChange={setDataCancelamento}
+                placeholder="Selecione a data de cancelamento"
+                locale={ptBR}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="motivo">Motivo do Cancelamento*</Label>
+              <Textarea
+                id="motivo"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder="Informe o motivo do cancelamento"
+                required
+                className="min-h-[80px]"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="observacoes">Observações Adicionais</Label>
+              <Textarea
+                id="observacoes"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                placeholder="Observações adicionais (opcional)"
+                className="min-h-[100px]"
+              />
+            </div>
           </div>
-          
-          <div>
-            <Label htmlFor="observacoes">Observações Adicionais</Label>
-            <Textarea
-              id="observacoes"
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-              placeholder="Observações adicionais sobre o cancelamento"
-              rows={2}
-            />
-          </div>
-          
+
           <div className="flex justify-end space-x-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onCancel}
-              disabled={loading}
-            >
-              Voltar
-            </Button>
-            <Button 
-              type="submit" 
-              variant="destructive"
-              disabled={loading}
-            >
-              {loading ? 'Cancelando...' : 'Confirmar Cancelamento'}
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancelar
+              </Button>
+            )}
+            {onBack && (
+              <Button type="button" variant="outline" onClick={onBack}>
+                Voltar
+              </Button>
+            )}
+            <Button type="submit" variant="destructive" disabled={enviando}>
+              {enviando ? 'Processando...' : 'Confirmar Cancelamento'}
             </Button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </form>
   );
 };
 
