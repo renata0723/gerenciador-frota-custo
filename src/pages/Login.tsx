@@ -57,10 +57,12 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <div className="text-center mb-6">
-          <div className="flex justify-center mb-3">
-            <div className="bg-gray-200 rounded p-2 inline-block">
-              <h1 className="text-2xl font-bold text-gray-800">SSLOG TRANSPORTES LTDA</h1>
-            </div>
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/lovable-uploads/89eb445f-8719-46a7-b90b-9e5a76639ded.png" 
+              alt="SSLOG Transportes Logo" 
+              className="h-24 object-contain"
+            />
           </div>
           <h2 className="text-lg text-gray-600">Sistema de Controle de Frotas e Logística</h2>
         </div>
