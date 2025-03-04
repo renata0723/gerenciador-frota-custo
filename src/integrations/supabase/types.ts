@@ -149,6 +149,57 @@ export type Database = {
         }
         Relationships: []
       }
+      balancete: {
+        Row: {
+          conta_codigo: string
+          conta_nome: string
+          created_at: string | null
+          creditos: number | null
+          debitos: number | null
+          id: number
+          natureza: string | null
+          nivel: number
+          periodo_fim: string
+          periodo_inicio: string
+          saldo_anterior: number | null
+          saldo_atual: number | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          conta_codigo: string
+          conta_nome: string
+          created_at?: string | null
+          creditos?: number | null
+          debitos?: number | null
+          id?: number
+          natureza?: string | null
+          nivel: number
+          periodo_fim: string
+          periodo_inicio: string
+          saldo_anterior?: number | null
+          saldo_atual?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          conta_codigo?: string
+          conta_nome?: string
+          created_at?: string | null
+          creditos?: number | null
+          debitos?: number | null
+          id?: number
+          natureza?: string | null
+          nivel?: number
+          periodo_fim?: string
+          periodo_inicio?: string
+          saldo_anterior?: number | null
+          saldo_atual?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       Cancelamentos: {
         Row: {
           created_at: string | null

@@ -1,4 +1,3 @@
-
 export type StatusItem = 'ativo' | 'inativo' | 'pendente' | 'concluido' | 'cancelado' | 'aberto' | 'fechado';
 export type TipoMovimento = 'entrada' | 'saida';
 export type TipoConta = 'ativo' | 'passivo' | 'receita' | 'despesa' | 'patrimonio';
@@ -145,4 +144,21 @@ export interface ApuracaoCustoResultado {
   observacoes?: string;
   status: StatusItem;
   created_at?: string;
+}
+
+export interface Balancete {
+  id?: number;
+  periodo_inicio: string;
+  periodo_fim: string;
+  conta_codigo: string;
+  conta_nome: string;
+  saldo_anterior: number;
+  debitos: number;
+  creditos: number;
+  saldo_atual: number;
+  natureza: 'devedora' | 'credora';
+  nivel: number;
+  status: StatusItem;
+  created_at?: string;
+  updated_at?: string;
 }

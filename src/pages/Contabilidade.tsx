@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -69,6 +68,12 @@ const Contabilidade = () => {
       description: 'Acesse e gere relatórios contábeis',
       icon: <FileSpreadsheet className="h-8 w-8 text-orange-500" />,
       onClick: () => navigate('/contabilidade/relatorios')
+    },
+    {
+      title: 'Balancete',
+      description: 'Visualize e gerencie os balancetes contábeis',
+      icon: <FileText className="h-8 w-8 text-teal-500" />,
+      onClick: () => navigate('/contabilidade/balancete')
     }
   ];
 

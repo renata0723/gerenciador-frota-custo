@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { 
   LancamentoContabil, 
@@ -10,7 +9,8 @@ import {
   FolhaPagamento,
   StatusItem,
   TipoConta,
-  TipoMovimento
+  TipoMovimento,
+  Balancete
 } from '@/types/contabilidade';
 import { logOperation } from '@/utils/logOperations';
 
@@ -387,6 +387,46 @@ export const adicionarBalancoPatrimonial = async (balanco: Partial<BalancoPatrim
   }
 };
 
+// Funções para Balancetes
+export const listarBalancetes = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('Balancete')
+      .select('*')
+      .order('periodo_fim', { ascending: false });
+    
+    if (error) {
+      console.error('Erro ao buscar balancetes:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao listar balancetes:', error);
+    return [];
+  }
+};
+
+export const adicionarBalancete = async (balancete: Partial<Balancete>) => {
+  try {
+    const { data, error } = await supabase
+      .from('Balancete')
+      .insert([balancete])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Erro ao adicionar balancete:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Erro ao adicionar balancete:', error);
+    return null;
+  }
+};
+
 // Funções para Folha de Pagamento
 export const listarFolhaPagamento = async (): Promise<FolhaPagamento[]> => {
   try {
@@ -676,6 +716,8 @@ export const getDRE = listarDRE;
 export const criarDRE = adicionarDRE;
 export const getBalancosPatrimoniais = listarBalancoPatrimonial;
 export const criarBalancoPatrimonial = adicionarBalancoPatrimonial;
+export const getBalancetes = listarBalancetes;
+export const criarBalancete = adicionarBalancete;
 
 // Função para buscar conta contábil por código reduzido
 export const getContaContabilByCodigoReduzido = async (codigoReduzido: string): Promise<ContaContabil | null> => {
