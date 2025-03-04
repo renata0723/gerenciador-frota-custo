@@ -6,19 +6,31 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { signIn, checkAuthStatus } from '@/services/auth/authService';
+import { toast } from 'sonner';
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   
   useEffect(() => {
-    checkAuthStatus().then(session => {
-      if (session) {
-        navigate('/');
+    const verificarSessao = async () => {
+      try {
+        const session = await checkAuthStatus();
+        if (session) {
+          console.log('Usuário já autenticado, redirecionando...');
+          navigate('/');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+      } finally {
+        setCheckingAuth(false);
       }
-    });
+    };
+
+    verificarSessao();
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,13 +39,23 @@ const Login = () => {
 
     try {
       await signIn({ email, password });
+      toast.success('Login realizado com sucesso!');
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       // Erro já tratado no serviço
+      console.error('Erro de login:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -73,7 +95,7 @@ const Login = () => {
                   className="text-sm text-blue-600 hover:text-blue-500"
                   onClick={(e) => {
                     e.preventDefault();
-                    // TODO: Implementar recuperação de senha
+                    toast.info('Funcionalidade em desenvolvimento');
                   }}
                 >
                   Esqueceu a senha?
@@ -97,6 +119,14 @@ const Login = () => {
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
+            
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-4 text-sm text-gray-500 text-center">
+                <p>Credenciais para teste:</p>
+                <p>Email: operador@slog.com.br</p>
+                <p>Senha: slog123</p>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>

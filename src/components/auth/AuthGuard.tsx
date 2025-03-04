@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Usuario } from '@/types/usuario';
-import { getUsuarioAutenticado } from '@/services/auth/authService';
+import { getUsuarioAutenticado, checkAuthStatus } from '@/services/auth/authService';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -15,14 +15,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
-    const verificarAutenticacao = () => {
+    const verificarAutenticacao = async () => {
       try {
-        // Verificar se o usuário está autenticado
+        // Verificar se o usuário está autenticado via Supabase
+        const session = await checkAuthStatus();
         const usuarioString = localStorage.getItem('userData');
         const userToken = localStorage.getItem('userToken');
         
         console.log('Verificando autenticação:');
-        console.log('- userData:', !!usuarioString);
+        console.log('- usuarioString:', !!usuarioString);
         console.log('- userToken:', !!userToken);
         
         // Para desenvolvimento, vamos criar uma sessão de teste se não existir
@@ -48,9 +49,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         }
         
         // Verificar se é usuário válido
-        if (usuarioString && userToken) {
+        if (session || (usuarioString && userToken)) {
           try {
-            const usuario: Usuario = JSON.parse(usuarioString);
+            const usuario = getUsuarioAutenticado();
             
             if (usuario && (usuario.id || usuario.email)) {
               console.log('Usuário autenticado:', usuario.nome);
