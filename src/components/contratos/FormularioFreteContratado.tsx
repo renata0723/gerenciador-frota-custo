@@ -19,6 +19,9 @@ interface FreteContratadoFormData {
   saldoPagar: number;
   gerarSaldoPagar: boolean;
   dataVencimento?: Date;
+  dataAdiantamento?: Date;
+  contabilizarFrete?: boolean;
+  proprietarioInfo?: any;
 }
 
 interface FormularioFreteContratadoProps {
@@ -41,9 +44,14 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
   const [valorPedagio, setValorPedagio] = useState(initialData?.valorPedagio || 0);
   const [saldoPagar, setSaldoPagar] = useState(initialData?.saldoPagar || 0);
   const [gerarSaldoPagar, setGerarSaldoPagar] = useState(initialData?.gerarSaldoPagar || false);
+  const [contabilizarFrete, setContabilizarFrete] = useState(initialData?.contabilizarFrete || false);
   const [dataVencimento, setDataVencimento] = useState<Date | undefined>(
     initialData?.dataVencimento || addDays(new Date(), 30)
   );
+  const [dataAdiantamento, setDataAdiantamento] = useState<Date | undefined>(
+    initialData?.dataAdiantamento || new Date()
+  );
+  const [dataAdiantamentoAberta, setDataAdiantamentoAberta] = useState(false);
   
   const isTipoFrota = dadosContrato?.tipo === 'frota';
   
@@ -73,7 +81,10 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
       valorPedagio,
       saldoPagar,
       gerarSaldoPagar,
-      dataVencimento
+      dataVencimento,
+      dataAdiantamento,
+      contabilizarFrete,
+      proprietarioInfo: dadosContrato?.proprietarioInfo
     };
     
     onSubmit(formData);
@@ -118,6 +129,35 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
               />
             </div>
           </div>
+          
+          {valorAdiantamento > 0 && (
+            <div className="space-y-2 ml-6 border-l-2 border-blue-200 pl-4">
+              <Label htmlFor="dataAdiantamento">Data de pagamento do adiantamento</Label>
+              <Popover open={dataAdiantamentoAberta} onOpenChange={setDataAdiantamentoAberta}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full flex justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dataAdiantamento ? (
+                      format(dataAdiantamento, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                    ) : (
+                      <span>Selecione a data</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={dataAdiantamento}
+                    onSelect={setDataAdiantamento}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -202,6 +242,33 @@ export const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps>
                   Este saldo só poderá ser pago após o recebimento do canhoto assinado.
                 </p>
               </div>
+            )}
+          </div>
+          
+          <div className="border rounded-md p-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="contabilizarFrete"
+                checked={contabilizarFrete}
+                onCheckedChange={(checked) => {
+                  const isChecked = checked === true;
+                  setContabilizarFrete(isChecked);
+                }}
+                disabled={isTipoFrota}
+              />
+              <label
+                htmlFor="contabilizarFrete"
+                className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${
+                  isTipoFrota ? 'text-gray-400' : ''
+                }`}
+              >
+                Contabilizar frete automaticamente
+              </label>
+            </div>
+            {contabilizarFrete && (
+              <p className="text-xs text-gray-500 mt-2 ml-6">
+                Será gerado lançamento contábil de receita de frete automaticamente quando o contrato for salvo.
+              </p>
             )}
           </div>
         </>

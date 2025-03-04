@@ -28,12 +28,16 @@ export interface FormularioCancelamentoProps {
   tipo: string;
   numeroDocumento: string | number;
   onBack: () => void;
+  onCancelamentoRealizado?: () => void;
+  onCancel?: () => void;
 }
 
 const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({ 
   tipo, 
   numeroDocumento, 
-  onBack 
+  onBack,
+  onCancelamentoRealizado,
+  onCancel
 }) => {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -51,8 +55,8 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
     setErro(null);
 
     try {
-      let tableName = '';
-      let statusField = '';
+      let tableName: string = '';
+      let statusField: string = '';
       
       // Determinar a tabela com base no tipo
       switch (tipo) {
@@ -61,7 +65,7 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
           statusField = 'status_contrato';
           break;
         case 'Nota Fiscal':
-          tableName = 'Notas';
+          tableName = 'Notas Fiscais';
           statusField = 'status';
           break;
         case 'Abastecimento':
@@ -91,10 +95,30 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
         throw error;
       }
 
+      // Registrar o cancelamento na tabela de Cancelamentos
+      const { error: cancelamentoError } = await supabase
+        .from('Cancelamentos')
+        .insert({
+          tipo_documento: tipo,
+          numero_documento: idNumerico.toString(),
+          motivo: data.motivoCancelamento,
+          observacoes: data.observacaoAdicional,
+          responsavel: localStorage.getItem('userName') || 'Sistema',
+          data_cancelamento: new Date().toISOString()
+        });
+
+      if (cancelamentoError) {
+        console.error('Erro ao registrar cancelamento:', cancelamentoError);
+      }
+
       toast.success(`${tipo} cancelado com sucesso`);
       logOperation(tableName, `Cancelamento de ${tipo.toLowerCase()}`, `ID: ${numeroDocumento}`);
       
-      onBack();
+      if (onCancelamentoRealizado) {
+        onCancelamentoRealizado();
+      } else {
+        onBack();
+      }
     } catch (error) {
       console.error(`Erro ao cancelar ${tipo}:`, error);
       setErro(`Ocorreu um erro ao tentar cancelar o ${tipo.toLowerCase()}. Tente novamente.`);
@@ -160,7 +184,7 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={onBack}
+                onClick={onCancel || onBack}
                 className="flex items-center"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />

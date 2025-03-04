@@ -11,7 +11,9 @@ import {
   User,
   Building,
   MapPin,
-  Search
+  Search,
+  Plus,
+  Link
 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -20,6 +22,8 @@ import CadastroMotoristaForm from './CadastroMotoristaForm';
 import CadastroProprietarioForm from './CadastroProprietarioForm';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
+import CadastroPlacaForm from './CadastroPlacaForm';
 
 // Importa constantes de estados
 const estados = [
@@ -51,6 +55,20 @@ const estados = [
   { nome: 'Sergipe', sigla: 'SE' },
   { nome: 'Tocantins', sigla: 'TO' }
 ];
+
+// Lista de cidades comuns por estado (simplificado)
+const cidadesPorEstado: {[key: string]: string[]} = {
+  'SP': ['São Paulo', 'Campinas', 'Ribeirão Preto', 'São José dos Campos', 'Sorocaba'],
+  'RJ': ['Rio de Janeiro', 'Niterói', 'Duque de Caxias', 'Nova Iguaçu', 'Petrópolis'],
+  'MG': ['Belo Horizonte', 'Uberlândia', 'Contagem', 'Juiz de Fora', 'Betim'],
+  'RS': ['Porto Alegre', 'Caxias do Sul', 'Pelotas', 'Canoas', 'Santa Maria'],
+  'PR': ['Curitiba', 'Londrina', 'Maringá', 'Ponta Grossa', 'Cascavel'],
+  'SC': ['Florianópolis', 'Joinville', 'Blumenau', 'São José', 'Criciúma'],
+  'BA': ['Salvador', 'Feira de Santana', 'Vitória da Conquista', 'Camaçari', 'Itabuna'],
+  'GO': ['Goiânia', 'Aparecida de Goiânia', 'Anápolis', 'Rio Verde', 'Luziânia'],
+  'PE': ['Recife', 'Jaboatão dos Guararapes', 'Olinda', 'Caruaru', 'Petrolina'],
+  'CE': ['Fortaleza', 'Caucaia', 'Juazeiro do Norte', 'Maracanaú', 'Sobral'],
+};
 
 export interface DadosContratoFormData {
   idContrato: string;
@@ -97,12 +115,15 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
   const [dataAberta, setDataAberta] = useState(false);
   const [placasCavalo, setPlacasCavalo] = useState<string[]>([]);
   const [placasCarreta, setPlacasCarreta] = useState<string[]>([]);
-  const [motoristas, setMotoristas] = useState<string[]>([]);
+  const [motoristas, setMotoristas] = useState<{id: number, nome: string}[]>([]);
   const [proprietarios, setProprietarios] = useState<{nome: string, documento?: string, dados_bancarios?: string}[]>([]);
   const [cadastroAberto, setCadastroAberto] = useState<'motorista' | 'proprietario' | null>(null);
   const [carregando, setCarregando] = useState(false);
-  const [placaCavaloModalAberta, setPlacaCavaloModalAberta] = useState(false);
-  const [placaCarretaModalAberta, setPlacaCarretaModalAberta] = useState(false);
+  const [dialogCadastroPlaca, setDialogCadastroPlaca] = useState(false);
+  const [tipoPlacaEmCadastro, setTipoPlacaEmCadastro] = useState<'cavalo' | 'carreta'>('cavalo');
+  const [cidadesOrigem, setCidadesOrigem] = useState<string[]>([]);
+  const [cidadesDestino, setCidadesDestino] = useState<string[]>([]);
+  const [placaInfoMap, setPlacaInfoMap] = useState<{[placa: string]: {proprietario: string, proprietarioInfo?: any}}>({}); 
   
   useEffect(() => {
     if (initialData) {
@@ -111,6 +132,36 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
     
     carregarDados();
   }, [initialData]);
+
+  useEffect(() => {
+    // Atualizar cidades quando o estado de origem mudar
+    if (formData.estadoOrigem && cidadesPorEstado[formData.estadoOrigem]) {
+      setCidadesOrigem(cidadesPorEstado[formData.estadoOrigem]);
+    } else {
+      setCidadesOrigem([]);
+    }
+  }, [formData.estadoOrigem]);
+
+  useEffect(() => {
+    // Atualizar cidades quando o estado de destino mudar
+    if (formData.estadoDestino && cidadesPorEstado[formData.estadoDestino]) {
+      setCidadesDestino(cidadesPorEstado[formData.estadoDestino]);
+    } else {
+      setCidadesDestino([]);
+    }
+  }, [formData.estadoDestino]);
+
+  // Atualizar proprietário quando mudar a placa do cavalo
+  useEffect(() => {
+    if (formData.tipo === 'terceiro' && formData.placaCavalo && placaInfoMap[formData.placaCavalo]) {
+      const placaInfo = placaInfoMap[formData.placaCavalo];
+      setFormData(prev => ({ 
+        ...prev, 
+        proprietario: placaInfo.proprietario,
+        proprietarioInfo: placaInfo.proprietarioInfo
+      }));
+    }
+  }, [formData.placaCavalo, formData.tipo, placaInfoMap]);
 
   const carregarDados = async () => {
     setCarregando(true);
@@ -134,7 +185,7 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
       // Carregar motoristas
       const { data: motoristasData, error: errorMotoristas } = await supabase
         .from('Motoristas')
-        .select('nome')
+        .select('id, nome')
         .eq('status', 'active');
         
       if (errorMotoristas) throw errorMotoristas;
@@ -146,9 +197,44 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
         
       if (errorProprietarios) throw errorProprietarios;
       
+      // Carregar relacionamento placa-proprietário
+      const { data: veiculoProprietarios, error: errorVeiculoProprietarios } = await supabase
+        .from('VeiculoProprietarios')
+        .select('*');
+
+      if (errorVeiculoProprietarios) throw errorVeiculoProprietarios;
+
+      // Criar mapa de placa para proprietário
+      const placaProprietarioMap: {[placa: string]: {proprietario: string, proprietarioInfo?: any}} = {};
+      
+      if (veiculoProprietarios) {
+        for (const vp of veiculoProprietarios) {
+          const proprietarioInfo = proprietariosData?.find(p => p.nome === vp.proprietario_nome);
+          let dadosBancarios = null;
+          
+          if (proprietarioInfo?.dados_bancarios) {
+            try {
+              dadosBancarios = JSON.parse(proprietarioInfo.dados_bancarios);
+            } catch (e) {
+              console.error('Erro ao parsear dados bancários:', e);
+            }
+          }
+          
+          placaProprietarioMap[vp.placa_cavalo] = {
+            proprietario: vp.proprietario_nome,
+            proprietarioInfo: {
+              nome: proprietarioInfo?.nome,
+              documento: proprietarioInfo?.documento,
+              dadosBancarios
+            }
+          };
+        }
+      }
+      
+      setPlacaInfoMap(placaProprietarioMap);
       setPlacasCavalo(cavalos.map(c => c.placa_cavalo).filter(Boolean));
       setPlacasCarreta(carretas.map(c => c.placa_carreta).filter(Boolean));
-      setMotoristas(motoristasData.map(m => m.nome));
+      setMotoristas(motoristasData || []);
       setProprietarios(proprietariosData || []);
       
     } catch (error) {
@@ -167,12 +253,12 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
   const handleSelectChange = (field: keyof DadosContratoFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    // Se o tipo for alterado, limpe os dados relacionados
+    // Se o tipo for alterado para frota, limpe os dados relacionados a terceiros
     if (field === 'tipo' && value === 'frota') {
       setFormData(prev => ({ ...prev, proprietario: '' }));
     }
     
-    // Se o proprietário for selecionado, guarde suas informações
+    // Se o proprietário for selecionado manualmente, guarde suas informações
     if (field === 'proprietario') {
       const propInfo = proprietarios.find(p => p.nome === value);
       if (propInfo) {
@@ -192,6 +278,26 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
             dadosBancarios
           }
         }));
+      }
+    }
+
+    // Detectar cidade de origem e atualizar estado automaticamente
+    if (field === 'cidadeOrigem') {
+      for (const [estado, cidades] of Object.entries(cidadesPorEstado)) {
+        if (cidades.includes(value)) {
+          setFormData(prev => ({ ...prev, estadoOrigem: estado }));
+          break;
+        }
+      }
+    }
+
+    // Detectar cidade de destino e atualizar estado automaticamente
+    if (field === 'cidadeDestino') {
+      for (const [estado, cidades] of Object.entries(cidadesPorEstado)) {
+        if (cidades.includes(value)) {
+          setFormData(prev => ({ ...prev, estadoDestino: estado }));
+          break;
+        }
       }
     }
   };
@@ -262,12 +368,79 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
     setCadastroAberto(null);
   };
 
-  const abrirSelecaoPlacaCavalo = () => {
-    setPlacaCavaloModalAberta(true);
+  const handleCadastroPlaca = async (dados: { placa: string, tipo: string }) => {
+    await carregarDados(); // Recarregar dados atualizados
+    setDialogCadastroPlaca(false);
+    
+    if (tipoPlacaEmCadastro === 'cavalo') {
+      setFormData(prev => ({ ...prev, placaCavalo: dados.placa }));
+    } else {
+      setFormData(prev => ({ ...prev, placaCarreta: dados.placa }));
+    }
+    
+    toast.success(`Placa ${dados.placa} cadastrada com sucesso`);
   };
 
-  const abrirSelecaoPlacaCarreta = () => {
-    setPlacaCarretaModalAberta(true);
+  const abrirCadastroPlaca = (tipo: 'cavalo' | 'carreta') => {
+    setTipoPlacaEmCadastro(tipo);
+    setDialogCadastroPlaca(true);
+  };
+
+  const vincularProprietarioPlaca = async () => {
+    if (formData.tipo !== 'terceiro' || !formData.placaCavalo || !formData.proprietario) {
+      toast.error('É necessário selecionar placa e proprietário para vincular');
+      return;
+    }
+
+    try {
+      // Verificar se já existe vínculo
+      const { data: vinculoExistente, error: errorCheck } = await supabase
+        .from('VeiculoProprietarios')
+        .select('*')
+        .eq('placa_cavalo', formData.placaCavalo)
+        .single();
+
+      if (errorCheck && errorCheck.code !== 'PGRST116') {
+        throw errorCheck;
+      }
+
+      if (vinculoExistente) {
+        // Atualizar vínculo existente
+        const { error: errorUpdate } = await supabase
+          .from('VeiculoProprietarios')
+          .update({ proprietario_nome: formData.proprietario })
+          .eq('placa_cavalo', formData.placaCavalo);
+
+        if (errorUpdate) throw errorUpdate;
+
+        toast.success(`Proprietário ${formData.proprietario} atualizado para a placa ${formData.placaCavalo}`);
+      } else {
+        // Criar novo vínculo
+        const { error: errorInsert } = await supabase
+          .from('VeiculoProprietarios')
+          .insert({
+            placa_cavalo: formData.placaCavalo,
+            proprietario_nome: formData.proprietario
+          });
+
+        if (errorInsert) throw errorInsert;
+
+        toast.success(`Proprietário ${formData.proprietario} vinculado à placa ${formData.placaCavalo}`);
+      }
+
+      // Atualizar o mapa de placas proprietários
+      setPlacaInfoMap(prev => ({
+        ...prev,
+        [formData.placaCavalo]: {
+          proprietario: formData.proprietario,
+          proprietarioInfo: formData.proprietarioInfo
+        }
+      }));
+
+    } catch (error) {
+      console.error('Erro ao vincular proprietário:', error);
+      toast.error('Erro ao vincular proprietário à placa');
+    }
   };
 
   return (
@@ -319,12 +492,44 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
           <Label htmlFor="cidadeOrigem" className="text-base">
             Cidade de Origem *
           </Label>
+          <Select
+            value={formData.cidadeOrigem}
+            onValueChange={(value) => handleSelectChange('cidadeOrigem', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione ou digite" />
+            </SelectTrigger>
+            <SelectContent>
+              <Input
+                placeholder="Digite para filtrar..."
+                className="mb-2"
+                onChange={(e) => {
+                  const filteredCities = Object.values(cidadesPorEstado).flat()
+                    .filter(cidade => cidade.toLowerCase().includes(e.target.value.toLowerCase()));
+                  setCidadesOrigem(filteredCities);
+                }}
+              />
+              {formData.cidadeOrigem && !cidadesOrigem.includes(formData.cidadeOrigem) && (
+                <SelectItem value={formData.cidadeOrigem}>
+                  {formData.cidadeOrigem}
+                </SelectItem>
+              )}
+              {cidadesOrigem.map((cidade) => (
+                <SelectItem key={cidade} value={cidade}>
+                  {cidade}
+                </SelectItem>
+              ))}
+              {cidadesOrigem.length === 0 && (
+                <div className="p-2 text-sm text-gray-500">Digite para buscar cidades</div>
+              )}
+            </SelectContent>
+          </Select>
           <Input
             id="cidadeOrigem"
-            placeholder="Cidade onde começa o transporte"
+            placeholder="Ou digite diretamente"
             value={formData.cidadeOrigem}
             onChange={handleInputChange}
-            required
+            className="mt-2"
           />
         </div>
         
@@ -356,12 +561,44 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
           <Label htmlFor="cidadeDestino" className="text-base">
             Cidade de Destino *
           </Label>
+          <Select
+            value={formData.cidadeDestino}
+            onValueChange={(value) => handleSelectChange('cidadeDestino', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione ou digite" />
+            </SelectTrigger>
+            <SelectContent>
+              <Input
+                placeholder="Digite para filtrar..."
+                className="mb-2"
+                onChange={(e) => {
+                  const filteredCities = Object.values(cidadesPorEstado).flat()
+                    .filter(cidade => cidade.toLowerCase().includes(e.target.value.toLowerCase()));
+                  setCidadesDestino(filteredCities);
+                }}
+              />
+              {formData.cidadeDestino && !cidadesDestino.includes(formData.cidadeDestino) && (
+                <SelectItem value={formData.cidadeDestino}>
+                  {formData.cidadeDestino}
+                </SelectItem>
+              )}
+              {cidadesDestino.map((cidade) => (
+                <SelectItem key={cidade} value={cidade}>
+                  {cidade}
+                </SelectItem>
+              ))}
+              {cidadesDestino.length === 0 && (
+                <div className="p-2 text-sm text-gray-500">Digite para buscar cidades</div>
+              )}
+            </SelectContent>
+          </Select>
           <Input
             id="cidadeDestino"
-            placeholder="Cidade onde será entregue"
+            placeholder="Ou digite diretamente"
             value={formData.cidadeDestino}
             onChange={handleInputChange}
-            required
+            className="mt-2"
           />
         </div>
         
@@ -426,6 +663,15 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
             <Label htmlFor="placaCavalo" className="text-base">
               Placa do Cavalo *
             </Label>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 gap-1"
+              type="button"
+              onClick={() => abrirCadastroPlaca('cavalo')}
+            >
+              <Plus className="h-4 w-4" /> Cadastrar
+            </Button>
           </div>
           <div className="flex space-x-2">
             <Select
@@ -438,19 +684,11 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
               <SelectContent>
                 {placasCavalo.map((placa) => (
                   <SelectItem key={placa} value={placa}>
-                    {placa}
+                    {placa} {placaInfoMap[placa] ? `(${placaInfoMap[placa].proprietario})` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button 
-              type="button"
-              variant="outline"
-              onClick={abrirSelecaoPlacaCavalo}
-              className="h-10 w-10 p-2"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
           </div>
         </div>
         
@@ -459,6 +697,15 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
             <Label htmlFor="placaCarreta" className="text-base">
               Placa da Carreta
             </Label>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 gap-1"
+              type="button"
+              onClick={() => abrirCadastroPlaca('carreta')}
+            >
+              <Plus className="h-4 w-4" /> Cadastrar
+            </Button>
           </div>
           <div className="flex space-x-2">
             <Select
@@ -477,14 +724,6 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
                 ))}
               </SelectContent>
             </Select>
-            <Button 
-              type="button"
-              variant="outline"
-              onClick={abrirSelecaoPlacaCarreta}
-              className="h-10 w-10 p-2"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </div>
@@ -514,8 +753,8 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
             </SelectTrigger>
             <SelectContent>
               {motoristas.map((motorista) => (
-                <SelectItem key={motorista} value={motorista}>
-                  {motorista}
+                <SelectItem key={motorista.id} value={motorista.nome}>
+                  {motorista.nome}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -538,21 +777,38 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
                 <Building className="h-4 w-4" /> Cadastrar
               </Button>
             </div>
-            <Select
-              value={formData.proprietario}
-              onValueChange={(value) => handleSelectChange('proprietario', value)}
-            >
-              <SelectTrigger id="proprietario">
-                <SelectValue placeholder="Selecione o proprietário" />
-              </SelectTrigger>
-              <SelectContent>
-                {proprietarios.map((proprietario) => (
-                  <SelectItem key={proprietario.nome} value={proprietario.nome}>
-                    {proprietario.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center space-x-2">
+              <Select
+                value={formData.proprietario}
+                onValueChange={(value) => handleSelectChange('proprietario', value)}
+                className="flex-1"
+              >
+                <SelectTrigger id="proprietario">
+                  <SelectValue placeholder="Selecione o proprietário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {proprietarios.map((proprietario) => (
+                    <SelectItem key={proprietario.nome} value={proprietario.nome}>
+                      {proprietario.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="px-3"
+                onClick={vincularProprietarioPlaca}
+                title="Vincular proprietário à placa do cavalo"
+              >
+                <Link className="h-4 w-4" />
+              </Button>
+            </div>
+            {formData.placaCavalo && placaInfoMap[formData.placaCavalo] && placaInfoMap[formData.placaCavalo].proprietario && (
+              <p className="text-xs text-blue-600 mt-1">
+                Proprietário vinculado à placa: {placaInfoMap[formData.placaCavalo].proprietario}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -578,6 +834,20 @@ const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
           onCancel={() => setCadastroAberto(null)}
         />
       )}
+
+      {/* Dialog para cadastro de placa */}
+      <Dialog open={dialogCadastroPlaca} onOpenChange={setDialogCadastroPlaca}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cadastrar Nova Placa de {tipoPlacaEmCadastro === 'cavalo' ? 'Cavalo' : 'Carreta'}</DialogTitle>
+          </DialogHeader>
+          <CadastroPlacaForm 
+            tipo={tipoPlacaEmCadastro === 'cavalo' ? 'cavalo' : 'carreta'} 
+            onSave={handleCadastroPlaca}
+            onCancel={() => setDialogCadastroPlaca(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </form>
   );
 };

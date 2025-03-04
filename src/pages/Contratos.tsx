@@ -1,7 +1,7 @@
 
 import React from 'react';
-import NewPageLayout from '../components/layout/NewPageLayout';
-import PageHeader from '../components/ui/PageHeader';
+import NewPageLayout from '@/components/layout/NewPageLayout';
+import PageHeader from '@/components/ui/PageHeader';
 import { FileText, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -28,7 +28,7 @@ const Contratos = () => {
         }
       />
 
-      <div className="mt-6">
+      <div className="mt-6 bg-white rounded-lg shadow">
         <ContratosPagina />
       </div>
     </NewPageLayout>

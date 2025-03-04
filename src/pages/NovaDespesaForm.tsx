@@ -23,7 +23,7 @@ const NovaDespesaForm: React.FC = () => {
         icon={<DollarSign size={26} className="text-blue-500" />}
       />
       
-      <div className="mt-6">
+      <div className="mt-6 p-4 bg-white rounded-lg shadow">
         <NovaDespesaFormComponent 
           onDespesaAdicionada={handleDespesaAdicionada} 
         />

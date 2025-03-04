@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Card } from '@/components/ui/card';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ const Login = () => {
         // Set session/auth info in localStorage or context
         localStorage.setItem('user', JSON.stringify(data));
         localStorage.setItem('authenticated', 'true');
+        localStorage.setItem('userName', data.nome);
         
         toast.success('Login realizado com sucesso!');
         navigate('/');
@@ -46,9 +48,9 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-md">
+      <Card className="w-full max-w-md space-y-8 p-8 shadow-lg">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-blue-600">ControlFrota</h1>
+          <h1 className="text-2xl font-bold text-blue-700">SLog Controladoria</h1>
           <h2 className="mt-2 text-lg font-medium text-gray-900">Sistema de Gestão de Frota</h2>
           <p className="mt-2 text-sm text-gray-600">Faça login para acessar o sistema</p>
         </div>
@@ -93,12 +95,16 @@ const Login = () => {
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </Button>
+
+          <div className="text-center">
+            <p className="text-xs text-gray-500">Usuário de demonstração: admin@slog.com.br / senha123</p>
+          </div>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500">
           <p>© 2025 SLog Controladoria - Todos os direitos reservados</p>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

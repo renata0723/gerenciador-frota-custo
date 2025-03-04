@@ -1,7 +1,6 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import PageLayout from '@/components/layout/PageLayout';
+import NewPageLayout from '@/components/layout/NewPageLayout';
 import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,9 @@ import {
 } from 'lucide-react';
 
 const Contabilidade = () => {
-  const navigate = useNavigate();
+  const navigate = (path: string) => {
+    window.location.href = path;
+  };
 
   const menuItems = [
     {
@@ -94,12 +95,12 @@ const Contabilidade = () => {
       title: 'Agenda Fiscal',
       description: 'Calendário de obrigações fiscais e tributárias',
       icon: <CalendarRange className="h-8 w-8 text-green-600" />,
-      onClick: () => navigate('/contabilidade/relatorios')
+      onClick: () => navigate('/contabilidade/agenda-fiscal')
     }
   ];
 
   return (
-    <PageLayout>
+    <NewPageLayout>
       <PageHeader
         title="Controladoria SLog Transportes"
         description="Gestão financeira e controle contábil da empresa"
@@ -133,7 +134,7 @@ const Contabilidade = () => {
           </Card>
         ))}
       </div>
-    </PageLayout>
+    </NewPageLayout>
   );
 };
 

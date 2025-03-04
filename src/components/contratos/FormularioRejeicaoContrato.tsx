@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -26,9 +26,14 @@ type RejeicaoFormValues = z.infer<typeof rejeicaoSchema>;
 export interface FormularioRejeicaoContratoProps {
   contrato: string | number;
   onBack: () => void;
+  onSave?: (data: any) => void;
 }
 
-const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({ contrato, onBack }) => {
+const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({ 
+  contrato, 
+  onBack,
+  onSave
+}) => {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -45,31 +50,50 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
     setErro(null);
 
     try {
-      // Converter o ID do contrato para número se for string
-      const contratoId = typeof contrato === 'string' ? parseInt(contrato, 10) : contrato;
-      
-      // Atualizar status do contrato para "Rejeitado"
+      // Converter contrato para número se for string
+      const contratoId = typeof contrato === 'string' ? 
+        parseInt(contrato, 10) : contrato;
+
+      // Registrar rejeição em tabela específica
       const { error } = await supabase
-        .from('Contratos')
-        .update({
-          status_contrato: 'Rejeitado',
-          motivo_rejeicao: data.motivoRejeicao,
-          observacao_rejeicao: data.observacaoAdicional,
+        .from('Rejeicoes_Contrato')
+        .insert({
+          contrato_id: contratoId,
+          motivo: data.motivoRejeicao,
+          observacoes: data.observacaoAdicional,
           data_rejeicao: new Date().toISOString(),
-        })
-        .eq('id', contratoId);
+          registrado_por: localStorage.getItem('userName') || 'Sistema'
+        });
 
       if (error) {
         throw error;
       }
 
+      // Atualizar status do contrato para "Rejeitado"
+      const { error: updateError } = await supabase
+        .from('Contratos')
+        .update({
+          status_contrato: 'Rejeitado',
+          motivo_rejeicao: data.motivoRejeicao,
+          data_rejeicao: new Date().toISOString(),
+        })
+        .eq('id', contratoId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
       toast.success('Contrato rejeitado com sucesso');
-      logOperation('Contratos', 'Rejeição de contrato', `ID: ${contrato}`);
+      logOperation('Contratos', 'Rejeição de contrato', `ID: ${contratoId}`);
       
-      onBack();
+      if (onSave) {
+        onSave(data);
+      } else {
+        onBack();
+      }
     } catch (error) {
       console.error('Erro ao rejeitar contrato:', error);
-      setErro('Ocorreu um erro ao tentar rejeitar o contrato. Tente novamente.');
+      setErro('Ocorreu um erro ao rejeitar o contrato. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -80,7 +104,7 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
       <CardHeader>
         <CardTitle className="text-destructive">Rejeição de Contrato</CardTitle>
         <CardDescription>
-          Forneça um motivo para a rejeição deste contrato
+          Forneça um motivo para a rejeição do contrato #{contrato}
         </CardDescription>
       </CardHeader>
       <CardContent>
