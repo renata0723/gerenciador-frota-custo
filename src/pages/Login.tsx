@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -50,7 +51,7 @@ const Login = () => {
       <Card className="w-full max-w-md">
         <CardContent className="flex flex-col items-center p-8">
           <div className="w-full text-center mb-6">
-            <h1 className="text-2xl font-bold text-blue-600">Controladoria de Custo</h1>
+            <h1 className="text-2xl font-bold text-blue-600">SLog Controladoria</h1>
             <h2 className="text-lg mt-2">Sistema de Gestão de Frota</h2>
             <p className="text-sm text-gray-500 mt-2">Faça login para acessar o sistema</p>
           </div>
