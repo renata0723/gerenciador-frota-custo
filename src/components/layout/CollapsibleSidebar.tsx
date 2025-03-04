@@ -9,10 +9,9 @@ import {
   Home, 
   FileText, 
   Truck, 
-  UserCheck, A, 
+  UserCheck, 
   DollarSign, 
   CreditCard, 
-  Tool, 
   BarChart2, 
   Settings, 
   Database, 
@@ -21,7 +20,9 @@ import {
   LayoutDashboard, 
   User, 
   FolderClosed, 
-  ReceiptText
+  ReceiptText,
+  Fuel,
+  Wrench
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import Navbar from './Navbar';
@@ -64,6 +65,9 @@ const CollapsibleSidebar = ({ children }: CollapsibleSidebarProps) => {
     const storedState = localStorage.getItem('sidebarCollapsed');
     if (storedState !== null) {
       setIsCollapsed(storedState === 'true');
+    } else {
+      // Se não existe no localStorage, definir como expandido por padrão
+      localStorage.setItem('sidebarCollapsed', 'false');
     }
   }, []);
   
@@ -83,8 +87,8 @@ const CollapsibleSidebar = ({ children }: CollapsibleSidebarProps) => {
     { icon: <FileCheck size={20} />, href: "/canhotos", label: "Canhotos" },
     { icon: <Truck size={20} />, href: "/veiculos", label: "Veículos" },
     { icon: <User size={20} />, href: "/motoristas", label: "Motoristas" },
-    { icon: <A size={20} />, href: "/abastecimentos", label: "Abastecimentos" },
-    { icon: <Tool size={20} />, href: "/manutencao", label: "Manutenção" },
+    { icon: <Fuel size={20} />, href: "/abastecimentos", label: "Abastecimentos" },
+    { icon: <Wrench size={20} />, href: "/manutencao", label: "Manutenção" },
     { icon: <DollarSign size={20} />, href: "/despesas", label: "Despesas Gerais" },
     { icon: <CreditCard size={20} />, href: "/saldo-pagar", label: "Saldo a Pagar" },
     { icon: <BarChart2 size={20} />, href: "/relatorios", label: "Relatórios" },

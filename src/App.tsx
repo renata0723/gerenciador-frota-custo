@@ -1,6 +1,6 @@
 
 import React, { Suspense } from "react";
-import { Routes, Route, BrowserRouter } from "react-router-dom";
+import { Routes, Route, BrowserRouter, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import EntradaNotas from "./pages/EntradaNotas";
 import NovaNotaForm from "./pages/NovaNotaForm";
@@ -31,7 +31,7 @@ import LivroCaixa from "./pages/contabilidade/LivroCaixa";
 import Login from "./pages/Login";
 import Usuarios from "./pages/Usuarios";
 import AuthGuard from "./components/auth/AuthGuard";
-import FolhaPagamento from "./pages/FolhaPagamento";
+import FolhaPagamento from "./pages/contabilidade/FolhaPagamento";
 import Balancete from "./pages/contabilidade/Balancete";
 
 // Lazy load the ApuracaoCustoResultado components
@@ -49,25 +49,50 @@ function App() {
         
         {/* Rotas protegidas */}
         <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
-        <Route path="/entrada-notas" element={<AuthGuard><EntradaNotas /></AuthGuard>} />
-        <Route path="/entrada-notas/nova" element={<AuthGuard><NovaNotaForm /></AuthGuard>} />
-        <Route path="/entrada-notas/editar/:id" element={<AuthGuard><NovaNotaForm /></AuthGuard>} />
+        
+        {/* Notas Fiscais */}
+        <Route path="/notas" element={<AuthGuard><EntradaNotas /></AuthGuard>} />
+        <Route path="/entrada-notas" element={<Navigate to="/notas" replace />} />
+        <Route path="/notas/nova" element={<AuthGuard><NovaNotaForm /></AuthGuard>} />
+        <Route path="/entrada-notas/nova" element={<Navigate to="/notas/nova" replace />} />
+        <Route path="/notas/editar/:id" element={<AuthGuard><NovaNotaForm /></AuthGuard>} />
+        <Route path="/entrada-notas/editar/:id" element={<Navigate to="/notas/editar/:id" replace />} />
+        
+        {/* Veículos */}
         <Route path="/veiculos" element={<AuthGuard><Veiculos /></AuthGuard>} />
         <Route path="/veiculos/novo" element={<AuthGuard><NovoVeiculoForm /></AuthGuard>} />
         <Route path="/veiculos/relatorios" element={<AuthGuard><RelatoriosVeiculos /></AuthGuard>} />
+        
+        {/* Motoristas */}
         <Route path="/motoristas" element={<AuthGuard><Motoristas /></AuthGuard>} />
+        
+        {/* Contratos */}
         <Route path="/contratos" element={<AuthGuard><Contratos /></AuthGuard>} />
         <Route path="/contratos/novo" element={<AuthGuard><NovoContratoForm /></AuthGuard>} />
         <Route path="/contratos/editar/:id" element={<AuthGuard><NovoContratoForm /></AuthGuard>} />
+        
+        {/* Abastecimentos */}
         <Route path="/abastecimentos" element={<AuthGuard><Abastecimentos /></AuthGuard>} />
+        
+        {/* Despesas */}
         <Route path="/despesas" element={<AuthGuard><DespesasGerais /></AuthGuard>} />
         <Route path="/despesas/nova" element={<AuthGuard><NovaDespesaForm /></AuthGuard>} />
+        
+        {/* Manutenção */}
         <Route path="/manutencao" element={<AuthGuard><Manutencao /></AuthGuard>} />
+        
+        {/* Canhotos */}
         <Route path="/buscar-contrato" element={<AuthGuard><BuscarContrato /></AuthGuard>} />
         <Route path="/canhotos" element={<AuthGuard><Canhotos /></AuthGuard>} />
+        
+        {/* Saldo a Pagar */}
         <Route path="/saldo-pagar" element={<AuthGuard><SaldoPagar /></AuthGuard>} />
+        
+        {/* Relatórios */}
         <Route path="/relatorios" element={<AuthGuard><Relatorios /></AuthGuard>} />
         <Route path="/tv-dashboard" element={<AuthGuard><TVDashboard /></AuthGuard>} />
+        
+        {/* Configurações */}
         <Route path="/configuracoes" element={<AuthGuard><ConfiguracoesEmpresa /></AuthGuard>} />
         <Route path="/utilitarios" element={<AuthGuard><Utilitarios /></AuthGuard>} />
         <Route path="/usuarios" element={<AuthGuard><Usuarios /></AuthGuard>} />
@@ -80,8 +105,9 @@ function App() {
         <Route path="/contabilidade/dre" element={<AuthGuard><DRE /></AuthGuard>} />
         <Route path="/contabilidade/livro-caixa" element={<AuthGuard><LivroCaixa /></AuthGuard>} />
         <Route path="/contabilidade/folha-pagamento" element={<AuthGuard><FolhaPagamento /></AuthGuard>} />
-        <Route path="/contabilidade/apuracao-custo-resultado" element={<AuthGuard><Suspense fallback={<div>Carregando...</div>}><LazyApuracaoCustoResultado /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/apuracao/:id" element={<AuthGuard><Suspense fallback={<div>Carregando...</div>}><LazyApuracaoCustoResultadoDetalhes /></Suspense></AuthGuard>} />
+        <Route path="/folha-pagamento" element={<Navigate to="/contabilidade/folha-pagamento" replace />} />
+        <Route path="/contabilidade/apuracao-custo-resultado" element={<AuthGuard><Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div></div>}><LazyApuracaoCustoResultado /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/apuracao/:id" element={<AuthGuard><Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div></div>}><LazyApuracaoCustoResultadoDetalhes /></Suspense></AuthGuard>} />
         <Route path="/contabilidade/balancete" element={<AuthGuard><Balancete /></AuthGuard>} />
         
         {/* Página de erro */}

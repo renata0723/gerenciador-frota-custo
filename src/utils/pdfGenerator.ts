@@ -61,7 +61,7 @@ const adicionarCabecalhoPadrao = (doc: jsPDF, titulo: string) => {
 
 // Função para adicionar rodapé padrão
 const adicionarRodapePadrao = (doc: jsPDF) => {
-  const totalPages = doc.internal.getNumberOfPages();
+  const totalPages = doc.getNumberOfPages();
   
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
