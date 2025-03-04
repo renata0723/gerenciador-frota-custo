@@ -16,6 +16,7 @@ export interface AbastecimentoItem {
   contabilizado?: boolean;
   conta_debito?: string;
   conta_credito?: string;
+  status?: string;
 }
 
 export interface TipoCombustivel {

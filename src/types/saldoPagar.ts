@@ -38,3 +38,13 @@ export interface PagamentoSaldo {
   ids_contratos?: string[];
   observacoes?: string;
 }
+
+export interface ProprietarioFormValues {
+  nome: string;
+  documento: string;
+  tipoConta: string;
+  banco: string;
+  agencia: string;
+  conta: string;
+  pix?: string;
+}

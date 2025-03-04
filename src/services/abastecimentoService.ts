@@ -19,6 +19,7 @@ export interface AbastecimentoData {
   contabilizado?: boolean;
   conta_debito?: string;
   conta_credito?: string;
+  status?: string;
 }
 
 export interface TipoCombustivel {
@@ -252,5 +253,86 @@ export const buscarAbastecimentosPorContrato = async (contratoId: string): Promi
   } catch (error) {
     console.error('Erro ao buscar abastecimentos por contrato:', error);
     return [];
+  }
+};
+
+// Função para calcular a média de consumo
+export const calcularMediaConsumo = (quilometragem: number, quantidade: number): string => {
+  if (!quilometragem || !quantidade || quantidade === 0) {
+    return 'N/A';
+  }
+  
+  const media = quilometragem / quantidade;
+  return `${media.toFixed(2).replace('.', ',')} km/l`;
+};
+
+// Função para contabilizar um abastecimento
+export const contabilizarAbastecimento = async (
+  id: number, 
+  contaDebito: string, 
+  contaCredito: string
+): Promise<boolean> => {
+  try {
+    // Buscar dados do abastecimento
+    const { data: abastecimento, error: fetchError } = await supabase
+      .from('Abastecimentos')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (fetchError) {
+      console.error('Erro ao buscar abastecimento:', fetchError);
+      toast.error('Erro ao buscar dados do abastecimento.');
+      return false;
+    }
+    
+    if (!abastecimento) {
+      toast.error('Abastecimento não encontrado.');
+      return false;
+    }
+    
+    // Criar lançamento contábil
+    const lancamentoContabil = {
+      data_lancamento: abastecimento.data_abastecimento,
+      data_competencia: abastecimento.data_abastecimento,
+      conta_debito: contaDebito,
+      conta_credito: contaCredito,
+      valor: abastecimento.valor_total,
+      historico: `Abastecimento - Veículo ${abastecimento.placa_veiculo} - Posto ${abastecimento.posto}`,
+      status: 'ativo'
+    };
+    
+    const { error: lancamentoError } = await supabase
+      .from('Lancamentos_Contabeis')
+      .insert([lancamentoContabil]);
+      
+    if (lancamentoError) {
+      console.error('Erro ao criar lançamento contábil:', lancamentoError);
+      toast.error('Erro ao contabilizar abastecimento.');
+      return false;
+    }
+    
+    // Atualizar status do abastecimento
+    const { error: updateError } = await supabase
+      .from('Abastecimentos')
+      .update({
+        contabilizado: true,
+        conta_debito: contaDebito,
+        conta_credito: contaCredito
+      })
+      .eq('id', id);
+      
+    if (updateError) {
+      console.error('Erro ao atualizar status do abastecimento:', updateError);
+      toast.error('Erro ao atualizar status do abastecimento.');
+      return false;
+    }
+    
+    toast.success('Abastecimento contabilizado com sucesso!');
+    return true;
+  } catch (error) {
+    console.error('Erro ao contabilizar abastecimento:', error);
+    toast.error('Erro ao contabilizar abastecimento.');
+    return false;
   }
 };

@@ -11,40 +11,58 @@ export type Database = {
     Tables: {
       Abastecimentos: {
         Row: {
+          conta_credito: string | null
+          conta_debito: string | null
+          contabilizado: boolean | null
+          contrato_id: string | null
           data_abastecimento: string | null
           id: number | null
           itens_abastecidos: string | null
           motorista_solicitante: string | null
           placa_veiculo: string | null
           posto: string | null
+          quantidade: number | null
           quilometragem: number | null
           responsavel_autorizacao: string | null
+          status: string | null
           tipo_combustivel: string | null
           valor_abastecimento: number | null
           valor_total: number | null
         }
         Insert: {
+          conta_credito?: string | null
+          conta_debito?: string | null
+          contabilizado?: boolean | null
+          contrato_id?: string | null
           data_abastecimento?: string | null
           id?: number | null
           itens_abastecidos?: string | null
           motorista_solicitante?: string | null
           placa_veiculo?: string | null
           posto?: string | null
+          quantidade?: number | null
           quilometragem?: number | null
           responsavel_autorizacao?: string | null
+          status?: string | null
           tipo_combustivel?: string | null
           valor_abastecimento?: number | null
           valor_total?: number | null
         }
         Update: {
+          conta_credito?: string | null
+          conta_debito?: string | null
+          contabilizado?: boolean | null
+          contrato_id?: string | null
           data_abastecimento?: string | null
           id?: number | null
           itens_abastecidos?: string | null
           motorista_solicitante?: string | null
           placa_veiculo?: string | null
           posto?: string | null
+          quantidade?: number | null
           quilometragem?: number | null
           responsavel_autorizacao?: string | null
+          status?: string | null
           tipo_combustivel?: string | null
           valor_abastecimento?: number | null
           valor_total?: number | null
@@ -312,11 +330,14 @@ export type Database = {
           cliente_destino: string | null
           data_saida: string | null
           id: number | null
+          identificador: string | null
+          motivo_rejeicao: string | null
           motorista_id: number | null
           notas_fiscais: string[] | null
           placa_carreta: string | null
           placa_cavalo: string | null
           proprietario: string | null
+          rejeitado: boolean | null
           status_contrato: string | null
           tipo_frota: string | null
           valor_adicional: number | null
@@ -329,11 +350,14 @@ export type Database = {
           cliente_destino?: string | null
           data_saida?: string | null
           id?: number | null
+          identificador?: string | null
+          motivo_rejeicao?: string | null
           motorista_id?: number | null
           notas_fiscais?: string[] | null
           placa_carreta?: string | null
           placa_cavalo?: string | null
           proprietario?: string | null
+          rejeitado?: boolean | null
           status_contrato?: string | null
           tipo_frota?: string | null
           valor_adicional?: number | null
@@ -346,11 +370,14 @@ export type Database = {
           cliente_destino?: string | null
           data_saida?: string | null
           id?: number | null
+          identificador?: string | null
+          motivo_rejeicao?: string | null
           motorista_id?: number | null
           notas_fiscais?: string[] | null
           placa_carreta?: string | null
           placa_cavalo?: string | null
           proprietario?: string | null
+          rejeitado?: boolean | null
           status_contrato?: string | null
           tipo_frota?: string | null
           valor_adicional?: number | null
@@ -368,7 +395,9 @@ export type Database = {
           data_despesa: string | null
           descricao_detalhada: string | null
           id: number | null
+          juros_pagos: number | null
           rateio: boolean | null
+          status: string | null
           tipo_despesa: string | null
           valor_despesa: number | null
         }
@@ -380,7 +409,9 @@ export type Database = {
           data_despesa?: string | null
           descricao_detalhada?: string | null
           id?: number | null
+          juros_pagos?: number | null
           rateio?: boolean | null
+          status?: string | null
           tipo_despesa?: string | null
           valor_despesa?: number | null
         }
@@ -392,7 +423,9 @@ export type Database = {
           data_despesa?: string | null
           descricao_detalhada?: string | null
           id?: number | null
+          juros_pagos?: number | null
           rateio?: boolean | null
+          status?: string | null
           tipo_despesa?: string | null
           valor_despesa?: number | null
         }
@@ -619,29 +652,44 @@ export type Database = {
       }
       Manutenção: {
         Row: {
+          conta_credito: string | null
+          conta_debito: string | null
+          contabilizado: boolean | null
+          contrato_id: string | null
           data_manutencao: string | null
           id: number | null
           local_realizacao: string | null
           pecas_servicos: string | null
           placa_veiculo: string | null
+          status: string | null
           tipo_manutencao: string | null
           valor_total: number | null
         }
         Insert: {
+          conta_credito?: string | null
+          conta_debito?: string | null
+          contabilizado?: boolean | null
+          contrato_id?: string | null
           data_manutencao?: string | null
           id?: number | null
           local_realizacao?: string | null
           pecas_servicos?: string | null
           placa_veiculo?: string | null
+          status?: string | null
           tipo_manutencao?: string | null
           valor_total?: number | null
         }
         Update: {
+          conta_credito?: string | null
+          conta_debito?: string | null
+          contabilizado?: boolean | null
+          contrato_id?: string | null
           data_manutencao?: string | null
           id?: number | null
           local_realizacao?: string | null
           pecas_servicos?: string | null
           placa_veiculo?: string | null
+          status?: string | null
           tipo_manutencao?: string | null
           valor_total?: number | null
         }

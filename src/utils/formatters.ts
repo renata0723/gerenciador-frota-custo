@@ -83,6 +83,36 @@ export const formatCurrency = (valor: number | string | null | undefined): strin
 };
 
 /**
+ * Formata CPF para exibição
+ * @param cpf CPF a ser formatado
+ * @returns CPF formatado
+ */
+export const formatarCPF = (cpf: string | null | undefined): string => {
+  if (!cpf) return '';
+  
+  // Remove caracteres não numéricos
+  const numeros = cpf.replace(/\D/g, '');
+  
+  // Se não tiver 11 dígitos, retorna como está
+  if (numeros.length !== 11) return cpf;
+  
+  return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+};
+
+/**
+ * Calcula a média de consumo de combustível
+ * @param quilometragem Quilometragem percorrida
+ * @param litros Quantidade de litros abastecidos
+ * @returns Média de km/l com até 2 casas decimais
+ */
+export const calcularMediaConsumo = (quilometragem: number, litros: number): string => {
+  if (!quilometragem || !litros || litros === 0) return 'N/A';
+  
+  const media = quilometragem / litros;
+  return media.toFixed(2).replace('.', ',') + ' km/l';
+};
+
+/**
  * Alias para formatarData para compatibilidade
  */
 export const formatDate = formatarData;
