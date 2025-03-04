@@ -19,6 +19,8 @@ const Login = () => {
     setLoading(true);
 
     try {
+      console.log('Tentando login com:', email);
+      
       // Esta implementação é simplificada. Em um sistema real, usaríamos autenticação segura.
       const { data, error } = await supabase
         .from('Usuarios')
@@ -29,6 +31,7 @@ const Login = () => {
         .single();
 
       if (error || !data) {
+        console.error('Erro de login:', error);
         toast.error('Credenciais inválidas. Verifique seu email e senha.');
         return;
       }
@@ -57,7 +60,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold text-blue-500 mb-2">SSLOG TRANSPORTES LTDA</h1>
+          <h1 className="text-3xl font-bold text-blue-500 mb-2">{EMPRESA_NOME}</h1>
           <h2 className="text-lg text-gray-600">Sistema de Controle de Frotas e Logística</h2>
         </div>
         

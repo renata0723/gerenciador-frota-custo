@@ -8,6 +8,7 @@ export const validarPlaca = (placa: string): boolean => {
   if (!placa || typeof placa !== 'string') return false;
   
   const placaUpperCase = placa.toUpperCase().trim();
+  console.log('Validando placa:', placaUpperCase);
   
   const regexAntigoMercosul = /^[A-Z]{3}-\d{4}$/;
   const regexNovoMercosul = /^[A-Z]{3}\d[A-Z]\d{2}$/;
@@ -28,6 +29,7 @@ export const formatarPlaca = (placa: string): string => {
   
   // Remover espaços e caracteres especiais e converter para maiúsculas
   const placaLimpa = placa.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+  console.log('Placa limpa após formatação:', placaLimpa);
   
   // Formatar placa no padrão antigo (ABC1234 -> ABC-1234)
   if (/^[A-Z]{3}\d{4}$/.test(placaLimpa)) {
@@ -49,11 +51,19 @@ export const verificarPlacaExistente = async (placa: string, tipo: 'cavalo' | 'c
   const placaFormatada = formatarPlaca(placa);
   const campoPlaca = tipo === 'cavalo' ? 'placa_cavalo' : 'placa_carreta';
   
-  const { data } = await supabase
+  console.log(`Verificando placa ${placaFormatada} no campo ${campoPlaca}`);
+  
+  const { data, error } = await supabase
     .from('Veiculos')
     .select('*')
     .eq(campoPlaca, placaFormatada);
   
+  if (error) {
+    console.error('Erro ao verificar placa existente:', error);
+    return false;
+  }
+  
+  console.log('Resultados encontrados:', data?.length || 0);
   return data !== null && data.length > 0;
 };
 

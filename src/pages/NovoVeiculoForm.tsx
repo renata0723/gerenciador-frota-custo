@@ -58,7 +58,10 @@ const NovoVeiculoForm = () => {
 
   // Simular carregamento de dados para edição
   useEffect(() => {
+    console.log('NovoVeiculoForm montado, modo edição:', isEditMode);
+    
     if (isEditMode) {
+      console.log('Carregando dados do veículo para edição, ID:', id);
       // Em um cenário real, este seria um fetch para a API
       // Aqui vamos simular com dados mock
       setTimeout(() => {
@@ -86,6 +89,7 @@ const NovoVeiculoForm = () => {
         };
         
         setFormData(mockVeiculo);
+        console.log('Dados carregados:', mockVeiculo);
       }, 500);
     }
   }, [isEditMode, id]);
@@ -109,16 +113,20 @@ const NovoVeiculoForm = () => {
     }
     
     const placaFormatada = formatarPlaca(formData.placa);
+    console.log('Placa formatada:', placaFormatada);
     
     try {
       // Verificar se a placa já existe (no caso de novo cadastro)
       if (!isEditMode) {
         const campoPlaca = formData.tipo === 'cavalo' ? 'placa_cavalo' : 'placa_carreta';
+        console.log('Verificando existência da placa no campo:', campoPlaca);
         
         const { data: placaExistente } = await supabase
           .from('Veiculos')
           .select('*')
           .eq(campoPlaca, placaFormatada);
+        
+        console.log('Resultado da verificação:', placaExistente);
         
         if (placaExistente && placaExistente.length > 0) {
           toast.error("Esta placa já está cadastrada no sistema.");
@@ -126,19 +134,31 @@ const NovoVeiculoForm = () => {
         }
       }
       
-      // Aqui seria a chamada para a API para salvar o veículo
-      // Por enquanto apenas simulamos o sucesso
+      console.log('Preparando dados para salvar no Supabase');
       
-      // Em um sistema real, faríamos algo como:
-      // const { error } = await supabase
-      //   .from('Veiculos')
-      //   .upsert({
-      //     placa_cavalo: formData.tipo === 'cavalo' ? placaFormatada : null,
-      //     placa_carreta: formData.tipo === 'carreta' ? placaFormatada : null,
-      //     tipo_frota: formData.frota,
-      //     ...outros campos
-      //   });
+      // Preparar dados para salvar no Supabase
+      const dadosVeiculo = {
+        placa_cavalo: formData.tipo === 'cavalo' ? placaFormatada : null,
+        placa_carreta: formData.tipo === 'carreta' ? placaFormatada : null,
+        tipo_frota: formData.frota,
+        status_veiculo: 'Ativo'
+      };
       
+      console.log('Dados para salvar:', dadosVeiculo);
+      
+      // Salvar no Supabase
+      const { data, error } = await supabase
+        .from('Veiculos')
+        .upsert(dadosVeiculo)
+        .select();
+      
+      if (error) {
+        console.error('Erro ao salvar veículo:', error);
+        toast.error("Ocorreu um erro ao salvar o veículo. Tente novamente.");
+        return;
+      }
+      
+      console.log('Veículo salvo com sucesso:', data);
       logOperation('Veículos', isEditMode ? 'Veículo atualizado' : 'Veículo cadastrado', `Placa: ${placaFormatada}`);
       
       toast.success(

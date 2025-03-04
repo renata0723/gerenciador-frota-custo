@@ -30,14 +30,19 @@ const ContratosPagina = () => {
   const [contratos, setContratos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('ContratosPagina component mounted');
     carregarContratos();
   }, []);
 
   const carregarContratos = async () => {
+    console.log('Carregando contratos...');
     setLoading(true);
+    setError(null);
+    
     try {
       const { data, error } = await supabase
         .from('Contratos')
@@ -46,13 +51,16 @@ const ContratosPagina = () => {
 
       if (error) {
         console.error("Erro ao carregar contratos:", error);
+        setError("Erro ao carregar a lista de contratos");
         toast.error("Erro ao carregar a lista de contratos");
         return;
       }
 
+      console.log('Contratos carregados:', data?.length || 0);
       setContratos(data || []);
-    } catch (error) {
-      console.error("Erro ao processar dados:", error);
+    } catch (err) {
+      console.error("Erro ao processar dados:", err);
+      setError("Ocorreu um erro ao processar os dados dos contratos");
       toast.error("Ocorreu um erro ao processar os dados dos contratos");
     } finally {
       setLoading(false);
@@ -65,6 +73,20 @@ const ContratosPagina = () => {
     contrato.placa_cavalo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     String(contrato.id).includes(searchTerm)
   );
+
+  // Renderização com tratamento de erro explícito
+  if (error) {
+    return (
+      <Card className="shadow-sm border p-6">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <span className="text-lg font-medium">{error}</span>
+          </div>
+          <Button onClick={carregarContratos}>Tentar novamente</Button>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="shadow-sm border">
