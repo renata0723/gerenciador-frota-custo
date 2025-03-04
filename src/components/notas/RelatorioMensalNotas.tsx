@@ -3,12 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { FileDown, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+// Importar jsPDF e autotable corretamente
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface RelatorioMensalNotasProps {
   permissoes: string[];
@@ -32,6 +35,7 @@ const RelatorioMensalNotas: React.FC<RelatorioMensalNotasProps> = ({ permissoes 
       setDados(data || []);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
+      toast.error('Erro ao carregar relatório mensal');
     } finally {
       setLoading(false);
     }
@@ -45,46 +49,55 @@ const RelatorioMensalNotas: React.FC<RelatorioMensalNotasProps> = ({ permissoes 
 
   const exportarRelatorio = () => {
     if (!permissoes.includes('exportar_relatorios')) {
+      toast.error('Você não tem permissão para exportar relatórios');
       return;
     }
 
-    const doc = new jsPDF();
-    
-    // Cabeçalho
-    doc.setFontSize(16);
-    doc.text('Relatório Mensal de Notas Fiscais', 14, 15);
-    doc.setFontSize(12);
-    doc.text(`Período: ${format(new Date(mesAno), 'MMMM/yyyy', { locale: ptBR })}`, 14, 25);
+    try {
+      const doc = new jsPDF();
+      
+      // Cabeçalho
+      doc.setFontSize(16);
+      doc.text('Relatório Mensal de Notas Fiscais', 14, 15);
+      doc.setFontSize(12);
+      doc.text(`Período: ${format(new Date(mesAno), 'MMMM/yyyy', { locale: ptBR })}`, 14, 25);
 
-    // Tabela
-    const tableRows = dados.map(nota => [
-      nota.numero_nota_fiscal,
-      nota.data_coleta,
-      nota.cliente_destinatario,
-      nota.cidade_destino,
-      `R$ ${nota.valor_nota_fiscal?.toFixed(2)}`,
-      nota.status_nota
-    ]);
+      // Tabela
+      const tableRows = dados.map(nota => [
+        nota.numero_nota_fiscal || '',
+        nota.data_coleta ? format(new Date(nota.data_coleta), 'dd/MM/yyyy') : '',
+        nota.cliente_destinatario || '',
+        nota.cidade_destino || '',
+        `R$ ${(nota.valor_nota_fiscal || 0).toFixed(2)}`,
+        nota.status_nota || ''
+      ]);
 
-    autoTable(doc, {
-      head: [['Nº Nota', 'Data Coleta', 'Cliente', 'Destino', 'Valor', 'Status']],
-      body: tableRows,
-      startY: 35,
-      theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [41, 108, 196] }
-    });
+      autoTable(doc, {
+        head: [['Nº Nota', 'Data Coleta', 'Cliente', 'Destino', 'Valor', 'Status']],
+        body: tableRows,
+        startY: 35,
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [41, 108, 196] }
+      });
 
-    // Totais
-    const totalNotas = dados.length;
-    const valorTotal = dados.reduce((sum, nota) => sum + (nota.valor_nota_fiscal || 0), 0);
+      // Totais
+      const totalNotas = dados.length;
+      const valorTotal = dados.reduce((sum, nota) => sum + (nota.valor_nota_fiscal || 0), 0);
 
-    doc.setFontSize(10);
-    doc.text(`Total de Notas: ${totalNotas}`, 14, doc.autoTable.previous.finalY + 10);
-    doc.text(`Valor Total: R$ ${valorTotal.toFixed(2)}`, 14, doc.autoTable.previous.finalY + 20);
+      const finalY = (doc as any).lastAutoTable.finalY || 150;
+      
+      doc.setFontSize(10);
+      doc.text(`Total de Notas: ${totalNotas}`, 14, finalY + 10);
+      doc.text(`Valor Total: R$ ${valorTotal.toFixed(2)}`, 14, finalY + 20);
 
-    // Download
-    doc.save(`relatorio_notas_${mesAno}.pdf`);
+      // Download
+      doc.save(`relatorio_notas_${mesAno}.pdf`);
+      toast.success('Relatório exportado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao exportar relatório:', error);
+      toast.error('Erro ao exportar relatório');
+    }
   };
 
   const mesesDisponiveis = () => {
@@ -109,8 +122,8 @@ const RelatorioMensalNotas: React.FC<RelatorioMensalNotasProps> = ({ permissoes 
     <Card className="mb-6">
       <CardHeader>
         <CardTitle className="text-xl font-medium flex items-center gap-2">
-          <FileText className="h-5 w-5 text-sistema-primary" />
-          Relatório Mensal
+          <FileText className="h-5 w-5 text-blue-600" />
+          Relatório Mensal de Notas
         </CardTitle>
       </CardHeader>
       <CardContent>

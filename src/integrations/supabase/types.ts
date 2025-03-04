@@ -733,6 +733,7 @@ export type Database = {
           horario_coleta: string | null
           numero_nota_fiscal: number | null
           numero_paletes: number | null
+          permissao_acesso: string | null
           peso_total: number | null
           quantidade_paletes: number | null
           senha_agendamento: string | null
@@ -752,6 +753,7 @@ export type Database = {
           horario_coleta?: string | null
           numero_nota_fiscal?: number | null
           numero_paletes?: number | null
+          permissao_acesso?: string | null
           peso_total?: number | null
           quantidade_paletes?: number | null
           senha_agendamento?: string | null
@@ -771,6 +773,7 @@ export type Database = {
           horario_coleta?: string | null
           numero_nota_fiscal?: number | null
           numero_paletes?: number | null
+          permissao_acesso?: string | null
           peso_total?: number | null
           quantidade_paletes?: number | null
           senha_agendamento?: string | null

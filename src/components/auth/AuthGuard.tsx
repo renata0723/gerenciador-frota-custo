@@ -24,6 +24,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         console.log('- usuarioString:', !!usuarioString);
         console.log('- adminGeral:', adminGeral);
         
+        // Para desenvolvimento, vamos criar uma sessão de teste se não existir
+        if (!usuarioString && !adminGeral && process.env.NODE_ENV === 'development') {
+          console.log('Criando sessão de desenvolvimento');
+          sessionStorage.setItem('adminGeral', 'true');
+          setIsAuthenticated(true);
+          setLoading(false);
+          return;
+        }
+        
         // Verificar se é usuário ou admin
         if (usuarioString) {
           try {
@@ -63,7 +72,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     // Mostrando um indicador de carregamento
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }

@@ -43,6 +43,12 @@ const LazyApuracaoCustoResultadoDetalhes = React.lazy(() => import('./pages/cont
 
 import "./App.css";
 
+const LoadingFallback = () => (
+  <div className="flex justify-center items-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+);
+
 function App() {
   return (
     <BrowserRouter>
@@ -51,70 +57,70 @@ function App() {
         <Route path="/login" element={<Login />} />
         
         {/* Rotas protegidas */}
-        <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
+        <Route path="/" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Index /></Suspense></AuthGuard>} />
         
         {/* Notas Fiscais */}
-        <Route path="/notas" element={<AuthGuard><EntradaNotas /></AuthGuard>} />
+        <Route path="/notas" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><EntradaNotas /></Suspense></AuthGuard>} />
         <Route path="/entrada-notas" element={<Navigate to="/notas" replace />} />
-        <Route path="/notas/nova" element={<AuthGuard><NovaNotaForm /></AuthGuard>} />
+        <Route path="/notas/nova" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovaNotaForm /></Suspense></AuthGuard>} />
         <Route path="/entrada-notas/nova" element={<Navigate to="/notas/nova" replace />} />
-        <Route path="/notas/editar/:id" element={<AuthGuard><NovaNotaForm /></AuthGuard>} />
+        <Route path="/notas/editar/:id" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovaNotaForm /></Suspense></AuthGuard>} />
         <Route path="/entrada-notas/editar/:id" element={<Navigate to="/notas/editar/:id" replace />} />
         
         {/* Veículos */}
-        <Route path="/veiculos" element={<AuthGuard><Veiculos /></AuthGuard>} />
-        <Route path="/veiculos/novo" element={<AuthGuard><NovoVeiculoForm /></AuthGuard>} />
-        <Route path="/veiculos/relatorios" element={<AuthGuard><RelatoriosVeiculos /></AuthGuard>} />
+        <Route path="/veiculos" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Veiculos /></Suspense></AuthGuard>} />
+        <Route path="/veiculos/novo" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovoVeiculoForm /></Suspense></AuthGuard>} />
+        <Route path="/veiculos/relatorios" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><RelatoriosVeiculos /></Suspense></AuthGuard>} />
         
         {/* Motoristas */}
-        <Route path="/motoristas" element={<AuthGuard><Motoristas /></AuthGuard>} />
+        <Route path="/motoristas" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Motoristas /></Suspense></AuthGuard>} />
         
         {/* Contratos */}
-        <Route path="/contratos" element={<AuthGuard><Contratos /></AuthGuard>} />
-        <Route path="/contratos/novo" element={<AuthGuard><NovoContratoForm /></AuthGuard>} />
-        <Route path="/contratos/editar/:id" element={<AuthGuard><NovoContratoForm /></AuthGuard>} />
+        <Route path="/contratos" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Contratos /></Suspense></AuthGuard>} />
+        <Route path="/contratos/novo" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovoContratoForm /></Suspense></AuthGuard>} />
+        <Route path="/contratos/editar/:id" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovoContratoForm /></Suspense></AuthGuard>} />
         
         {/* Abastecimentos */}
-        <Route path="/abastecimentos" element={<AuthGuard><Abastecimentos /></AuthGuard>} />
+        <Route path="/abastecimentos" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Abastecimentos /></Suspense></AuthGuard>} />
         
         {/* Despesas */}
-        <Route path="/despesas" element={<AuthGuard><DespesasGerais /></AuthGuard>} />
-        <Route path="/despesas/nova" element={<AuthGuard><NovaDespesaForm /></AuthGuard>} />
+        <Route path="/despesas" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><DespesasGerais /></Suspense></AuthGuard>} />
+        <Route path="/despesas/nova" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><NovaDespesaForm /></Suspense></AuthGuard>} />
         
         {/* Manutenção */}
-        <Route path="/manutencao" element={<AuthGuard><Manutencao /></AuthGuard>} />
+        <Route path="/manutencao" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Manutencao /></Suspense></AuthGuard>} />
         
         {/* Canhotos */}
-        <Route path="/buscar-contrato" element={<AuthGuard><BuscarContrato /></AuthGuard>} />
-        <Route path="/canhotos" element={<AuthGuard><Canhotos /></AuthGuard>} />
+        <Route path="/buscar-contrato" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><BuscarContrato /></Suspense></AuthGuard>} />
+        <Route path="/canhotos" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Canhotos /></Suspense></AuthGuard>} />
         
         {/* Saldo a Pagar */}
-        <Route path="/saldo-pagar" element={<AuthGuard><SaldoPagar /></AuthGuard>} />
+        <Route path="/saldo-pagar" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><SaldoPagar /></Suspense></AuthGuard>} />
         
         {/* Relatórios */}
-        <Route path="/relatorios" element={<AuthGuard><Relatorios /></AuthGuard>} />
-        <Route path="/tv-dashboard" element={<AuthGuard><TVDashboard /></AuthGuard>} />
+        <Route path="/relatorios" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Relatorios /></Suspense></AuthGuard>} />
+        <Route path="/tv-dashboard" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><TVDashboard /></Suspense></AuthGuard>} />
         
         {/* Configurações */}
-        <Route path="/configuracoes" element={<AuthGuard><ConfiguracoesEmpresa /></AuthGuard>} />
-        <Route path="/utilitarios" element={<AuthGuard><Utilitarios /></AuthGuard>} />
-        <Route path="/usuarios" element={<AuthGuard><Usuarios /></AuthGuard>} />
+        <Route path="/configuracoes" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><ConfiguracoesEmpresa /></Suspense></AuthGuard>} />
+        <Route path="/utilitarios" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Utilitarios /></Suspense></AuthGuard>} />
+        <Route path="/usuarios" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Usuarios /></Suspense></AuthGuard>} />
         
         {/* Módulo de Contabilidade */}
-        <Route path="/contabilidade" element={<AuthGuard><Contabilidade /></AuthGuard>} />
-        <Route path="/contabilidade/lancamentos" element={<AuthGuard><LancamentosContabeis /></AuthGuard>} />
-        <Route path="/contabilidade/plano-contas" element={<AuthGuard><PlanoContas /></AuthGuard>} />
-        <Route path="/contabilidade/balanco" element={<AuthGuard><BalancoPatrimonial /></AuthGuard>} />
-        <Route path="/contabilidade/dre" element={<AuthGuard><DRE /></AuthGuard>} />
-        <Route path="/contabilidade/livro-caixa" element={<AuthGuard><LivroCaixa /></AuthGuard>} />
-        <Route path="/contabilidade/folha-pagamento" element={<AuthGuard><FolhaPagamento /></AuthGuard>} />
+        <Route path="/contabilidade" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Contabilidade /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/lancamentos" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><LancamentosContabeis /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/plano-contas" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><PlanoContas /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/balanco" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><BalancoPatrimonial /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/dre" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><DRE /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/livro-caixa" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><LivroCaixa /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/folha-pagamento" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><FolhaPagamento /></Suspense></AuthGuard>} />
         <Route path="/folha-pagamento" element={<Navigate to="/contabilidade/folha-pagamento" replace />} />
-        <Route path="/contabilidade/apuracao-custo-resultado" element={<AuthGuard><Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div></div>}><LazyApuracaoCustoResultado /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/apuracao/:id" element={<AuthGuard><Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div></div>}><LazyApuracaoCustoResultadoDetalhes /></Suspense></AuthGuard>} />
-        <Route path="/contabilidade/balancete" element={<AuthGuard><Balancete /></AuthGuard>} />
-        <Route path="/contabilidade/relatorios" element={<AuthGuard><RelatoriosContabeis /></AuthGuard>} />
-        <Route path="/contabilidade/fechamento-fiscal" element={<AuthGuard><FechamentoFiscal /></AuthGuard>} />
-        <Route path="/contabilidade/conciliacao-bancaria" element={<AuthGuard><ConciliacaoBancaria /></AuthGuard>} />
+        <Route path="/contabilidade/apuracao-custo-resultado" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><LazyApuracaoCustoResultado /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/apuracao/:id" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><LazyApuracaoCustoResultadoDetalhes /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/balancete" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><Balancete /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/relatorios" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><RelatoriosContabeis /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/fechamento-fiscal" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><FechamentoFiscal /></Suspense></AuthGuard>} />
+        <Route path="/contabilidade/conciliacao-bancaria" element={<AuthGuard><Suspense fallback={<LoadingFallback />}><ConciliacaoBancaria /></Suspense></AuthGuard>} />
         
         {/* Página de erro */}
         <Route path="*" element={<NotFound />} />

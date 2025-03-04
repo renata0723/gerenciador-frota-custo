@@ -161,6 +161,49 @@ export const gerarRelatorioPlanoConta = (contas: ContaContabil[]) => {
   return doc;
 };
 
+// Gerar relatório de Notas Fiscais
+export const gerarRelatorioNotasFiscais = (notas: any[], periodo: string) => {
+  const doc = new jsPDF();
+  
+  // Adicionar cabeçalho
+  adicionarCabecalho(doc, 'RELATÓRIO DE NOTAS FISCAIS');
+  
+  // Informações do relatório
+  doc.setFontSize(9);
+  doc.text(`Período: ${periodo}`, 14, 45);
+  doc.text(`Total de Notas: ${notas.length}`, 14, 50);
+  
+  const valorTotal = notas.reduce((sum, nota) => sum + (nota.valor_nota_fiscal || 0), 0);
+  doc.text(`Valor Total: R$ ${valorTotal.toFixed(2)}`, 14, 55);
+  
+  // Adicionar tabela
+  autoTable(doc, {
+    startY: 65,
+    head: [['Nº Nota', 'Data Coleta', 'Cliente', 'Destino', 'Valor', 'Status']],
+    body: notas.map(nota => [
+      nota.numero_nota_fiscal || '',
+      nota.data_coleta ? format(new Date(nota.data_coleta), 'dd/MM/yyyy') : '',
+      nota.cliente_destinatario || '',
+      nota.cidade_destino || '',
+      `R$ ${(nota.valor_nota_fiscal || 0).toFixed(2)}`,
+      nota.status_nota || ''
+    ]),
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [41, 108, 196] }
+  });
+  
+  // Rodapé
+  const pageCount = doc.internal.getNumberOfPages();
+  doc.setFontSize(8);
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.getWidth() / 2, 
+      doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+  }
+  
+  return doc;
+};
+
 // Exportar outras funções conforme necessário
 export const gerarRelatorio = (tipo: string, dados: any, filtros?: any) => {
   switch (tipo) {
@@ -168,6 +211,8 @@ export const gerarRelatorio = (tipo: string, dados: any, filtros?: any) => {
       return gerarRelatorioSaldoPagar(dados, filtros);
     case 'planocontas':
       return gerarRelatorioPlanoConta(dados);
+    case 'notasfiscais':
+      return gerarRelatorioNotasFiscais(dados, filtros?.periodo || '');
     default:
       throw new Error('Tipo de relatório não suportado');
   }
