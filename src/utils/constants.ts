@@ -1,78 +1,103 @@
 
-export const formataMoeda = (valor: number | null | undefined): string => {
-  if (valor === null || valor === undefined) return 'R$ 0,00';
-  return new Intl.NumberFormat('pt-BR', {
+// Constantes globais da aplicação
+export const APP_ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+  DASHBOARD: '/dashboard',
+  NOTAS: '/notas',
+  VEICULOS: '/veiculos',
+  MOTORISTAS: '/motoristas',
+  CONTRATOS: '/contratos',
+  ABASTECIMENTOS: '/abastecimentos',
+  DESPESAS: '/despesas',
+  MANUTENCAO: '/manutencao',
+  CANHOTOS: '/canhotos',
+  SALDO_PAGAR: '/saldo-pagar',
+};
+
+// Status para documentos e entidades
+export const STATUS = {
+  ATIVO: 'ativo',
+  INATIVO: 'inativo',
+  PENDENTE: 'pendente',
+  CONCLUIDO: 'concluído',
+  EM_ANDAMENTO: 'em andamento',
+  CANCELADO: 'cancelado',
+};
+
+// Tipos de veículos
+export const TIPO_VEICULO = {
+  CAVALO: 'cavalo',
+  CARRETA: 'carreta',
+};
+
+// Status de veículos
+export const STATUS_VEICULO = {
+  ATIVO: 'ativo',
+  INATIVO: 'inativo',
+  MANUTENCAO: 'manutenção',
+};
+
+// Formatar valores monetários
+export const formatCurrency = (value: number): string => {
+  return value.toLocaleString('pt-BR', {
     style: 'currency',
-    currency: 'BRL'
-  }).format(valor);
+    currency: 'BRL',
+    minimumFractionDigits: 2
+  });
 };
 
-export const formatDate = (date: string) => {
-  const newDate = new Date(date);
-  return newDate.toLocaleDateString('pt-BR');
+// Formatar datas
+export const formatDate = (date: string | Date): string => {
+  if (!date) return '';
+  const d = new Date(date);
+  return d.toLocaleDateString('pt-BR');
 };
 
-export const tiposDespesa = [
-  "Descarga", 
-  "Reentrega", 
-  "No-Show", 
-  "Diária", 
-  "Pedágio", 
-  "Alimentação", 
-  "Hospedagem", 
-  "Multa", 
-  "Equipamentos", 
-  "Combustível",
-  "Administrativa", 
-  "Outros"
+// Formatar números com pontos para milhares
+export const formatNumber = (num: number): string => {
+  return num.toLocaleString('pt-BR');
+};
+
+// Configurações padrão
+export const DEFAULT_SETTINGS = {
+  ITENS_POR_PAGINA: 10,
+  MAX_UPLOAD_SIZE: 5242880, // 5MB
+};
+
+// Cargos
+export const CARGOS = {
+  ADMIN: 'Administrador',
+  OPERADOR: 'Operador',
+  FINANCEIRO: 'Financeiro',
+  MOTORISTA: 'Motorista',
+};
+
+// Tipos de despesas
+export const TIPOS_DESPESA = [
+  'Abastecimento',
+  'Alimentação',
+  'Hospedagem',
+  'Manutenção',
+  'Pedágio',
+  'Descarga',
+  'Reentrega',
+  'No-show',
+  'Outros'
 ];
 
-export const APP_NAME = "SSLOG TRANSPORTES LTDA | Controladoria de Custo";
-export const APP_SUBTITLE = "Controladoria de Custo";
-
-export const APP_VERSION = "";
-
-export const canhotoStatus = {
-  PENDENTE: 'Pendente' as const,
-  RECEBIDO: 'Recebido' as const,
-  CANCELADO: 'Cancelado' as const
-};
-
-export type CanhotoStatus = typeof canhotoStatus[keyof typeof canhotoStatus];
-
-export const tiposManutencao = [
-  "preventiva",
-  "corretiva"
+// Meses do ano
+export const MESES = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro'
 ];
-
-export type TipoManutencao = "preventiva" | "corretiva";
-
-export const localRealizacao = [
-  "patio",
-  "externa"
-];
-
-export type LocalRealizacao = "patio" | "externa";
-
-export const ANO_ATUAL = 2025;
-
-export const EMPRESA_CNPJ = "44.712.877/0001-80";
-export const EMPRESA_NOME = "SSLOG Transportes LTDA";
-
-export const statusSaldoPagar = {
-  PENDENTE: 'pendente' as const,
-  LIBERADO: 'liberado' as const, 
-  PAGO: 'pago' as const,
-  CANCELADO: 'cancelado' as const
-};
-
-export type StatusSaldoPagar = typeof statusSaldoPagar[keyof typeof statusSaldoPagar];
-
-export const tiposUsuario = {
-  ADMINISTRADOR: 'administrador' as const,
-  GESTOR: 'gestor' as const,
-  OPERADOR: 'operador' as const,
-  VISUALIZADOR: 'visualizador' as const
-};
-
-export type TipoUsuario = typeof tiposUsuario[keyof typeof tiposUsuario];

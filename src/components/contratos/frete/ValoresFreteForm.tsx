@@ -1,94 +1,68 @@
 
 import React from 'react';
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { formatCurrency } from "@/utils/formatters";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { formatCurrency } from '@/utils/constants';
 
 interface ValoresFreteFormProps {
   valorFreteContratado: number;
+  onValorFreteChange: (valor: number) => void;
   valorAdiantamento: number;
+  onValorAdiantamentoChange: (valor: number) => void;
   valorPedagio: number;
-  saldoPagar: number;
-  setValorFreteContratado: (valor: number) => void;
-  setValorAdiantamento: (valor: number) => void;
-  setValorPedagio: (valor: number) => void;
-  disabled: boolean;
+  onValorPedagioChange: (valor: number) => void;
 }
 
 const ValoresFreteForm: React.FC<ValoresFreteFormProps> = ({
   valorFreteContratado,
+  onValorFreteChange,
   valorAdiantamento,
+  onValorAdiantamentoChange,
   valorPedagio,
-  saldoPagar,
-  setValorFreteContratado,
-  setValorAdiantamento,
-  setValorPedagio,
-  disabled
+  onValorPedagioChange
 }) => {
+  // Função para formatar valor ao digitar
+  const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>, setValor: (valor: number) => void) => {
+    const valorStr = e.target.value.replace(/\D/g, '');
+    const valor = valorStr ? parseInt(valorStr) / 100 : 0;
+    setValor(valor);
+  };
+
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="valorFreteContratado">Valor do Frete Contratado (R$)</Label>
-          <Input
-            id="valorFreteContratado"
-            type="number"
-            step="0.01"
-            min="0"
-            value={valorFreteContratado}
-            onChange={(e) => setValorFreteContratado(parseFloat(e.target.value) || 0)}
-            placeholder="0,00"
-            disabled={disabled}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="valorAdiantamento">Valor do Adiantamento (R$)</Label>
-          <Input
-            id="valorAdiantamento"
-            type="number"
-            step="0.01"
-            min="0"
-            value={valorAdiantamento}
-            onChange={(e) => setValorAdiantamento(parseFloat(e.target.value) || 0)}
-            placeholder="0,00"
-            disabled={disabled}
-          />
-        </div>
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="valorFreteContratado">Valor do Frete Contratado</Label>
+        <Input
+          id="valorFreteContratado"
+          value={formatCurrency(valorFreteContratado)}
+          onChange={(e) => handleValorChange(e, onValorFreteChange)}
+          placeholder="R$ 0,00"
+          className="mt-1"
+        />
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="valorPedagio">Valor do Pedágio (R$)</Label>
-          <Input
-            id="valorPedagio"
-            type="number"
-            step="0.01"
-            min="0"
-            value={valorPedagio}
-            onChange={(e) => setValorPedagio(parseFloat(e.target.value) || 0)}
-            placeholder="0,00"
-            disabled={disabled}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="saldoPagar">Saldo a Pagar (R$)</Label>
-          <Input
-            id="saldoPagar"
-            type="number"
-            step="0.01"
-            min="0"
-            value={saldoPagar}
-            disabled={true}
-            className="bg-gray-50"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            {formatCurrency(saldoPagar)}
-          </p>
-        </div>
+      <div>
+        <Label htmlFor="valorAdiantamento">Valor do Adiantamento</Label>
+        <Input
+          id="valorAdiantamento"
+          value={formatCurrency(valorAdiantamento)}
+          onChange={(e) => handleValorChange(e, onValorAdiantamentoChange)}
+          placeholder="R$ 0,00"
+          className="mt-1"
+        />
       </div>
-    </>
+      
+      <div>
+        <Label htmlFor="valorPedagio">Valor do Pedágio</Label>
+        <Input
+          id="valorPedagio"
+          value={formatCurrency(valorPedagio)}
+          onChange={(e) => handleValorChange(e, onValorPedagioChange)}
+          placeholder="R$ 0,00"
+          className="mt-1"
+        />
+      </div>
+    </div>
   );
 };
 

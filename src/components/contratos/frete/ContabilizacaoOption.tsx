@@ -1,45 +1,35 @@
 
 import React from 'react';
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 interface ContabilizacaoOptionProps {
-  contabilizarFrete: boolean;
-  setContabilizarFrete: (checked: boolean) => void;
-  isTipoFrota: boolean;
+  isContabilizado: boolean;
+  setIsContabilizado: (value: boolean) => void;
 }
 
-const ContabilizacaoOption: React.FC<ContabilizacaoOptionProps> = ({
-  contabilizarFrete,
-  setContabilizarFrete,
-  isTipoFrota
+const ContabilizacaoOption: React.FC<ContabilizacaoOptionProps> = ({ 
+  isContabilizado, 
+  setIsContabilizado 
 }) => {
   return (
-    <div className="border rounded-md p-4">
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="contabilizarFrete"
-          checked={contabilizarFrete}
-          onCheckedChange={(checked) => {
-            const isChecked = checked === true;
-            setContabilizarFrete(isChecked);
-          }}
-          disabled={isTipoFrota}
-        />
-        <label
-          htmlFor="contabilizarFrete"
-          className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${
-            isTipoFrota ? 'text-gray-400' : ''
-          }`}
-        >
-          Contabilizar frete automaticamente
-        </label>
-      </div>
-      {contabilizarFrete && (
-        <p className="text-xs text-gray-500 mt-2 ml-6">
-          Será gerado lançamento contábil de receita de frete automaticamente quando o contrato for salvo.
-        </p>
-      )}
-    </div>
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-lg font-semibold">Contabilizado</Label>
+            <p className="text-sm text-gray-500 mt-1">
+              Marque esta opção se o valor já foi contabilizado no sistema
+            </p>
+          </div>
+          <Switch 
+            checked={isContabilizado} 
+            onCheckedChange={setIsContabilizado} 
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

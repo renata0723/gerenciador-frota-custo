@@ -1,57 +1,40 @@
 
 import React from 'react';
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
+import { ptBR } from 'date-fns/locale';
 
 interface DataAdiantamentoSelectorProps {
-  valorAdiantamento: number;
-  dataAdiantamento?: Date;
-  setDataAdiantamento: (date?: Date) => void;
-  dataAdiantamentoAberta: boolean;
-  setDataAdiantamentoAberta: (open: boolean) => void;
+  dataAdiantamento: string;
+  setDataAdiantamento: (data: string) => void;
 }
 
-const DataAdiantamentoSelector: React.FC<DataAdiantamentoSelectorProps> = ({
-  valorAdiantamento,
-  dataAdiantamento,
-  setDataAdiantamento,
-  dataAdiantamentoAberta,
-  setDataAdiantamentoAberta
+const DataAdiantamentoSelector: React.FC<DataAdiantamentoSelectorProps> = ({ 
+  dataAdiantamento, 
+  setDataAdiantamento 
 }) => {
-  if (valorAdiantamento <= 0) return null;
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setDataAdiantamento(date.toISOString());
+    }
+  };
 
   return (
-    <div className="space-y-2 ml-6 border-l-2 border-blue-200 pl-4">
-      <Label htmlFor="dataAdiantamento">Data de pagamento do adiantamento</Label>
-      <Popover open={dataAdiantamentoAberta} onOpenChange={setDataAdiantamentoAberta}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full flex justify-start text-left font-normal"
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {dataAdiantamento ? (
-              format(dataAdiantamento, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-            ) : (
-              <span>Selecione a data</span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0">
-          <Calendar
-            mode="single"
-            selected={dataAdiantamento}
-            onSelect={setDataAdiantamento}
+    <Card>
+      <CardContent className="pt-6">
+        <div className="space-y-4">
+          <Label className="text-lg font-semibold">Data Programada para Pagamento</Label>
+          <DatePicker
             locale={ptBR}
+            selected={dataAdiantamento ? new Date(dataAdiantamento) : undefined}
+            onSelect={handleDateChange}
+            placeholder="Selecione a data programada"
           />
-        </PopoverContent>
-      </Popover>
-    </div>
+          <p className="text-sm text-gray-500">Essa é a data prevista para o pagamento do restante ao parceiro</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

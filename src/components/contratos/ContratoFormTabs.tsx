@@ -1,110 +1,151 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import FormularioDadosContrato from './FormularioDadosContrato';
+import FormularioDocumentosRegistros from './FormularioDocumentosRegistros';
+import FormularioCancelamento from './FormularioCancelamento';
+import FormularioObservacoes from './FormularioObservacoes';
+import FormularioRejeicaoContrato from './FormularioRejeicaoContrato';
+import FormularioFreteContratado from './FormularioFreteContratado';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import FormularioDadosContrato, { DadosContratoFormData } from '@/components/contratos/FormularioDadosContrato';
-import FormularioCTeDados from '@/components/contratos/FormularioCTeDados';
-import { FormularioFreteContratado } from '@/components/contratos/FormularioFreteContratado';
-import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
+import { AlertCircle, Check } from 'lucide-react';
+import ContratoLoading from './ContratoLoading';
 import { toast } from 'sonner';
-import { ThumbsDown } from 'lucide-react';
 
-const ContratoFormTabs = () => {
-  const [activeTab, setActiveTab] = useState("dados");
-  const [dadosContrato, setDadosContrato] = useState<DadosContratoFormData | null>(null);
-  const [dadosFrete, setDadosFrete] = useState<any | null>(null);
-  const [dadosCTe, setDadosCTe] = useState<any | null>(null);
-  
-  // Funções para salvar os dados dos formulários
-  const handleSaveContractData = (data: DadosContratoFormData) => {
-    console.log("Dados do contrato salvos:", data);
-    setDadosContrato(data);
-    toast.success("Dados do contrato salvos com sucesso!");
-  };
-  
-  const handleSaveFreightData = (data: any) => {
-    console.log("Dados do frete salvos:", data);
-    setDadosFrete(data);
-    toast.success("Dados do frete salvos com sucesso!");
-  };
-  
-  const handleSaveCTeData = (data: any) => {
-    console.log("Dados do CTe salvos:", data);
-    setDadosCTe(data);
-    toast.success("Dados do CTe salvos com sucesso!");
-    // Aqui você poderia chamar uma função para salvar todos os dados coletados
-    handleSaveAllData();
-  };
-  
-  const handleSaveRejectionData = (data: any) => {
-    console.log("Dados de rejeição salvos:", data);
-    toast.success("Contrato rejeitado com sucesso!");
-  };
+interface ContratoFormTabsProps {
+  contrato: any;
+  loading: boolean;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  onSave: (dados: any) => void;
+  onCancel: () => void;
+  isAdminView?: boolean;
+  readOnly?: boolean;
+}
 
-  const handleSaveAllData = () => {
-    // Aqui você enviaria todos os dados para o servidor
-    const contratoCompleto = {
-      dadosContrato,
-      dadosFrete,
-      dadosCTe
-    };
-    console.log("Contrato completo para salvar:", contratoCompleto);
-    toast.success("Contrato registrado com sucesso!");
+const ContratoFormTabs: React.FC<ContratoFormTabsProps> = ({
+  contrato,
+  loading,
+  activeTab,
+  setActiveTab,
+  onSave,
+  onCancel,
+  isAdminView = false,
+  readOnly = false
+}) => {
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const handleSave = (dados: any) => {
+    setFormError(null);
+    try {
+      onSave(dados);
+    } catch (error) {
+      console.error('Erro ao salvar contrato:', error);
+      setFormError('Ocorreu um erro ao salvar o contrato. Tente novamente.');
+      toast.error('Ocorreu um erro ao salvar o contrato. Tente novamente.');
+    }
   };
 
-  return (
-    <Card className="w-full">
-      <Tabs defaultValue="dados" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="dados">Dados do Contrato</TabsTrigger>
-          <TabsTrigger value="frete">Frete Contratado</TabsTrigger>
-          <TabsTrigger value="cte">CTe e Documentos</TabsTrigger>
-          <TabsTrigger value="rejeicao">
-            <ThumbsDown className="h-4 w-4 mr-2" />
-            Rejeição
+  const renderContent = () => {
+    if (loading) {
+      return <ContratoLoading />;
+    }
+
+    if (formError) {
+      return (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md flex items-start">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Erro ao processar formulário</p>
+                <p className="text-sm">{formError}</p>
+                <Button 
+                  variant="outline" 
+                  className="mt-2 border-red-300 text-red-600 hover:bg-red-50"
+                  onClick={() => setFormError(null)}
+                >
+                  Tentar novamente
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-5 mb-4">
+          <TabsTrigger value="dados" disabled={readOnly && activeTab !== 'dados'}>
+            Dados do Contrato
           </TabsTrigger>
+          <TabsTrigger value="documentos" disabled={readOnly && activeTab !== 'documentos'}>
+            Documentos
+          </TabsTrigger>
+          <TabsTrigger value="frete" disabled={readOnly && activeTab !== 'frete'}>
+            Frete Terceiro
+          </TabsTrigger>
+          <TabsTrigger value="observacoes" disabled={readOnly && activeTab !== 'observacoes'}>
+            Observações
+          </TabsTrigger>
+          {isAdminView && (
+            <TabsTrigger value="rejeicao" disabled={readOnly && activeTab !== 'rejeicao'}>
+              Rejeição
+            </TabsTrigger>
+          )}
         </TabsList>
-        
-        <TabsContent value="dados" className="p-4 space-y-4">
+
+        <TabsContent value="dados">
           <FormularioDadosContrato 
-            onSubmit={handleSaveContractData} 
-            onNext={() => setActiveTab("frete")}
-            initialData={dadosContrato || undefined}
+            contrato={contrato} 
+            onSave={handleSave} 
+            onCancel={onCancel}
+            readOnly={readOnly}
           />
         </TabsContent>
-        
-        <TabsContent value="frete" className="p-4 space-y-4">
+
+        <TabsContent value="documentos">
+          <FormularioDocumentosRegistros 
+            contrato={contrato} 
+            onSave={handleSave} 
+            onBack={() => setActiveTab('dados')}
+            readOnly={readOnly}
+          />
+        </TabsContent>
+
+        <TabsContent value="frete">
           <FormularioFreteContratado 
-            onSubmit={handleSaveFreightData} 
-            onBack={() => setActiveTab("dados")}
-            onNext={() => setActiveTab("cte")}
-            initialData={dadosFrete || undefined}
+            contrato={contrato} 
+            onSave={handleSave} 
+            onBack={() => setActiveTab('documentos')}
           />
         </TabsContent>
-        
-        <TabsContent value="cte" className="p-4 space-y-4">
-          <FormularioCTeDados 
-            onSave={handleSaveCTeData} 
-            initialData={dadosCTe || undefined}
+
+        <TabsContent value="observacoes">
+          <FormularioObservacoes 
+            contrato={contrato} 
+            onSave={handleSave} 
+            onBack={() => setActiveTab('frete')}
+            readOnly={readOnly}
           />
-          
-          <div className="flex justify-between mt-4">
-            <Button variant="outline" onClick={() => setActiveTab("frete")}>
-              Voltar
-            </Button>
-            <Button onClick={handleSaveAllData}>
-              Finalizar Contrato
-            </Button>
-          </div>
         </TabsContent>
-        
-        <TabsContent value="rejeicao" className="p-4 space-y-4">
-          <FormularioRejeicaoContrato onSave={handleSaveRejectionData} />
-        </TabsContent>
+
+        {isAdminView && (
+          <TabsContent value="rejeicao">
+            <FormularioRejeicaoContrato 
+              contrato={contrato}
+              onSave={handleSave}
+              onBack={() => setActiveTab('observacoes')}
+            />
+          </TabsContent>
+        )}
       </Tabs>
-    </Card>
-  );
+    );
+  };
+
+  return renderContent();
 };
 
 export default ContratoFormTabs;

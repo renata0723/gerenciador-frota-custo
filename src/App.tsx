@@ -3,7 +3,7 @@ import React, { Suspense } from "react";
 import { Routes, Route, BrowserRouter, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import EntradaNotas from "./pages/EntradaNotas";
-import NovaNotaForm from "./pages/NovaNotas|Form";
+import NovaNotaForm from "./pages/NovaNotaForm";
 import Veiculos from "./pages/Veiculos";
 import NovoVeiculoForm from "./pages/NovoVeiculoForm";
 import RelatoriosVeiculos from "./pages/RelatoriosVeiculos";
@@ -82,8 +82,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Redirecionar login para a página principal durante o desenvolvimento */}
-        <Route path="/login" element={<Navigate to="/" replace />} />
+        <Route path="/login" element={<Login />} />
         
         {/* Rotas sem proteção de autenticação durante o desenvolvimento */}
         <Route path="/" element={<DevModeWrapper><Suspense fallback={<LoadingFallback />}><Index /></Suspense></DevModeWrapper>} />

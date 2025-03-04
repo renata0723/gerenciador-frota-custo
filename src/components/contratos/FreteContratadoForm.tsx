@@ -1,86 +1,72 @@
 
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
-import FormNavigation from './frete/FormNavigation';
+import { Switch } from '@/components/ui/switch';
+import { InfoCircle, DollarSign, TruckForward, RoadHighway } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import FreteInfoAlert from './frete/FreteInfoAlert';
 import SaldoPagarOptions from './frete/SaldoPagarOptions';
 import DataAdiantamentoSelector from './frete/DataAdiantamentoSelector';
 import ContabilizacaoOption from './frete/ContabilizacaoOption';
+import FormNavigation from './frete/FormNavigation';
 import ValoresFreteForm from './frete/ValoresFreteForm';
-import { formatCurrency } from '@/utils/formatters';
 
-export interface FreteContratadoFormData {
-  valor_frete_contratado?: number;
-  valor_adiantamento?: number;
-  valor_pedagio?: number;
-  saldo_pagar?: number; 
-  data_programada_pagamento?: string;
-  contabilizado?: boolean;
-}
-
+// Definição de tipos
 interface FreteContratadoFormProps {
-  isTipoFrota: boolean;
-  initialData?: FreteContratadoFormData;
-  onSubmit: (data: FreteContratadoFormData) => void;
-  onBack?: () => void;
-  onNext?: () => void;
+  contrato: any;
+  onSave: (data: any) => void;
 }
 
-const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({
-  isTipoFrota,
-  initialData,
-  onSubmit,
-  onBack,
-  onNext,
-}) => {
-  const [valorFreteContratado, setValorFreteContratado] = useState<string>(
-    initialData?.valor_frete_contratado ? initialData.valor_frete_contratado.toString() : ''
-  );
-  const [valorAdiantamento, setValorAdiantamento] = useState<string>(
-    initialData?.valor_adiantamento ? initialData.valor_adiantamento.toString() : ''
-  );
-  const [valorPedagio, setValorPedagio] = useState<string>(
-    initialData?.valor_pedagio ? initialData.valor_pedagio.toString() : ''
-  );
-  const [saldoPagar, setSaldoPagar] = useState<number | undefined>(initialData?.saldo_pagar);
-  const [dataProgramadaPagamento, setDataProgramadaPagamento] = useState<string>(
-    initialData?.data_programada_pagamento || ''
-  );
-  const [contabilizado, setContabilizado] = useState<boolean>(initialData?.contabilizado || false);
+// Utilitário para formatação de valores monetários
+const formatarValorMonetario = (valor: number): string => {
+  return valor.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2
+  });
+};
 
-  useEffect(() => {
-    // Atualizar saldo a pagar sempre que os valores mudarem
-    if (!valorFreteContratado || isNaN(parseFloat(valorFreteContratado))) {
-      setSaldoPagar(undefined);
-      return;
-    }
+// Utilitário para conversão de string para número
+const converterParaNumero = (valor: string): number => {
+  if (!valor) return 0;
+  return parseFloat(valor.replace(/[^\d,.-]/g, '').replace(',', '.'));
+};
 
-    const freteContratado = parseFloat(valorFreteContratado) || 0;
-    const adiantamento = parseFloat(valorAdiantamento) || 0;
-    const pedagio = parseFloat(valorPedagio) || 0;
-    
-    const novoSaldo = freteContratado - adiantamento - pedagio;
-    setSaldoPagar(novoSaldo > 0 ? novoSaldo : 0);
-  }, [valorFreteContratado, valorAdiantamento, valorPedagio]);
+const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onSave }) => {
+  // Estados para os valores
+  const [valorFreteContratado, setValorFreteContratado] = useState<number>(contrato?.valor_frete_contratado || 0);
+  const [valorAdiantamento, setValorAdiantamento] = useState<number>(contrato?.valor_adiantamento || 0);
+  const [valorPedagio, setValorPedagio] = useState<number>(contrato?.valor_pedagio || 0);
+  const [dataProgramadaPagamento, setDataProgramadaPagamento] = useState<string>(contrato?.data_programada_pagamento || '');
+  const [contabilizado, setContabilizado] = useState<boolean>(contrato?.contabilizado || false);
+  
+  // Calcular saldo a pagar
+  const saldoPagar = valorFreteContratado - valorAdiantamento - valorPedagio;
+  const formattedSaldoPagar = formatarValorMonetario(saldoPagar);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!isTipoFrota) {
-      // Validar campos obrigatórios
-      if (!valorFreteContratado || parseFloat(valorFreteContratado) <= 0) {
-        alert('O valor do frete contratado é obrigatório.');
-        return;
-      }
-    }
+  // Função para atualizar os valores diretamente
+  const handleValorFreteChange = (valor: number) => {
+    setValorFreteContratado(valor);
+  };
+  
+  const handleValorAdiantamentoChange = (valor: number) => {
+    setValorAdiantamento(valor);
+  };
+  
+  const handleValorPedagioChange = (valor: number) => {
+    setValorPedagio(valor);
+  };
 
-    onSubmit({
-      valor_frete_contratado: valorFreteContratado ? parseFloat(valorFreteContratado) : undefined,
-      valor_adiantamento: valorAdiantamento ? parseFloat(valorAdiantamento) : undefined,
-      valor_pedagio: valorPedagio ? parseFloat(valorPedagio) : undefined,
+  const handleSave = () => {
+    onSave({
+      ...contrato,
+      valor_frete_contratado: valorFreteContratado,
+      valor_adiantamento: valorAdiantamento,
+      valor_pedagio: valorPedagio,
       saldo_pagar: saldoPagar,
       data_programada_pagamento: dataProgramadaPagamento,
       contabilizado: contabilizado
@@ -88,48 +74,35 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Alerta informativo para contratos do tipo frota */}
-      <FreteInfoAlert isTipoFrota={isTipoFrota} />
+    <div className="space-y-6">
+      <FreteInfoAlert 
+        placaCavalo={contrato?.placa_cavalo} 
+        motorista={contrato?.motorista}
+      />
       
-      {!isTipoFrota && (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <ValoresFreteForm 
-              valorFreteContratado={valorFreteContratado}
-              setValorFreteContratado={setValorFreteContratado}
-              valorAdiantamento={valorAdiantamento}
-              setValorAdiantamento={setValorAdiantamento}
-              valorPedagio={valorPedagio}
-              setValorPedagio={setValorPedagio}
-            />
-            
-            <div className="space-y-4">
-              <SaldoPagarOptions 
-                saldoPagar={saldoPagar}
-                formattedSaldoPagar={saldoPagar !== undefined ? formatCurrency(saldoPagar) : '-'}
-              />
-              
-              <Separator className="my-4" />
-              
-              <DataAdiantamentoSelector 
-                dataProgramadaPagamento={dataProgramadaPagamento}
-                setDataProgramadaPagamento={setDataProgramadaPagamento}
-              />
-              
-              <Separator className="my-4" />
-              
-              <ContabilizacaoOption 
-                contabilizado={contabilizado}
-                setContabilizado={setContabilizado}
-              />
-            </div>
-          </div>
-        </>
-      )}
+      <ValoresFreteForm 
+        valorFreteContratado={valorFreteContratado}
+        onValorFreteChange={handleValorFreteChange}
+        valorAdiantamento={valorAdiantamento}
+        onValorAdiantamentoChange={handleValorAdiantamentoChange}
+        valorPedagio={valorPedagio}
+        onValorPedagioChange={handleValorPedagioChange}
+      />
+
+      <SaldoPagarOptions 
+        saldoPagar={saldoPagar}
+      />
       
-      <FormNavigation onBack={onBack} onNext={onNext} />
-    </form>
+      <DataAdiantamentoSelector 
+        dataAdiantamento={dataProgramadaPagamento}
+        setDataAdiantamento={setDataProgramadaPagamento}
+      />
+      
+      <ContabilizacaoOption 
+        isContabilizado={contabilizado}
+        setIsContabilizado={setContabilizado}
+      />
+    </div>
   );
 };
 
