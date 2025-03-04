@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { autenticarUsuario } from '@/services/usuarioService';
+import { autenticarUsuario } from '@/services/auth/authService';
 import { logOperation } from '@/utils/logOperations';
 
 const Login = () => {

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Usuario } from '@/types/usuario';
+import { getUsuarioAutenticado } from '@/services/auth/authService';
 
 interface AuthGuardProps {
   children: React.ReactNode;
