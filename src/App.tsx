@@ -1,5 +1,5 @@
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import Index from "./pages/Index";
 import EntradaNotas from "./pages/EntradaNotas";
@@ -34,6 +34,7 @@ import Balancete from "./pages/contabilidade/Balancete";
 import RelatoriosContabeis from "./pages/contabilidade/RelatoriosContabeis";
 import FechamentoFiscal from "./pages/contabilidade/FechamentoFiscal";
 import ConciliacaoBancaria from "./pages/contabilidade/ConciliacaoBancaria";
+import { setupAdminUser } from "./services/auth/authService";
 
 // Lazy load the ApuracaoCustoResultado components
 const LazyApuracaoCustoResultado = React.lazy(() => import('./pages/contabilidade/ApuracaoCustoResultado'));
@@ -49,22 +50,9 @@ const LoadingFallback = () => (
 
 function App() {
   // Garantir que o usuário esteja sempre autenticado
-  React.useEffect(() => {
+  useEffect(() => {
     // Configurar os dados do usuário admin automaticamente
-    const adminTestUser = {
-      id: 9999,
-      nome: 'Administrador',
-      email: 'admin@slog.com.br',
-      cargo: 'Administrador',
-      status: 'ativo',
-      ultimo_acesso: new Date().toISOString()
-    };
-    
-    localStorage.setItem('userData', JSON.stringify(adminTestUser));
-    localStorage.setItem('userToken', 'token-simulado-dev');
-    localStorage.setItem('userName', adminTestUser.nome);
-    localStorage.setItem('userId', String(adminTestUser.id));
-    localStorage.setItem('userEmail', adminTestUser.email);
+    setupAdminUser();
     console.log('Autenticação automática realizada - modo desenvolvimento');
   }, []);
 
@@ -73,6 +61,7 @@ function App() {
       <Routes>
         {/* Rotas principais */}
         <Route path="/" element={<Suspense fallback={<LoadingFallback />}><Index /></Suspense>} />
+        <Route path="/login" element={<Suspense fallback={<LoadingFallback />}><Index /></Suspense>} />
         
         {/* Notas Fiscais */}
         <Route path="/notas" element={<Suspense fallback={<LoadingFallback />}><EntradaNotas /></Suspense>} />

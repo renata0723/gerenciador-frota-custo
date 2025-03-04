@@ -20,25 +20,4 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-export const setupAdminUser = () => {
-  // Dados do usuário administrador
-  const adminTestUser = {
-    id: 9999,
-    nome: 'Administrador',
-    email: 'admin@slog.com.br',
-    cargo: 'Administrador',
-    status: 'ativo',
-    ultimo_acesso: new Date().toISOString()
-  };
-  
-  localStorage.setItem('userData', JSON.stringify(adminTestUser));
-  localStorage.setItem('userToken', 'token-simulado-dev');
-  localStorage.setItem('userName', adminTestUser.nome);
-  localStorage.setItem('userId', String(adminTestUser.id));
-  localStorage.setItem('userEmail', adminTestUser.email);
-  
-  console.log('Sistema configurado com usuário administrador');
-  return adminTestUser;
-};
-
 export default AuthGuard;

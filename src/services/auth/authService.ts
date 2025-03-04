@@ -16,8 +16,8 @@ export interface UserData {
   permissoes?: string[];
 }
 
-// Função para configurar os dados de autenticação (sempre autenticado)
-const setupAdminUser = () => {
+// Função exportada para configurar os dados de autenticação (sempre autenticado)
+export const setupAdminUser = () => {
   // Dados do usuário administrador
   const adminTestUser = {
     id: 9999,
