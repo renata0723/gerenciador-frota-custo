@@ -1,6 +1,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { TruckType } from '@/components/veiculos/TruckType';
+
+// Diretamente definido aqui ao invés de importar do componente
+export type TruckType = 'cavalo' | 'carreta';
 
 export interface VeiculoData {
   id?: number; 

@@ -1,3 +1,4 @@
+
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import Index from "./pages/Index";
 import EntradaNotas from "./pages/EntradaNotas";
@@ -72,11 +73,7 @@ function App() {
         <Route path="/contabilidade/balanco" element={<AuthGuard><BalancoPatrimonial /></AuthGuard>} />
         <Route path="/contabilidade/dre" element={<AuthGuard><DRE /></AuthGuard>} />
         <Route path="/contabilidade/livro-caixa" element={<AuthGuard><LivroCaixa /></AuthGuard>} />
-        <Route path="/contabilidade/folha-pagamento" element={
-          <AuthGuard>
-            <FolhaPagamento />
-          </AuthGuard>
-        } />
+        <Route path="/contabilidade/folha-pagamento" element={<AuthGuard><FolhaPagamento /></AuthGuard>} />
         
         {/* Página de erro */}
         <Route path="*" element={<NotFound />} />

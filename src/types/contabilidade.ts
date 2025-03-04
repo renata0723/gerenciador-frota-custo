@@ -1,4 +1,8 @@
 
+export type StatusItem = 'ativo' | 'inativo' | 'pendente' | 'concluido' | 'cancelado' | 'aberto' | 'fechado';
+export type TipoMovimento = 'entrada' | 'saida';
+export type TipoConta = 'ativo' | 'passivo' | 'receita' | 'despesa' | 'patrimonio';
+
 export interface LancamentoContabil {
   id?: number;
   data_lancamento: string;
@@ -15,16 +19,14 @@ export interface LancamentoContabil {
   created_at?: string;
 }
 
-export type StatusItem = 'ativo' | 'inativo' | 'pendente' | 'concluido' | 'aberto' | 'fechado' | 'aguardando_saida' | 'saida_concluida';
-
 export interface ContaContabil {
   codigo: string;
   codigo_reduzido: string;
   nome: string;
-  tipo: 'ativo' | 'passivo' | 'receita' | 'despesa' | 'patrimonio';
+  tipo: TipoConta;
   natureza: 'devedora' | 'credora';
-  conta_pai?: string;
   nivel: number;
+  conta_pai?: string;
   status: StatusItem;
 }
 
@@ -35,48 +37,11 @@ export interface CentroCusto {
   status: StatusItem;
 }
 
-export interface DREData {
-  id?: number;
-  periodo_inicio: string;
-  periodo_fim: string;
-  receita_bruta: number;
-  deducoes?: number;
-  receita_liquida: number;
-  custos_operacionais: number;
-  despesas_administrativas: number;
-  despesas_operacionais?: number;
-  resultado_operacional?: number;
-  resultado_periodo: number;
-  receita_financeira?: number;
-  despesa_financeira?: number;
-  resultado_financeiro?: number;
-  resultado_antes_ir_csll?: number;
-  provisao_ir_csll?: number;
-  resultado_liquido?: number;
-  folha_pagamento?: number;
-  status: StatusItem;
-  periodo_fechado?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface BalancoPatrimonialData {
-  id?: number;
-  data_fechamento: string;
-  ativo_circulante?: number;
-  ativo_nao_circulante?: number;
-  passivo_circulante?: number;
-  passivo_nao_circulante?: number;
-  patrimonio_liquido?: number;
-  status: StatusItem;
-  created_at?: string;
-}
-
 export interface LivroCaixaItem {
   id?: number;
   data_movimento: string;
-  descricao: string;
   tipo: TipoMovimento;
+  descricao: string;
   valor: number;
   saldo: number;
   documento_referencia?: string;
@@ -85,31 +50,59 @@ export interface LivroCaixaItem {
   created_at?: string;
 }
 
-export interface SaldoPagarItem {
-  id: string | number;
-  parceiro: string;
-  contratos_associados: string;
-  valor_total: number;
-  valor_pago?: number;
-  saldo_restante?: number;
-  data_pagamento?: string;
-  status: 'Pendente' | 'Parcial' | 'Pago';
-  vencimento?: string;
-  banco_pagamento?: string;
-  documento?: string;
-  dados_bancarios?: string;
+export interface DREData {
+  id?: number;
+  periodo_inicio: string;
+  periodo_fim: string;
+  receita_bruta: number;
+  receita_liquida: number;
+  custos_operacionais: number;
+  despesas_administrativas: number;
+  resultado_periodo: number;
+  status: StatusItem;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export type TipoMovimento = 'entrada' | 'saida';
-
-export interface PagamentoProvisionado {
+export interface BalancoPatrimonialData {
   id?: number;
-  fornecedor: string;
-  vencimento: string;
-  valor: number;
-  contrato_id?: string;
-  descricao: string;
-  status: 'Pendente' | 'Pago' | 'Vencido';
-  conta_contabil?: string;
-  contabilizado: boolean;
+  data_fechamento: string;
+  ativos_totais?: number;
+  passivos_totais?: number;
+  patrimonio_liquido?: number;
+  status: StatusItem;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface FolhaPagamento {
+  id?: number;
+  funcionario_nome: string;
+  salario_base: number;
+  data_pagamento: string;
+  mes_referencia: string;
+  ano_referencia: string;
+  inss?: number;
+  fgts?: number;
+  ir?: number;
+  vale_transporte?: number;
+  vale_refeicao?: number;
+  outros_descontos?: number;
+  outros_beneficios?: number;
+  valor_liquido: number;
+  observacoes?: string;
+  status: StatusItem;
+  created_at?: string;
+}
+
+export interface RelatorioContabil {
+  id?: number;
+  nome: string;
+  tipo: string;
+  periodo_inicio: string;
+  periodo_fim: string;
+  data_geracao: string;
+  gerado_por: string;
+  arquivo_url?: string;
+  observacoes?: string;
 }
