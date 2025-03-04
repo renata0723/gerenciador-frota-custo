@@ -1,8 +1,8 @@
 
 export interface LancamentoContabil {
   id?: number;
-  data_lancamento: string | Date;
-  data_competencia: string | Date;
+  data_lancamento: string;
+  data_competencia: string;
   conta_debito: string;
   conta_credito: string;
   valor: number;
@@ -37,8 +37,8 @@ export interface CentroCusto {
 
 export interface DREData {
   id?: number;
-  periodo_inicio: string | Date;
-  periodo_fim: string | Date;
+  periodo_inicio: string;
+  periodo_fim: string;
   receita_bruta: number;
   deducoes?: number;
   receita_liquida: number;
@@ -53,6 +53,7 @@ export interface DREData {
   resultado_antes_ir_csll?: number;
   provisao_ir_csll?: number;
   resultado_liquido?: number;
+  folha_pagamento?: number;
   status: StatusItem;
   periodo_fechado?: boolean;
   created_at?: string;
@@ -61,7 +62,7 @@ export interface DREData {
 
 export interface BalancoPatrimonialData {
   id?: number;
-  data_fechamento: string | Date;
+  data_fechamento: string;
   ativo_circulante?: number;
   ativo_nao_circulante?: number;
   passivo_circulante?: number;
@@ -73,9 +74,9 @@ export interface BalancoPatrimonialData {
 
 export interface LivroCaixaItem {
   id?: number;
-  data_movimento: string | Date;
+  data_movimento: string;
   descricao: string;
-  tipo: 'entrada' | 'saida';
+  tipo: TipoMovimento;
   valor: number;
   saldo: number;
   documento_referencia?: string;

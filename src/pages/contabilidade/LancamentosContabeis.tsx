@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 
-import { getLancamentosContabeis, criarLancamentoContabil, getPlanoContas, getCentrosCusto } from '@/services/contabilidadeService';
+import { getLancamentosContabeis, criarLancamentoContabil, getPlanoContas, getCentrosCusto, getContaContabilByCodigoReduzido } from '@/services/contabilidadeService';
 import { LancamentoContabil, ContaContabil, CentroCusto } from '@/types/contabilidade';
 import { formatarValorMonetario } from '@/utils/formatters';
 
@@ -24,6 +24,8 @@ const LancamentosContabeis = () => {
   const [contas, setContas] = useState<ContaContabil[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [codigoReduzidoDebito, setCodigoReduzidoDebito] = useState('');
+  const [codigoReduzidoCredito, setCodigoReduzidoCredito] = useState('');
   
   // Estado para o novo lançamento
   const [novoLancamento, setNovoLancamento] = useState<LancamentoContabil>({
@@ -33,7 +35,8 @@ const LancamentosContabeis = () => {
     valor: 0,
     historico: '',
     data_competencia: format(new Date(), 'yyyy-MM-dd'),
-    status: 'ativo'
+    status: 'ativo',
+    periodo_fiscal_fechado: false
   });
   
   useEffect(() => {
@@ -77,6 +80,31 @@ const LancamentosContabeis = () => {
       [field]: value
     }));
   };
+
+  const buscarContaPorCodigoReduzido = async (codigoReduzido: string, tipo: 'debito' | 'credito') => {
+    try {
+      const conta = await getContaContabilByCodigoReduzido(codigoReduzido);
+      if (conta) {
+        if (tipo === 'debito') {
+          setNovoLancamento(prev => ({
+            ...prev,
+            conta_debito: conta.codigo
+          }));
+        } else {
+          setNovoLancamento(prev => ({
+            ...prev,
+            conta_credito: conta.codigo
+          }));
+        }
+        toast.success(`Conta ${conta.nome} selecionada com sucesso.`);
+      } else {
+        toast.error(`Código reduzido ${codigoReduzido} não encontrado.`);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar conta pelo código reduzido:', error);
+      toast.error('Erro ao buscar conta. Tente novamente.');
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,8 +132,11 @@ const LancamentosContabeis = () => {
           valor: 0,
           historico: '',
           data_competencia: format(new Date(), 'yyyy-MM-dd'),
-          status: 'ativo'
+          status: 'ativo',
+          periodo_fiscal_fechado: false
         });
+        setCodigoReduzidoDebito('');
+        setCodigoReduzidoCredito('');
       } else {
         toast.error('Erro ao registrar lançamento. Tente novamente.');
       }
@@ -220,7 +251,23 @@ const LancamentosContabeis = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                 <div>
-                  <Label htmlFor="conta_debito">Conta de Débito</Label>
+                  <Label htmlFor="codigoReduzidoDebito">Código Reduzido (Débito)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="codigoReduzidoDebito"
+                      value={codigoReduzidoDebito}
+                      onChange={(e) => setCodigoReduzidoDebito(e.target.value)}
+                      placeholder="Ex: 11201"
+                    />
+                    <Button 
+                      type="button" 
+                      onClick={() => buscarContaPorCodigoReduzido(codigoReduzidoDebito, 'debito')}
+                      variant="outline"
+                    >
+                      Buscar
+                    </Button>
+                  </div>
+                  <Label htmlFor="conta_debito" className="mt-2">Conta de Débito</Label>
                   <Select 
                     value={novoLancamento.conta_debito}
                     onValueChange={(value) => handleSelectChange('conta_debito', value)}
@@ -243,7 +290,23 @@ const LancamentosContabeis = () => {
                 </div>
                 
                 <div>
-                  <Label htmlFor="conta_credito">Conta de Crédito</Label>
+                  <Label htmlFor="codigoReduzidoCredito">Código Reduzido (Crédito)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="codigoReduzidoCredito"
+                      value={codigoReduzidoCredito}
+                      onChange={(e) => setCodigoReduzidoCredito(e.target.value)}
+                      placeholder="Ex: 11201"
+                    />
+                    <Button 
+                      type="button" 
+                      onClick={() => buscarContaPorCodigoReduzido(codigoReduzidoCredito, 'credito')}
+                      variant="outline"
+                    >
+                      Buscar
+                    </Button>
+                  </div>
+                  <Label htmlFor="conta_credito" className="mt-2">Conta de Crédito</Label>
                   <Select 
                     value={novoLancamento.conta_credito}
                     onValueChange={(value) => handleSelectChange('conta_credito', value)}
@@ -308,7 +371,7 @@ const LancamentosContabeis = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="documento_referencia">Documento de Referência</Label>
                   <Input
@@ -336,6 +399,24 @@ const LancamentosContabeis = () => {
                       <SelectItem value="OUT">Outros</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                
+                <div className="flex items-center space-x-2 mt-8">
+                  <input
+                    type="checkbox"
+                    id="periodo_fiscal_fechado"
+                    checked={novoLancamento.periodo_fiscal_fechado || false}
+                    onChange={() => 
+                      setNovoLancamento(prev => ({
+                        ...prev, 
+                        periodo_fiscal_fechado: !prev.periodo_fiscal_fechado
+                      }))
+                    }
+                    className="h-4 w-4 text-blue-600 rounded"
+                  />
+                  <Label htmlFor="periodo_fiscal_fechado" className="text-sm">
+                    Período Fiscal Fechado
+                  </Label>
                 </div>
               </div>
               

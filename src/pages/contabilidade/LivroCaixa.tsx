@@ -1,444 +1,385 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, FileText, ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { FileDown, PlusCircle, Search } from 'lucide-react';
-import { getLivroCaixa, criarLivroCaixaItem } from '@/services/contabilidadeService';
-import { LivroCaixaItem, TipoMovimento } from '@/types/contabilidade';
-import { formatCurrency, formatDate } from '@/utils/formatters';
+import { format, parseISO } from 'date-fns';
+
+import { getLivroCaixa, criarLivroCaixaItem, getPlanoContas } from '@/services/contabilidadeService';
+import { LivroCaixaItem, TipoMovimento, ContaContabil } from '@/types/contabilidade';
+import { formatarValorMonetario } from '@/utils/formatters';
 
 const LivroCaixa = () => {
+  const navigate = useNavigate();
   const [movimentos, setMovimentos] = useState<LivroCaixaItem[]>([]);
+  const [contas, setContas] = useState<ContaContabil[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [formData, setFormData] = useState<{
-    data_movimento: string;
-    descricao: string;
-    tipo: TipoMovimento;
-    valor: number;
-    documento_referencia?: string;
-  }>({
-    data_movimento: new Date().toISOString().split('T')[0],
+  const [saldoAtual, setSaldoAtual] = useState(0);
+  
+  // Estado para novo movimento
+  const [novoMovimento, setNovoMovimento] = useState<LivroCaixaItem>({
+    data_movimento: format(new Date(), 'yyyy-MM-dd'),
     descricao: '',
-    tipo: 'Entrada',
+    tipo: 'entrada',
     valor: 0,
-    documento_referencia: ''
+    saldo: 0,
+    status: 'ativo'
   });
-  const [filtroData, setFiltroData] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [periodoInicio, setPeriodoInicio] = useState<string>(
-    new Date(new Date().setDate(1)).toISOString().split('T')[0]
-  );
-  const [periodoFim, setPeriodoFim] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
-
+  
   useEffect(() => {
-    carregarMovimentos();
+    const carregarDados = async () => {
+      try {
+        setLoading(true);
+        
+        // Carrega movimentos e contas
+        const [movimentosData, contasData] = await Promise.all([
+          getLivroCaixa(),
+          getPlanoContas()
+        ]);
+        
+        // Ordena movimentos por data (mais recentes primeiro)
+        const movimentosOrdenados = [...movimentosData].sort((a, b) => {
+          const dataA = new Date(a.data_movimento).getTime();
+          const dataB = new Date(b.data_movimento).getTime();
+          return dataB - dataA;
+        });
+        
+        setMovimentos(movimentosOrdenados);
+        setContas(contasData);
+        
+        // Calcula saldo atual (último movimento)
+        if (movimentosOrdenados.length > 0) {
+          setSaldoAtual(movimentosOrdenados[0].saldo);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        toast.error('Erro ao carregar dados. Tente novamente mais tarde.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    carregarDados();
   }, []);
-
-  const carregarMovimentos = async () => {
-    setLoading(true);
-    try {
-      const data = await getLivroCaixa();
-      setMovimentos(data);
-    } catch (error) {
-      console.error('Erro ao carregar movimentos:', error);
-      toast.error('Não foi possível carregar os movimentos');
-    } finally {
-      setLoading(false);
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    
+    setNovoMovimento(prev => ({
+      ...prev,
+      [name]: type === 'number' ? parseFloat(value) : value
+    }));
+  };
+  
+  const handleSelectChange = (field: string, value: string) => {
+    if (field === 'tipo') {
+      setNovoMovimento(prev => ({
+        ...prev,
+        [field]: value as TipoMovimento
+      }));
+    } else {
+      setNovoMovimento(prev => ({
+        ...prev,
+        [field]: value
+      }));
     }
   };
-
-  const calcularSaldo = (): number => {
-    return movimentos.reduce((total, item) => {
-      if (item.tipo === 'Entrada') {
-        return total + item.valor;
-      } else {
-        return total - item.valor;
-      }
-    }, 0);
+  
+  const calcularNovoSaldo = (tipo: TipoMovimento, valor: number): number => {
+    return tipo === 'entrada' ? saldoAtual + valor : saldoAtual - valor;
   };
-
-  const calcularTotalEntradas = (): number => {
-    return movimentos
-      .filter(item => item.tipo === 'Entrada')
-      .reduce((total, item) => total + item.valor, 0);
-  };
-
-  const calcularTotalSaidas = (): number => {
-    return movimentos
-      .filter(item => item.tipo === 'Saída')
-      .reduce((total, item) => total + item.valor, 0);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'valor' ? parseFloat(value) || 0 : value
-    }));
-  };
-
-  const handleTipoChange = (value: TipoMovimento) => {
-    setFormData(prev => ({
-      ...prev,
-      tipo: value
-    }));
-  };
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.descricao) {
-      toast.error('A descrição é obrigatória');
+    // Validação básica
+    if (!novoMovimento.descricao || !novoMovimento.valor || novoMovimento.valor <= 0) {
+      toast.error('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
     
-    if (formData.valor <= 0) {
-      toast.error('O valor deve ser maior que zero');
-      return;
-    }
+    // Calcula novo saldo
+    const novoSaldo = calcularNovoSaldo(novoMovimento.tipo, novoMovimento.valor);
     
     try {
-      const novoSaldo = formData.tipo === 'Entrada' 
-        ? calcularSaldo() + formData.valor
-        : calcularSaldo() - formData.valor;
-      
-      const novoMovimento: LivroCaixaItem = {
-        ...formData,
-        saldo: novoSaldo,
-        status: 'ativo'
+      const movimentoFinal = {
+        ...novoMovimento,
+        saldo: novoSaldo
       };
       
-      await criarLivroCaixaItem(novoMovimento);
-      toast.success('Movimento registrado com sucesso!');
-      setModalOpen(false);
-      carregarMovimentos();
+      const response = await criarLivroCaixaItem(movimentoFinal);
       
-      // Limpar formulário
-      setFormData({
-        data_movimento: new Date().toISOString().split('T')[0],
-        descricao: '',
-        tipo: 'Entrada',
-        valor: 0,
-        documento_referencia: ''
-      });
+      if (response) {
+        toast.success('Movimento registrado com sucesso.');
+        
+        // Atualiza a lista de movimentos e o saldo
+        setMovimentos(prev => [response, ...prev]);
+        setSaldoAtual(novoSaldo);
+        
+        // Limpa o formulário
+        setNovoMovimento({
+          data_movimento: format(new Date(), 'yyyy-MM-dd'),
+          descricao: '',
+          tipo: 'entrada',
+          valor: 0,
+          saldo: 0,
+          status: 'ativo'
+        });
+      } else {
+        toast.error('Erro ao registrar movimento. Tente novamente.');
+      }
     } catch (error) {
-      console.error('Erro ao registrar movimento:', error);
-      toast.error('Não foi possível registrar o movimento');
+      console.error('Erro ao salvar movimento:', error);
+      toast.error('Erro ao salvar movimento. Tente novamente mais tarde.');
     }
   };
-
-  const filtrarMovimentosPorData = () => {
-    const dataFiltro = new Date(filtroData);
-    
-    return movimentos.filter(movimento => {
-      const dataMovimento = new Date(movimento.data_movimento);
-      return dataMovimento.getDate() === dataFiltro.getDate() &&
-             dataMovimento.getMonth() === dataFiltro.getMonth() &&
-             dataMovimento.getFullYear() === dataFiltro.getFullYear();
-    });
+  
+  const formatarData = (dataString: string) => {
+    try {
+      return format(parseISO(dataString), 'dd/MM/yyyy');
+    } catch (error) {
+      return dataString;
+    }
   };
-
-  const filtrarMovimentosPorPeriodo = () => {
-    const dataInicio = new Date(periodoInicio);
-    const dataFim = new Date(periodoFim);
-    
-    return movimentos.filter(movimento => {
-      const dataMovimento = new Date(movimento.data_movimento);
-      return dataMovimento >= dataInicio && dataMovimento <= dataFim;
-    });
-  };
-
-  const movimentosFiltrados = filtroData ? filtrarMovimentosPorData() : movimentos;
-  const movimentosPeriodo = filtrarMovimentosPorPeriodo();
-
+  
   return (
     <PageLayout>
       <PageHeader 
         title="Livro Caixa" 
-        description="Controle de entradas e saídas financeiras"
-        backButton={true}
-        backLink="/contabilidade"
+        description="Controle de movimentações financeiras"
+        actions={
+          <Button variant="ghost" onClick={() => navigate('/contabilidade')}>
+            Voltar
+          </Button>
+        }
       />
       
-      <div className="mb-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Saldo Atual: {formatCurrency(calcularSaldo())}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2 bg-green-50 p-4 rounded-md">
-                <p className="text-sm text-green-700">Total de Entradas:</p>
-                <p className="text-xl font-bold text-green-700">{formatCurrency(calcularTotalEntradas())}</p>
-              </div>
-              
-              <div className="space-y-2 bg-red-50 p-4 rounded-md">
-                <p className="text-sm text-red-700">Total de Saídas:</p>
-                <p className="text-xl font-bold text-red-700">{formatCurrency(calcularTotalSaidas())}</p>
-              </div>
-              
-              <div className="space-y-2 bg-blue-50 p-4 rounded-md">
-                <p className="text-sm text-blue-700">Saldo:</p>
-                <p className="text-xl font-bold text-blue-700">{formatCurrency(calcularSaldo())}</p>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <Card className="p-6 bg-blue-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-blue-600">Saldo Atual</h3>
+              <p className="text-2xl font-bold">{formatarValorMonetario(saldoAtual)}</p>
             </div>
-          </CardContent>
+            <div className="bg-blue-100 p-3 rounded-full">
+              <TrendingUp className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-6 bg-green-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-green-600">Total de Entradas</h3>
+              <p className="text-2xl font-bold">
+                {formatarValorMonetario(
+                  movimentos
+                    .filter(m => m.tipo === 'entrada')
+                    .reduce((acc, curr) => acc + curr.valor, 0)
+                )}
+              </p>
+            </div>
+            <div className="bg-green-100 p-3 rounded-full">
+              <ArrowUpRight className="h-6 w-6 text-green-600" />
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-6 bg-red-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-red-600">Total de Saídas</h3>
+              <p className="text-2xl font-bold">
+                {formatarValorMonetario(
+                  movimentos
+                    .filter(m => m.tipo === 'saida')
+                    .reduce((acc, curr) => acc + curr.valor, 0)
+                )}
+              </p>
+            </div>
+            <div className="bg-red-100 p-3 rounded-full">
+              <ArrowDownRight className="h-6 w-6 text-red-600" />
+            </div>
+          </div>
         </Card>
       </div>
       
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-2 items-center">
-          <Input 
-            type="date" 
-            value={filtroData}
-            onChange={(e) => setFiltroData(e.target.value)}
-            className="w-40"
-          />
-          <Button variant="outline" onClick={() => setFiltroData('')}>
-            Limpar Filtro
-          </Button>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button variant="outline" className="flex items-center gap-2">
-            <FileDown size={18} />
-            Exportar
-          </Button>
-          <Button onClick={() => setModalOpen(true)} className="flex items-center gap-2">
-            <PlusCircle size={18} />
-            Novo Lançamento
-          </Button>
-        </div>
-      </div>
-      
-      <Tabs defaultValue="diario" className="w-full">
-        <TabsList className="w-full mb-6 grid grid-cols-2">
-          <TabsTrigger value="diario">Lançamentos do Dia</TabsTrigger>
-          <TabsTrigger value="periodo">Lançamentos por Período</TabsTrigger>
+      <Tabs defaultValue="listar" className="mt-6">
+        <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsTrigger value="listar">Movimentos</TabsTrigger>
+          <TabsTrigger value="novo">Novo Movimento</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="diario">
-          <Card>
-            <CardContent className="p-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Documento</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="text-right">Saldo</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
+        <TabsContent value="listar">
+          <Card className="p-6">
+            {loading ? (
+              <p className="text-center py-4">Carregando movimentos...</p>
+            ) : movimentos.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900">Nenhum movimento registrado</h3>
+                <p className="mt-1 text-gray-500">Clique em "Novo Movimento" para adicionar.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center">Carregando...</TableCell>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="text-right">Saldo</TableHead>
+                      <TableHead>Referência</TableHead>
                     </TableRow>
-                  ) : movimentosFiltrados.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center">Nenhum movimento encontrado</TableCell>
-                    </TableRow>
-                  ) : (
-                    movimentosFiltrados.map((movimento, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{formatDate(movimento.data_movimento)}</TableCell>
+                  </TableHeader>
+                  <TableBody>
+                    {movimentos.map((movimento, index) => (
+                      <TableRow key={movimento.id || index}>
+                        <TableCell>{formatarData(movimento.data_movimento)}</TableCell>
                         <TableCell>{movimento.descricao}</TableCell>
-                        <TableCell>{movimento.documento_referencia || '-'}</TableCell>
                         <TableCell>
-                          <span className={movimento.tipo === 'Entrada' ? 'text-green-600' : 'text-red-600'}>
-                            {movimento.tipo}
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            movimento.tipo === 'entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {movimento.tipo === 'entrada' ? (
+                              <>
+                                <ArrowUpRight className="mr-1 h-3 w-3" />
+                                Entrada
+                              </>
+                            ) : (
+                              <>
+                                <ArrowDownRight className="mr-1 h-3 w-3" />
+                                Saída
+                              </>
+                            )}
                           </span>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          <span className={movimento.tipo === 'Entrada' ? 'text-green-600' : 'text-red-600'}>
-                            {formatCurrency(movimento.valor)}
+                          <span className={movimento.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'}>
+                            {movimento.tipo === 'entrada' ? '+' : '-'} {formatarValorMonetario(movimento.valor)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatCurrency(movimento.saldo)}
+                          {formatarValorMonetario(movimento.saldo)}
                         </TableCell>
+                        <TableCell>{movimento.documento_referencia || '-'}</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </Card>
         </TabsContent>
         
-        <TabsContent value="periodo">
-          <div className="mb-6 flex gap-4 items-center">
-            <div className="flex gap-2 items-center">
-              <Label htmlFor="dataInicio">De:</Label>
-              <Input 
-                id="dataInicio"
-                type="date" 
-                value={periodoInicio}
-                onChange={(e) => setPeriodoInicio(e.target.value)}
-                className="w-40"
-              />
-            </div>
-            <div className="flex gap-2 items-center">
-              <Label htmlFor="dataFim">Até:</Label>
-              <Input 
-                id="dataFim"
-                type="date" 
-                value={periodoFim}
-                onChange={(e) => setPeriodoFim(e.target.value)}
-                className="w-40"
-              />
-            </div>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Search size={18} />
-              Filtrar
-            </Button>
-          </div>
-          
-          <Card>
-            <CardContent className="p-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Documento</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="text-right">Saldo</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center">Carregando...</TableCell>
-                    </TableRow>
-                  ) : movimentosPeriodo.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center">Nenhum movimento encontrado no período</TableCell>
-                    </TableRow>
-                  ) : (
-                    movimentosPeriodo.map((movimento, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{formatDate(movimento.data_movimento)}</TableCell>
-                        <TableCell>{movimento.descricao}</TableCell>
-                        <TableCell>{movimento.documento_referencia || '-'}</TableCell>
-                        <TableCell>
-                          <span className={movimento.tipo === 'Entrada' ? 'text-green-600' : 'text-red-600'}>
-                            {movimento.tipo}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          <span className={movimento.tipo === 'Entrada' ? 'text-green-600' : 'text-red-600'}>
-                            {formatCurrency(movimento.valor)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(movimento.saldo)}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
+        <TabsContent value="novo">
+          <Card className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="data_movimento">Data do Movimento</Label>
+                  <Input
+                    id="data_movimento"
+                    name="data_movimento"
+                    type="date"
+                    value={novoMovimento.data_movimento}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="tipo">Tipo de Movimento</Label>
+                  <Select 
+                    value={novoMovimento.tipo}
+                    onValueChange={(value) => handleSelectChange('tipo', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="entrada">Entrada</SelectItem>
+                      <SelectItem value="saida">Saída</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="descricao">Descrição</Label>
+                <Input
+                  id="descricao"
+                  name="descricao"
+                  value={novoMovimento.descricao}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="valor">Valor (R$)</Label>
+                  <Input
+                    id="valor"
+                    name="valor"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={novoMovimento.valor}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="documento_referencia">Documento de Referência (opcional)</Label>
+                  <Input
+                    id="documento_referencia"
+                    name="documento_referencia"
+                    value={novoMovimento.documento_referencia || ''}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+              
+              <div className="border-t pt-4 mt-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Resumo do Movimento</h3>
+                  <span className={`text-lg font-bold ${novoMovimento.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
+                    {novoMovimento.tipo === 'entrada' ? '+' : '-'} {formatarValorMonetario(novoMovimento.valor)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <p className="text-gray-600">Saldo Atual:</p>
+                  <span className="font-medium">{formatarValorMonetario(saldoAtual)}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <p className="text-gray-600">Novo Saldo:</p>
+                  <span className="font-bold text-blue-600">
+                    {formatarValorMonetario(calcularNovoSaldo(novoMovimento.tipo, novoMovimento.valor))}
+                  </span>
+                </div>
+              </div>
+              
+              <Button type="submit" className="w-full">
+                <Plus className="mr-2 h-4 w-4" /> Registrar Movimento
+              </Button>
+            </form>
           </Card>
         </TabsContent>
       </Tabs>
-      
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Novo Lançamento</DialogTitle>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="data_movimento">Data do Movimento</Label>
-              <Input
-                id="data_movimento"
-                name="data_movimento"
-                type="date"
-                value={formData.data_movimento}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="descricao">Descrição</Label>
-              <Input
-                id="descricao"
-                name="descricao"
-                value={formData.descricao}
-                onChange={handleInputChange}
-                placeholder="Descrição do movimento"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="tipo">Tipo de Movimento</Label>
-              <Select
-                value={formData.tipo}
-                onValueChange={(value) => handleTipoChange(value as TipoMovimento)}
-              >
-                <SelectTrigger id="tipo">
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Entrada">Entrada</SelectItem>
-                  <SelectItem value="Saída">Saída</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="valor">Valor</Label>
-              <Input
-                id="valor"
-                name="valor"
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={formData.valor}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="documento_referencia">Documento de Referência (opcional)</Label>
-              <Input
-                id="documento_referencia"
-                name="documento_referencia"
-                value={formData.documento_referencia}
-                onChange={handleInputChange}
-                placeholder="Número da NF, recibo, etc."
-              />
-            </div>
-            
-            <DialogFooter className="mt-6">
-              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit">Salvar</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </PageLayout>
   );
 };

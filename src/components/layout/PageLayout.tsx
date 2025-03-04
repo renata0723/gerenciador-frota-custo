@@ -1,31 +1,32 @@
 
-import React, { ReactNode } from 'react';
+import React, { useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PageLayoutProps {
-  children: ReactNode;
-  showProjectionButton?: boolean;
+  children: React.ReactNode;
 }
 
-const PageLayout: React.FC<PageLayoutProps> = ({ children, showProjectionButton }) => {
-  const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = React.useState(!isMobile);
+const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar toggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
-      <Sidebar isOpen={sidebarOpen} />
-      <main className={`pt-16 transition-all duration-300 ${sidebarOpen ? 'md:ml-60' : 'md:ml-0'} px-4 py-6`}>
-        <div className="max-w-7xl mx-auto">
-          {children}
-        </div>
-      </main>
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar isSidebarOpen={isSidebarOpen} />
+      
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <Navbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+        
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="container mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

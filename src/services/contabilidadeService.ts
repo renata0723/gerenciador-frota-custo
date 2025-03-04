@@ -71,6 +71,22 @@ export const getContaContabilByCodigo = async (codigo: string): Promise<ContaCon
   }
 };
 
+export const getContaContabilByCodigoReduzido = async (codigoReduzido: string): Promise<ContaContabil | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("Plano_Contas")
+      .select("*")
+      .eq("codigo_reduzido", codigoReduzido)
+      .single();
+
+    if (error) throw error;
+    return data as ContaContabil;
+  } catch (error) {
+    console.error(`Erro ao buscar conta contábil com código reduzido ${codigoReduzido}:`, error);
+    return null;
+  }
+};
+
 export const getCentrosCusto = async (): Promise<CentroCusto[]> => {
   try {
     const { data, error } = await supabase
@@ -110,6 +126,34 @@ export const adicionarLancamentoContabil = async (lancamento: LancamentoContabil
   }
 };
 
+export const criarLancamentoContabil = async (lancamento: LancamentoContabil): Promise<LancamentoContabil | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("Lancamentos_Contabeis")
+      .insert([{
+        data_lancamento: lancamento.data_lancamento,
+        data_competencia: lancamento.data_competencia,
+        conta_debito: lancamento.conta_debito,
+        conta_credito: lancamento.conta_credito,
+        valor: lancamento.valor,
+        historico: lancamento.historico,
+        documento_referencia: lancamento.documento_referencia,
+        tipo_documento: lancamento.tipo_documento,
+        centro_custo: lancamento.centro_custo,
+        status: lancamento.status,
+        periodo_fiscal_fechado: lancamento.periodo_fiscal_fechado || false
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as LancamentoContabil;
+  } catch (error) {
+    console.error("Erro ao criar lançamento contábil:", error);
+    return null;
+  }
+};
+
 export const getDRE = async (inicio?: string, fim?: string): Promise<DREData[]> => {
   try {
     let query = supabase.from("DRE").select("*");
@@ -130,6 +174,10 @@ export const getDRE = async (inicio?: string, fim?: string): Promise<DREData[]> 
   }
 };
 
+export const getDREs = async (): Promise<DREData[]> => {
+  return getDRE();
+};
+
 export const criarDRE = async (dre: DREData): Promise<DREData | null> => {
   try {
     const { data, error } = await supabase
@@ -142,6 +190,7 @@ export const criarDRE = async (dre: DREData): Promise<DREData | null> => {
         custos_operacionais: dre.custos_operacionais,
         despesas_administrativas: dre.despesas_administrativas,
         resultado_periodo: dre.resultado_periodo,
+        folha_pagamento: dre.folha_pagamento || 0,
         status: dre.status
       }])
       .select()
@@ -175,6 +224,10 @@ export const getBalancoPatrimonial = async (): Promise<BalancoPatrimonialData[]>
   }
 };
 
+export const getBalancosPatrimoniais = async (): Promise<BalancoPatrimonialData[]> => {
+  return getBalancoPatrimonial();
+};
+
 export const getBalancoPatrimonialById = async (id: number): Promise<BalancoPatrimonialData | null> => {
   try {
     const { data, error } = await supabase
@@ -187,6 +240,30 @@ export const getBalancoPatrimonialById = async (id: number): Promise<BalancoPatr
     return data as BalancoPatrimonialData;
   } catch (error) {
     console.error(`Erro ao buscar Balanço Patrimonial com ID ${id}:`, error);
+    return null;
+  }
+};
+
+export const criarBalancoPatrimonial = async (balanco: BalancoPatrimonialData): Promise<BalancoPatrimonialData | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("Balanco_Patrimonial")
+      .insert([{
+        data_fechamento: balanco.data_fechamento,
+        ativo_circulante: balanco.ativo_circulante || 0,
+        ativo_nao_circulante: balanco.ativo_nao_circulante || 0,
+        passivo_circulante: balanco.passivo_circulante || 0,
+        passivo_nao_circulante: balanco.passivo_nao_circulante || 0,
+        patrimonio_liquido: balanco.patrimonio_liquido || 0,
+        status: balanco.status
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as BalancoPatrimonialData;
+  } catch (error) {
+    console.error("Erro ao criar Balanço Patrimonial:", error);
     return null;
   }
 };
@@ -247,6 +324,31 @@ export const adicionarLivroCaixa = async (item: LivroCaixaItem): Promise<boolean
   } catch (error) {
     console.error("Erro ao adicionar item ao Livro Caixa:", error);
     return false;
+  }
+};
+
+export const criarLivroCaixaItem = async (item: LivroCaixaItem): Promise<LivroCaixaItem | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("Livro_Caixa")
+      .insert([{
+        data_movimento: item.data_movimento,
+        descricao: item.descricao,
+        tipo: item.tipo,
+        valor: item.valor,
+        saldo: item.saldo,
+        documento_referencia: item.documento_referencia,
+        lancamento_contabil_id: item.lancamento_contabil_id,
+        status: item.status
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as LivroCaixaItem;
+  } catch (error) {
+    console.error("Erro ao criar item do Livro Caixa:", error);
+    return null;
   }
 };
 
@@ -318,7 +420,19 @@ export const adicionarLancamentoManual = async (lancamento: LancamentoContabil):
   try {
     const { error } = await supabase
       .from("Lancamentos_Contabeis")
-      .insert([lancamento]);
+      .insert([{
+        data_lancamento: lancamento.data_lancamento,
+        data_competencia: lancamento.data_competencia,
+        conta_debito: lancamento.conta_debito,
+        conta_credito: lancamento.conta_credito,
+        valor: lancamento.valor,
+        historico: lancamento.historico,
+        documento_referencia: lancamento.documento_referencia,
+        tipo_documento: lancamento.tipo_documento,
+        centro_custo: lancamento.centro_custo,
+        status: lancamento.status,
+        periodo_fiscal_fechado: lancamento.periodo_fiscal_fechado || false
+      }]);
 
     if (error) throw error;
     return true;
@@ -371,4 +485,8 @@ export const getContasContabeisPorTipo = async (tipo: string): Promise<ContaCont
     console.error(`Erro ao buscar contas do tipo ${tipo}:`, error);
     return [];
   }
+};
+
+export const buscarPlanoContas = async (): Promise<ContaContabil[]> => {
+  return getPlanoContas();
 };

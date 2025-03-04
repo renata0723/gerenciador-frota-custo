@@ -1,21 +1,28 @@
 
+export interface AbastecimentoItem {
+  id?: number;
+  data_abastecimento: string;
+  placa_veiculo: string;
+  motorista_solicitante: string;
+  tipo_combustivel: string;
+  valor_abastecimento: number;
+  quantidade: number;
+  quilometragem: number;
+  posto: string;
+  responsavel_autorizacao: string;
+  itens_abastecidos: string;
+  valor_total: number;
+}
+
 export interface TipoCombustivel {
   id: string;
   nome: string;
   descricao?: string;
 }
 
-export interface AbastecimentoItem {
-  id?: number;
-  data_abastecimento: string;
-  placa_veiculo: string;
-  quilometragem: number;
-  tipo_combustivel: string;
-  posto: string;
-  motorista_solicitante: string;
-  responsavel_autorizacao?: string;
-  valor_total: number;
-  quantidade: number;
+export interface TipoCombustivelFormData {
+  nome: string;
+  descricao?: string;
 }
 
 export interface AbastecimentoFormData {
@@ -23,9 +30,10 @@ export interface AbastecimentoFormData {
   placa: string;
   motorista: string;
   tipoCombustivel: string;
-  quantidade: number;
   valor: number;
+  quantidade: number;
+  quilometragem: number;
   posto: string;
   responsavel: string;
-  quilometragem: number;
+  itens: string;
 }

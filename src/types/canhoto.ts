@@ -1,5 +1,5 @@
 
-import { canhotoStatus } from '@/utils/constants';
+import { StatusItem } from '@/types/contabilidade';
 
 export interface Canhoto {
   id: number;
@@ -37,4 +37,22 @@ export interface LancamentoCanhoto {
   data_programada_pagamento?: string;
   responsavel_recebimento: string;
   saldo_a_pagar?: number;
+}
+
+export interface CancelamentoDocumento {
+  id?: number;
+  tipo_documento: string;
+  numero_documento: string;
+  motivo: string;
+  responsavel: string;
+  observacoes?: string;
+  data_cancelamento?: string;
+}
+
+export interface CanhotoPendente {
+  id?: number;
+  contrato_id?: string;
+  status?: string;
+  numero_nota_fiscal?: string;
+  data_entrega_cliente?: string;
 }
