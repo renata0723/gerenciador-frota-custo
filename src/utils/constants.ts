@@ -1,4 +1,5 @@
 
+// Códigos de contas contábeis
 export const CONTAS_CONTABEIS = {
   // Contas de Ativo
   CAIXA: '11101',
@@ -22,11 +23,10 @@ export const CONTAS_CONTABEIS = {
   DESPESAS_VIAGEM: '41501'
 };
 
-// Funções de formatação movidas para formatters.ts
-export { formatarValorMonetario as formataMoeda } from './formatters';
-export { formatarValorMonetario as formatCurrency } from './formatters';
-export { formatarData as formatDate } from './formatters';
+// Exportamos as funções de formatação diretamente
+export { formatarValorMonetario, formatarData, formatCurrency, formatDate } from './formatters';
 
+// Status para saldo a pagar
 export const STATUS_SALDO_PAGAR = {
   PENDENTE: { value: 'pendente', label: 'Pendente' },
   PARCIAL: { value: 'parcial', label: 'Parcial' },
@@ -35,6 +35,7 @@ export const STATUS_SALDO_PAGAR = {
   LIBERADO: { value: 'liberado', label: 'Liberado' }
 };
 
+// Lista de estados brasileiros
 export const estadosBrasileiros = [
   { sigla: 'AC', nome: 'Acre' },
   { sigla: 'AL', nome: 'Alagoas' },
@@ -65,11 +66,13 @@ export const estadosBrasileiros = [
   { sigla: 'TO', nome: 'Tocantins' }
 ];
 
+// Alíquotas para cálculo de presunção de lucro
 export const ALIQUOTAS_PRESUNCAO = {
   TRANSPORTE_CARGAS: 8.0, // 8.0% para transportes de cargas
   TRANSPORTE_CARGAS_CSLL: 12.0 // 12.0% para CSLL em transportes
 };
 
+// Alíquotas de impostos
 export const ALIQUOTAS_IMPOSTO = {
   PIS: 0.65,
   COFINS: 3.0,

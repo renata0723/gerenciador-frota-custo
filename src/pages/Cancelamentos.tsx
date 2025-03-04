@@ -2,182 +2,216 @@
 import React, { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { getCancelamentos, getCancelamentosPorTipo } from '@/services/cancelamentoService';
-import { CancelamentoDocumento } from '@/types/canhoto';
-import { formatDate } from '@/utils/formatters';
-import { FileDown } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import FormularioCancelamento from '@/components/contratos/FormularioCancelamento';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Search, FileBadge, Ban } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import FormularioCancelamento from '@/components/contratos/FormularioCancelamento';
+import Placeholder, { LoadingPlaceholder } from '@/components/ui/Placeholder';
 
 const Cancelamentos = () => {
-  const [activeTab, setActiveTab] = useState("todos");
-  const [cancelamentos, setCancelamentos] = useState<CancelamentoDocumento[]>([]);
+  const [cancelamentos, setCancelamentos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cancelamentoDialogOpen, setCancelamentoDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [tipoDocumentoCancelamento, setTipoDocumentoCancelamento] = useState('Contrato');
+  const [numeroDocumentoCancelamento, setNumeroDocumentoCancelamento] = useState('');
+  const [activeTab, setActiveTab] = useState('contratos');
 
-  const carregarCancelamentos = async (tipo: string = 'todos') => {
+  useEffect(() => {
+    carregarCancelamentos();
+  }, []);
+
+  const carregarCancelamentos = async () => {
     setLoading(true);
     try {
-      let data;
-      if (tipo === 'todos') {
-        data = await getCancelamentos();
-      } else {
-        data = await getCancelamentosPorTipo(tipo as 'Contrato' | 'CT-e' | 'Manifesto');
-      }
-      setCancelamentos(data);
+      const { data, error } = await supabase
+        .from('Cancelamentos')
+        .select('*')
+        .order('data_cancelamento', { ascending: false });
+
+      if (error) throw error;
+      setCancelamentos(data || []);
     } catch (error) {
       console.error('Erro ao carregar cancelamentos:', error);
-      toast.error('Erro ao carregar os cancelamentos');
+      toast.error('Erro ao carregar lista de cancelamentos');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    carregarCancelamentos(activeTab);
-  }, [activeTab]);
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
+  const filteredCancelamentos = cancelamentos.filter(item => {
+    const termLower = searchTerm.toLowerCase();
+    const matchesSearch = 
+      item.tipo_documento?.toLowerCase().includes(termLower) ||
+      String(item.numero_documento).toLowerCase().includes(termLower) ||
+      item.motivo?.toLowerCase().includes(termLower) ||
+      item.responsavel?.toLowerCase().includes(termLower);
+    
+    if (activeTab === 'contratos') {
+      return matchesSearch && item.tipo_documento === 'Contrato';
+    } else if (activeTab === 'notas') {
+      return matchesSearch && item.tipo_documento === 'Nota Fiscal';
+    } else {
+      return matchesSearch;
+    }
+  });
+
+  const formatarData = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      return format(parseISO(dateString), 'dd/MM/yyyy HH:mm', { locale: ptBR });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  const handleExibirFormulario = (tipo: string, numero: string) => {
+    setTipoDocumentoCancelamento(tipo);
+    setNumeroDocumentoCancelamento(numero);
+    setShowForm(true);
   };
 
   const handleCancelamentoRealizado = () => {
-    setCancelamentoDialogOpen(false);
-    carregarCancelamentos(activeTab);
-  };
-
-  const exportarCancelamentos = () => {
-    if (cancelamentos.length === 0) {
-      toast.error('Não há dados para exportar');
-      return;
-    }
-
-    // Criar CSV
-    const header = ['Tipo', 'Número', 'Data Cancelamento', 'Motivo', 'Responsável', 'Observações'].join(',');
-    const rows = cancelamentos.map(c => {
-      return [
-        c.tipo_documento,
-        c.numero_documento,
-        new Date(c.data_cancelamento).toLocaleString('pt-BR'),
-        c.motivo,
-        c.responsavel,
-        c.observacoes || ''
-      ].join(',');
-    });
-    
-    const csv = [header, ...rows].join('\n');
-    
-    // Criar arquivo e download
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `cancelamentos_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    setShowForm(false);
+    carregarCancelamentos();
   };
 
   return (
     <PageLayout>
       <PageHeader 
         title="Cancelamentos" 
-        description="Histórico de documentos cancelados"
+        description="Gerencie e visualize documentos cancelados"
+        icon={<Ban size={26} className="text-red-500" />}
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Cancelamentos' }
+        ]}
       />
-      
-      <div className="flex justify-between mb-6">
-        <Button 
-          variant="outline"
-          className="flex items-center gap-2"
-          onClick={exportarCancelamentos}
-        >
-          <FileDown size={18} />
-          Exportar CSV
-        </Button>
-        
-        <Dialog open={cancelamentoDialogOpen} onOpenChange={setCancelamentoDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>Novo Cancelamento</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Novo Cancelamento</DialogTitle>
-            </DialogHeader>
-            <FormularioCancelamento 
-              onCancelamentoRealizado={handleCancelamentoRealizado}
-              onCancel={() => setCancelamentoDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-      
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-8">
-          <TabsTrigger value="todos">Todos</TabsTrigger>
-          <TabsTrigger value="Contrato">Contratos</TabsTrigger>
-          <TabsTrigger value="CT-e">CT-e</TabsTrigger>
-          <TabsTrigger value="Manifesto">Manifestos</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value={activeTab} className="space-y-4">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">
-              {activeTab === "todos" ? "Todos os Cancelamentos" : `Cancelamentos de ${activeTab}`}
-            </h2>
-            
-            {loading ? (
-              <div className="py-8 text-center">Carregando...</div>
-            ) : cancelamentos.length === 0 ? (
-              <div className="py-8 text-center">Nenhum cancelamento encontrado</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Número</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motivo</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsável</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Observações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {cancelamentos.map((item, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {item.tipo_documento}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {item.numero_documento}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {formatDate(item.data_cancelamento)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {item.motivo}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {item.responsavel}
-                        </td>
-                        <td className="px-6 py-4 text-sm">
-                          {item.observacoes || '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+      {showForm ? (
+        <div className="mt-6">
+          <FormularioCancelamento 
+            tipo={tipoDocumentoCancelamento}
+            numeroDocumento={numeroDocumentoCancelamento}
+            onBack={() => setShowForm(false)}
+            onCancelamentoRealizado={handleCancelamentoRealizado}
+            onCancel={() => setShowForm(false)}
+          />
+        </div>
+      ) : (
+        <div className="mt-6 space-y-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+                <div className="relative w-full md:w-96">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                    placeholder="Buscar cancelamentos..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={handleSearch}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleExibirFormulario('Contrato', '')}
+                  >
+                    Cancelar Contrato
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleExibirFormulario('Nota Fiscal', '')}
+                  >
+                    Cancelar Nota Fiscal
+                  </Button>
+                </div>
               </div>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+
+              <Tabs defaultValue="todos" value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="mb-4">
+                  <TabsTrigger value="todos">Todos</TabsTrigger>
+                  <TabsTrigger value="contratos">Contratos</TabsTrigger>
+                  <TabsTrigger value="notas">Notas Fiscais</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="todos" className="mt-0">
+                  {renderCancelamentosTable(filteredCancelamentos)}
+                </TabsContent>
+                <TabsContent value="contratos" className="mt-0">
+                  {renderCancelamentosTable(filteredCancelamentos)}
+                </TabsContent>
+                <TabsContent value="notas" className="mt-0">
+                  {renderCancelamentosTable(filteredCancelamentos)}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </PageLayout>
   );
+
+  function renderCancelamentosTable(data: any[]) {
+    if (loading) {
+      return <LoadingPlaceholder />;
+    }
+
+    if (data.length === 0) {
+      return (
+        <Placeholder 
+          icon={<FileBadge className="w-12 h-12 text-gray-300" />}
+          title="Nenhum cancelamento encontrado"
+          description="Não há registros de cancelamentos que correspondam aos critérios de busca."
+        />
+      );
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Número</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead>Responsável</TableHead>
+              <TableHead>Motivo</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((item) => (
+              <TableRow key={item.id} className="hover:bg-gray-50">
+                <TableCell>
+                  <Badge variant={item.tipo_documento === 'Contrato' ? 'outline' : 'secondary'}>
+                    {item.tipo_documento}
+                  </Badge>
+                </TableCell>
+                <TableCell className="font-medium">{item.numero_documento}</TableCell>
+                <TableCell>{formatarData(item.data_cancelamento)}</TableCell>
+                <TableCell>{item.responsavel}</TableCell>
+                <TableCell className="max-w-md truncate">{item.motivo}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
 };
 
 export default Cancelamentos;

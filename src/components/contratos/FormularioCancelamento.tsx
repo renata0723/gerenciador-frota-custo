@@ -57,18 +57,16 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
       
       // Atualizar o documento como cancelado
       if (tipo === 'Contrato') {
-        // Converter para número se necessário
-        const id = typeof numeroDocumento === 'string' ? parseInt(numeroDocumento) : numeroDocumento;
-        
+        // Usar o id como string para evitar erro de tipo na comparação
         const { error } = await supabase
           .from('Contratos')
           .update({
             status_contrato: 'Cancelado'
           })
-          .eq('id', id);
+          .eq('id', numeroDocumento);
           
         if (error) throw error;
-      } else if (tipo === 'Nota Fiscal' || tipo === 'CTE') {
+      } else if (tipo === 'Nota Fiscal') {
         // Para documentos de nota fiscal, usar a tabela correta 
         const { error } = await supabase
           .from('Notas Fiscais') // Usando a tabela que existe no sistema
@@ -76,6 +74,16 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
             status_nota: 'Cancelado'
           })
           .eq('numero_nota_fiscal', numeroDocumento);
+          
+        if (error) throw error;
+      } else if (tipo === 'CTE') {
+        // Para CTE
+        const { error } = await supabase
+          .from('CTE') 
+          .update({
+            status: 'Cancelado'
+          })
+          .eq('numero', numeroDocumento);
           
         if (error) throw error;
       }

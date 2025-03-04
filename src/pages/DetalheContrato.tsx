@@ -3,357 +3,325 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, FileText, AlertTriangle, Ban, CheckCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import FormularioCancelamento from '@/components/contratos/FormularioCancelamento';
-import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
-import { formatCurrency } from '@/utils/constants';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from 'sonner';
+import { FileText, ArrowLeft, Truck, User, DollarSign, MapPin, Calendar, FileCheck } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import Placeholder, { LoadingPlaceholder } from '@/components/ui/Placeholder';
+import { supabase } from '@/integrations/supabase/client';
+import { formatCurrency, formatDate } from '@/utils/constants';
 
 const DetalheContrato = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [contrato, setContrato] = useState<any>(null);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
-  
-  // Estados para dialogs
-  const [showCancelamentoDialog, setShowCancelamentoDialog] = useState(false);
-  const [showRejeicaoDialog, setShowRejeicaoDialog] = useState(false);
-  
-  // Estado para controle de abas
-  const [activeTab, setActiveTab] = useState('detalhes');
-  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (id) {
-      carregarContrato(id);
-    }
-  }, [id]);
-  
-  const carregarContrato = async (contratoId: string) => {
-    setCarregando(true);
-    try {
-      const { data, error } = await supabase
-        .from('Contratos')
-        .select('*')
-        .eq('id', contratoId)
-        .single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (data) {
+    const carregarContrato = async () => {
+      setLoading(true);
+      try {
+        if (!id) {
+          setError('ID do contrato não fornecido');
+          return;
+        }
+        
+        // Convertemos o id para string para a consulta no Supabase
+        const { data, error } = await supabase
+          .from('Contratos')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (!data) {
+          setError('Contrato não encontrado');
+          return;
+        }
+        
         setContrato(data);
-      } else {
-        setErro('Contrato não encontrado');
+      } catch (err) {
+        console.error('Erro ao carregar contrato:', err);
+        setError('Erro ao carregar os dados do contrato');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Erro ao carregar contrato:', error);
-      setErro('Ocorreu um erro ao carregar os dados do contrato');
-    } finally {
-      setCarregando(false);
-    }
-  };
-  
-  const handleCancelamento = () => {
-    setShowCancelamentoDialog(true);
-  };
-  
-  const handleRejeicao = () => {
-    setShowRejeicaoDialog(true);
-  };
-  
-  const handleCancelamentoRealizado = () => {
-    setShowCancelamentoDialog(false);
-    toast.success('Contrato cancelado com sucesso');
-    carregarContrato(id as string);
-  };
-  
-  const handleRejeicaoRealizada = () => {
-    setShowRejeicaoDialog(false);
-    toast.success('Contrato rejeitado com sucesso');
-    carregarContrato(id as string);
-  };
-  
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Em Andamento':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">Em Andamento</Badge>;
-      case 'Concluído':
-        return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">Concluído</Badge>;
-      case 'Cancelado':
-        return <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">Cancelado</Badge>;
-      case 'Rejeitado':
-        return <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">Rejeitado</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-  
-  if (carregando) {
+    };
+    
+    carregarContrato();
+  }, [id]);
+
+  if (loading) {
     return (
       <PageLayout>
-        <div className="flex justify-center items-center min-h-[500px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+        <PageHeader 
+          title="Detalhes do Contrato" 
+          description="Carregando informações..."
+          backButton
+          backLink="/contratos"
+        />
+        <LoadingPlaceholder className="mt-6" />
       </PageLayout>
     );
   }
   
-  if (erro || !contrato) {
+  if (error || !contrato) {
     return (
       <PageLayout>
-        <Alert variant="destructive" className="mt-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{erro || 'Contrato não encontrado'}</AlertDescription>
-        </Alert>
-        <div className="mt-4">
-          <Button onClick={() => navigate('/contratos')}>Voltar para Contratos</Button>
-        </div>
+        <PageHeader 
+          title="Detalhes do Contrato" 
+          description={error || 'Ocorreu um erro'}
+          backButton
+          backLink="/contratos"
+        />
+        <Placeholder 
+          title="Erro ao carregar contrato"
+          description={error || "Não foi possível encontrar os dados deste contrato."}
+          buttonText="Voltar para a lista"
+          onButtonClick={() => navigate('/contratos')}
+          className="mt-6"
+        />
       </PageLayout>
     );
   }
   
+  const statusColor = {
+    'Em Andamento': 'bg-blue-100 text-blue-800',
+    'Concluído': 'bg-green-100 text-green-800',
+    'Cancelado': 'bg-red-100 text-red-800',
+    'Aguardando Canhoto': 'bg-yellow-100 text-yellow-800',
+  };
+
   return (
     <PageLayout>
-      <PageHeader
-        title={`Contrato #${contrato.id}`}
-        description={`${contrato.cidade_origem} para ${contrato.cidade_destino} - ${contrato.cliente_destino}`}
-        icon={<FileText size={26} className="text-blue-500" />}
-        backButton={true}
+      <PageHeader 
+        title={`Contrato #${contrato.id}`} 
+        description={`Detalhes do contrato de frete para ${contrato.cliente_destino || 'Cliente'}`}
+        backButton
         backLink="/contratos"
-      >
-        <div className="flex space-x-2">
-          {getStatusBadge(contrato.status_contrato)}
-          {contrato.tipo_frota === 'frota' ? (
-            <Badge variant="secondary">Frota Própria</Badge>
-          ) : (
-            <Badge variant="secondary">Frota Terceirizada</Badge>
-          )}
-        </div>
-      </PageHeader>
+      />
       
-      <div className="mt-4 flex justify-end space-x-2">
-        <Button
-          variant="destructive"
-          onClick={handleCancelamento}
-          disabled={contrato.status_contrato === 'Cancelado' || contrato.status_contrato === 'Rejeitado'}
-          className="flex items-center"
-        >
-          <Ban className="mr-2 h-4 w-4" />
-          Cancelar Contrato
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleRejeicao}
-          disabled={contrato.status_contrato === 'Cancelado' || contrato.status_contrato === 'Rejeitado'}
-          className="flex items-center text-orange-600 border-orange-600 hover:bg-orange-50"
-        >
-          <AlertTriangle className="mr-2 h-4 w-4" />
-          Rejeitar Contrato
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => navigate(`/contratos/editar/${contrato.id}`)}
-          disabled={contrato.status_contrato === 'Cancelado' || contrato.status_contrato === 'Rejeitado'}
-          className="flex items-center"
-        >
-          Editar
-        </Button>
-      </div>
-      
-      <div className="mt-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full">
-            <TabsTrigger value="detalhes" className="flex-1">Detalhes</TabsTrigger>
-            <TabsTrigger value="documentos" className="flex-1">Documentos</TabsTrigger>
-            <TabsTrigger value="financeiro" className="flex-1">Financeiro</TabsTrigger>
-            <TabsTrigger value="canhoto" className="flex-1">Canhoto</TabsTrigger>
-          </TabsList>
+      <div className="mt-6 space-y-6">
+        <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-center space-x-2">
+              <Badge 
+                className={`text-xs py-1 ${statusColor[contrato.status_contrato] || 'bg-gray-100'}`}
+              >
+                {contrato.status_contrato || 'Pendente'}
+              </Badge>
+              
+              <Badge variant="outline" className="text-xs py-1">
+                ID: {contrato.identificador || contrato.id}
+              </Badge>
+            </div>
+            
+            <div className="flex items-center text-sm text-gray-500">
+              <Calendar className="h-4 w-4 mr-1" />
+              Data de Saída: {formatDate(contrato.data_saida)}
+            </div>
+          </div>
           
-          <TabsContent value="detalhes" className="p-6 bg-white rounded-lg shadow mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold">Informações do Contrato</h3>
-                  <div className="mt-2 space-y-3">
-                    <div className="flex justify-between border-b pb-2">
-                      <span className="text-gray-600">Número do Contrato:</span>
-                      <span className="font-medium">{contrato.id}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-2">
-                      <span className="text-gray-600">Data de Saída:</span>
-                      <span className="font-medium">{contrato.data_saida}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-2">
-                      <span className="text-gray-600">Status:</span>
-                      <span>{getStatusBadge(contrato.status_contrato)}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-2">
-                      <span className="text-gray-600">Tipo de Frota:</span>
-                      <span className="font-medium capitalize">{contrato.tipo_frota === 'frota' ? 'Própria' : 'Terceirizada'}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-lg font-semibold">Trajeto</h3>
-                  <div className="mt-2 space-y-3">
-                    <div className="flex justify-between border-b pb-2">
-                      <span className="text-gray-600">Origem:</span>
-                      <span className="font-medium">{contrato.cidade_origem}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-2">
-                      <span className="text-gray-600">Destino:</span>
-                      <span className="font-medium">{contrato.cidade_destino}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-2">
-                      <span className="text-gray-600">Cliente:</span>
-                      <span className="font-medium">{contrato.cliente_destino}</span>
-                    </div>
-                  </div>
-                </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={() => navigate(`/contratos/editar/${contrato.id}`)}>
+              Editar Contrato
+            </Button>
+            <Button variant="default" onClick={() => navigate(`/contratos/canhoto/${contrato.id}`)}>
+              Registrar Canhoto
+            </Button>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Informações do Cliente e Rota */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center space-x-2 mb-3">
+                <MapPin className="h-5 w-5 text-blue-500" />
+                <h3 className="text-lg font-medium">Rota e Cliente</h3>
               </div>
               
-              <div className="space-y-6">
+              <Separator className="mb-4" />
+              
+              <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-semibold">Veículo e Motorista</h3>
-                  <div className="mt-2 space-y-3">
-                    <div className="flex justify-between border-b pb-2">
-                      <span className="text-gray-600">Placa Cavalo:</span>
-                      <span className="font-medium">{contrato.placa_cavalo}</span>
-                    </div>
-                    {contrato.placa_carreta && (
-                      <div className="flex justify-between border-b pb-2">
-                        <span className="text-gray-600">Placa Carreta:</span>
-                        <span className="font-medium">{contrato.placa_carreta}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between border-b pb-2">
-                      <span className="text-gray-600">Motorista:</span>
-                      <span className="font-medium">{contrato.motorista_id || 'Não informado'}</span>
-                    </div>
-                    {contrato.proprietario && (
-                      <div className="flex justify-between border-b pb-2">
-                        <span className="text-gray-600">Proprietário:</span>
-                        <span className="font-medium">{contrato.proprietario}</span>
-                      </div>
-                    )}
+                  <p className="text-sm text-gray-500">Cliente Destinatário</p>
+                  <p className="font-medium">{contrato.cliente_destino || 'N/A'}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Origem</p>
+                    <p className="font-medium">{contrato.cidade_origem || 'N/A'}, {contrato.estado_origem || 'N/A'}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500">Destino</p>
+                    <p className="font-medium">{contrato.cidade_destino || 'N/A'}, {contrato.estado_destino || 'N/A'}</p>
                   </div>
                 </div>
                 
-                <div>
-                  <h3 className="text-lg font-semibold">Informações Financeiras</h3>
-                  <div className="mt-2 space-y-3">
-                    {contrato.valor_frete && (
-                      <div className="flex justify-between border-b pb-2">
-                        <span className="text-gray-600">Valor do Frete:</span>
-                        <span className="font-medium">{formatCurrency(contrato.valor_frete)}</span>
-                      </div>
-                    )}
-                    {contrato.valor_carga && (
-                      <div className="flex justify-between border-b pb-2">
-                        <span className="text-gray-600">Valor da Carga:</span>
-                        <span className="font-medium">{formatCurrency(contrato.valor_carga)}</span>
-                      </div>
-                    )}
+                {contrato.cte_numero && (
+                  <div>
+                    <p className="text-sm text-gray-500">Número do CT-e</p>
+                    <p className="font-medium">{contrato.cte_numero}</p>
                   </div>
-                </div>
-                
-                {contrato.status_contrato === 'Cancelado' && (
-                  <Card className="bg-red-50 border-red-200">
-                    <CardContent className="p-4">
-                      <h3 className="text-md font-semibold text-red-700 flex items-center">
-                        <Ban className="mr-2 h-4 w-4" />
-                        Informações de Cancelamento
-                      </h3>
-                      <div className="mt-2 space-y-2 text-sm text-red-700">
-                        <div>
-                          <span className="font-medium">Motivo:</span> {contrato.motivo_cancelamento || 'Não informado'}
-                        </div>
-                        <div>
-                          <span className="font-medium">Data:</span> {contrato.data_cancelamento || 'Não informada'}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
                 )}
                 
-                {contrato.status_contrato === 'Rejeitado' && (
-                  <Card className="bg-orange-50 border-orange-200">
-                    <CardContent className="p-4">
-                      <h3 className="text-md font-semibold text-orange-700 flex items-center">
-                        <AlertTriangle className="mr-2 h-4 w-4" />
-                        Informações de Rejeição
-                      </h3>
-                      <div className="mt-2 space-y-2 text-sm text-orange-700">
-                        <div>
-                          <span className="font-medium">Motivo:</span> {contrato.motivo_rejeicao || 'Não informado'}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                {contrato.manifesto_numero && (
+                  <div>
+                    <p className="text-sm text-gray-500">Número do Manifesto</p>
+                    <p className="font-medium">{contrato.manifesto_numero}</p>
+                  </div>
                 )}
               </div>
-            </div>
-          </TabsContent>
+            </CardContent>
+          </Card>
           
-          <TabsContent value="documentos" className="p-6 bg-white rounded-lg shadow mt-4">
-            {/* Conteúdo da aba de documentos */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold">Documentos do Contrato</h3>
-              <p className="text-gray-500">Informações sobre CT-e, Manifesto e Notas Fiscais associadas a este contrato.</p>
-            </div>
-          </TabsContent>
+          {/* Informações do Veículo e Motorista */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center space-x-2 mb-3">
+                <Truck className="h-5 w-5 text-blue-500" />
+                <h3 className="text-lg font-medium">Veículo e Motorista</h3>
+              </div>
+              
+              <Separator className="mb-4" />
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Placa Cavalo</p>
+                    <p className="font-medium">{contrato.placa_cavalo || 'N/A'}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500">Placa Carreta</p>
+                    <p className="font-medium">{contrato.placa_carreta || 'N/A'}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-500">Motorista</p>
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-1 text-gray-400" />
+                    <p className="font-medium">{contrato.motorista || 'N/A'}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-500">Tipo de Frota</p>
+                  <Badge variant={contrato.tipo_frota === 'frota' ? 'outline' : 'secondary'}>
+                    {contrato.tipo_frota === 'frota' ? 'Própria' : 'Terceirizada'}
+                  </Badge>
+                </div>
+                
+                {contrato.tipo_frota === 'terceiro' && (
+                  <div>
+                    <p className="text-sm text-gray-500">Proprietário</p>
+                    <p className="font-medium">{contrato.proprietario || 'N/A'}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
           
-          <TabsContent value="financeiro" className="p-6 bg-white rounded-lg shadow mt-4">
-            {/* Conteúdo da aba financeira */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold">Informações Financeiras</h3>
-              <p className="text-gray-500">Detalhes financeiros do contrato, incluindo frete, adiantamento e saldo a pagar.</p>
-            </div>
-          </TabsContent>
+          {/* Informações Financeiras */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center space-x-2 mb-3">
+                <DollarSign className="h-5 w-5 text-blue-500" />
+                <h3 className="text-lg font-medium">Informações Financeiras</h3>
+              </div>
+              
+              <Separator className="mb-4" />
+              
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-500">Valor do Frete</p>
+                  <p className="text-lg font-medium text-green-700">
+                    {formatCurrency(contrato.valor_frete || 0)}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-500">Valor da Carga</p>
+                  <p className="font-medium">
+                    {formatCurrency(contrato.valor_carga || 0)}
+                  </p>
+                </div>
+                
+                {contrato.tipo_frota === 'terceiro' && (
+                  <>
+                    <div>
+                      <p className="text-sm text-gray-500">Valor do Adiantamento</p>
+                      <p className="font-medium">
+                        {formatCurrency(contrato.valor_adiantamento || 0)}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm text-gray-500">Valor do Pedágio</p>
+                      <p className="font-medium">
+                        {formatCurrency(contrato.valor_pedagio || 0)}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm text-gray-500">Saldo a Pagar</p>
+                      <p className="font-medium">
+                        {formatCurrency(contrato.saldo_pagar || 0)}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
           
-          <TabsContent value="canhoto" className="p-6 bg-white rounded-lg shadow mt-4">
-            {/* Conteúdo da aba de canhoto */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold">Status do Canhoto</h3>
-              <p className="text-gray-500">Informações sobre o recebimento do canhoto e comprovantes de entrega.</p>
-            </div>
-          </TabsContent>
-        </Tabs>
+          {/* Observações e Detalhes Adicionais */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center space-x-2 mb-3">
+                <FileCheck className="h-5 w-5 text-blue-500" />
+                <h3 className="text-lg font-medium">Observações e Status</h3>
+              </div>
+              
+              <Separator className="mb-4" />
+              
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-500">Status do Contrato</p>
+                  <Badge 
+                    className={`mt-1 ${statusColor[contrato.status_contrato] || 'bg-gray-100'}`}
+                  >
+                    {contrato.status_contrato || 'Pendente'}
+                  </Badge>
+                </div>
+                
+                {contrato.data_entrega_canhoto && (
+                  <div>
+                    <p className="text-sm text-gray-500">Data de Entrega do Canhoto</p>
+                    <p className="font-medium">{formatDate(contrato.data_entrega_canhoto)}</p>
+                  </div>
+                )}
+                
+                <div>
+                  <p className="text-sm text-gray-500">Observações</p>
+                  <p className="text-sm mt-1 text-gray-700 bg-gray-50 p-2 rounded min-h-[80px]">
+                    {contrato.observacoes || 'Nenhuma observação registrada.'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-      
-      {/* Dialog de Cancelamento */}
-      <Dialog open={showCancelamentoDialog} onOpenChange={setShowCancelamentoDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <FormularioCancelamento
-            tipo="Contrato"
-            numeroDocumento={contrato.id.toString()}
-            onBack={() => setShowCancelamentoDialog(false)}
-            onCancelamentoRealizado={handleCancelamentoRealizado}
-            onCancel={() => setShowCancelamentoDialog(false)}
-          />
-        </DialogContent>
-      </Dialog>
-      
-      {/* Dialog de Rejeição */}
-      <Dialog open={showRejeicaoDialog} onOpenChange={setShowRejeicaoDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <FormularioRejeicaoContrato
-            contrato={contrato}
-            onSave={handleRejeicaoRealizada}
-            onBack={() => setShowRejeicaoDialog(false)}
-          />
-        </DialogContent>
-      </Dialog>
     </PageLayout>
   );
 };

@@ -10,8 +10,15 @@ import { toast } from 'sonner';
 import InfoBasicaForm from './dadosContrato/InfoBasicaForm';
 import OrigemDestinoForm from './dadosContrato/OrigemDestinoForm';
 import FreteVeiculosForm from './dadosContrato/FreteVeiculosForm';
-import { DadosContratoFormData, FormularioDadosContratoProps } from './dadosContrato/types';
+import { DadosContratoFormData } from '@/types/contrato';
 import { gerarNovoIdContrato, carregarPlacas, carregarMotoristas, carregarProprietarios } from './dadosContrato/utils';
+
+interface FormularioDadosContratoProps {
+  onSave: (data: DadosContratoFormData) => void;
+  onNext?: () => void;
+  initialData?: DadosContratoFormData;
+  readOnly?: boolean;
+}
 
 const FormularioDadosContrato: React.FC<FormularioDadosContratoProps> = ({
   onSave,
