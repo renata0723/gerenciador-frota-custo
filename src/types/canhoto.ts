@@ -16,6 +16,10 @@ export interface CanhotoPendente {
   saldo_a_pagar?: number;
 }
 
+export interface Canhoto extends CanhotoPendente {
+  observacoes?: string;
+}
+
 export interface CanhotoBusca {
   id?: number;
   contrato_id?: string;
@@ -40,4 +44,14 @@ export interface CanhotoFiltro {
   dataFim?: string;
   motorista?: string;
   contrato_id?: string;
+}
+
+export interface CancelamentoDocumento {
+  id?: number;
+  tipo_documento: string;
+  numero_documento: string;
+  motivo: string;
+  responsavel: string;
+  observacoes?: string;
+  data_cancelamento?: string;
 }

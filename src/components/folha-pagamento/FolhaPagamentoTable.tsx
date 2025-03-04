@@ -1,27 +1,64 @@
 
 import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { FolhaPagamento } from '@/types/contabilidade';
-import { Edit, Trash2, Eye } from 'lucide-react';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { FolhaPagamento } from '@/types/folhaPagamento';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { formataMoeda } from '@/utils/constants';
+import { Edit2, Trash, EyeIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
-export interface FolhaPagamentoTableProps {
-  dados: FolhaPagamento[];
-  onEdit: (id: number) => void;
-  onDelete: (id: number) => void;
-  onView: (id: number) => void;
+interface FolhaPagamentoTableProps {
+  data: FolhaPagamento[];
+  onEditar: (id: number) => Promise<void>;
+  onExcluir: (id: number) => Promise<void>;
+  onVisualizar?: (id: number) => void;
 }
 
-const FolhaPagamentoTable: React.FC<FolhaPagamentoTableProps> = ({ dados, onEdit, onDelete, onView }) => {
-  const formatarData = (dataString: string): string => {
-    try {
-      const data = new Date(dataString);
-      return format(data, 'dd/MM/yyyy', { locale: ptBR });
-    } catch (error) {
-      return dataString;
+const FolhaPagamentoTable: React.FC<FolhaPagamentoTableProps> = ({
+  data,
+  onEditar,
+  onExcluir,
+  onVisualizar
+}) => {
+  const formatarValor = (valor: number | undefined) => {
+    if (valor === undefined) return 'R$ 0,00';
+    return `R$ ${valor.toFixed(2).replace('.', ',')}`;
+  };
+  
+  const statusVariant = (status: string) => {
+    switch (status) {
+      case 'concluido':
+        return 'success';
+      case 'pendente':
+        return 'warning';
+      case 'cancelado':
+        return 'destructive';
+      case 'pago':
+        return 'default';
+      default:
+        return 'secondary';
+    }
+  };
+  
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case 'concluido':
+        return 'Concluído';
+      case 'pendente':
+        return 'Pendente';
+      case 'cancelado':
+        return 'Cancelado';
+      case 'pago':
+        return 'Pago';
+      default:
+        return 'Desconhecido';
     }
   };
   
@@ -30,72 +67,63 @@ const FolhaPagamentoTable: React.FC<FolhaPagamentoTableProps> = ({ dados, onEdit
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>ID</TableHead>
             <TableHead>Funcionário</TableHead>
+            <TableHead>Período</TableHead>
             <TableHead>Data Pagamento</TableHead>
-            <TableHead>Referência</TableHead>
-            <TableHead className="text-right">Salário Base</TableHead>
-            <TableHead className="text-right">Valor Líquido</TableHead>
-            <TableHead className="text-center">Status</TableHead>
+            <TableHead>Salário Base</TableHead>
+            <TableHead>Valor Líquido</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {dados.length === 0 ? (
+          {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-6 text-gray-500">
-                Nenhum registro de folha de pagamento encontrado.
+              <TableCell colSpan={8} className="h-24 text-center">
+                Nenhum registro encontrado.
               </TableCell>
             </TableRow>
           ) : (
-            dados.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.funcionario_nome}</TableCell>
-                <TableCell>{formatarData(item.data_pagamento)}</TableCell>
-                <TableCell>{item.mes_referencia}/{item.ano_referencia}</TableCell>
-                <TableCell className="text-right">{formataMoeda(Number(item.salario_base))}</TableCell>
-                <TableCell className="text-right">{formataMoeda(Number(item.valor_liquido))}</TableCell>
-                <TableCell className="text-center">
-                  <span 
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      item.status === 'concluido' 
-                        ? 'bg-green-100 text-green-800' 
-                        : item.status === 'pendente'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {item.status === 'concluido' ? 'Concluído' : 
-                     item.status === 'pendente' ? 'Pendente' : 
-                     item.status === 'cancelado' ? 'Cancelado' : 
-                     item.status}
-                  </span>
+            data.map((folha) => (
+              <TableRow key={folha.id}>
+                <TableCell className="font-medium">{folha.id}</TableCell>
+                <TableCell>{folha.funcionario_nome}</TableCell>
+                <TableCell>{folha.mes_referencia}/{folha.ano_referencia}</TableCell>
+                <TableCell>
+                  {folha.data_pagamento ? format(new Date(folha.data_pagamento), 'dd/MM/yyyy') : '-'}
+                </TableCell>
+                <TableCell>{formatarValor(folha.salario_base)}</TableCell>
+                <TableCell>{formatarValor(folha.valor_liquido)}</TableCell>
+                <TableCell>
+                  <Badge variant={statusVariant(folha.status)}>
+                    {statusLabel(folha.status)}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
+                  <div className="flex justify-end space-x-1">
+                    {onVisualizar && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => folha.id && onVisualizar(folha.id)}
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button 
                       variant="ghost" 
-                      size="icon" 
-                      onClick={() => onView(item.id!)}
-                      title="Visualizar"
+                      size="icon"
+                      onClick={() => folha.id && onEditar(folha.id)}
                     >
-                      <Eye className="h-4 w-4" />
+                      <Edit2 className="h-4 w-4" />
                     </Button>
                     <Button 
                       variant="ghost" 
-                      size="icon" 
-                      onClick={() => onEdit(item.id!)}
-                      title="Editar"
+                      size="icon"
+                      onClick={() => folha.id && onExcluir(folha.id)}
                     >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => onDelete(item.id!)}
-                      title="Excluir"
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash className="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>

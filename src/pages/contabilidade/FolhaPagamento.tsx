@@ -2,148 +2,150 @@
 import React, { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/ui/PageHeader';
-import { Users, Plus, FileText } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FolhaPagamento as FolhaPagamentoType } from '@/types/contabilidade';
+import { PlusCircle, FileText } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import FolhaPagamentoTable from '@/components/folha-pagamento/FolhaPagamentoTable';
-import FolhaPagamentoForm from '@/components/folha-pagamento/FolhaPagamentoForm';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { format } from 'date-fns';
+import { FolhaPagamento } from '@/types/folhaPagamento';
 import { 
-  listarFolhaPagamento,
-  buscarFolhaPagamento,
-  criarRegistroFolhaPagamento,
-  atualizarRegistroFolhaPagamento,
-  excluirRegistroFolhaPagamento
+  listarFolhasPagamento, 
+  buscarFolhaPagamento, 
+  criarFolhaPagamento, 
+  atualizarFolhaPagamento, 
+  excluirFolhaPagamento 
 } from '@/services/folhaPagamentoService';
+import FolhaPagamentoForm from '@/components/folha-pagamento/FolhaPagamentoForm';
+import FolhaPagamentoTable from '@/components/folha-pagamento/FolhaPagamentoTable';
 
-const FolhaPagamentoPage: React.FC = () => {
-  const [registros, setRegistros] = useState<FolhaPagamentoType[]>([]);
-  const [loading, setLoading] = useState(true);
+const FolhaPagamentoPage = () => {
+  const [registros, setRegistros] = useState<FolhaPagamento[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [registroAtual, setRegistroAtual] = useState<FolhaPagamentoType | null>(null);
-
+  const [loading, setLoading] = useState(true);
+  const [registroAtual, setRegistroAtual] = useState<FolhaPagamento | null>(null);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  
   useEffect(() => {
-    carregarRegistros();
+    carregarFolhasPagamento();
   }, []);
-
-  const carregarRegistros = async () => {
+  
+  const carregarFolhasPagamento = async () => {
     setLoading(true);
     try {
-      const data = await listarFolhaPagamento();
+      const data = await listarFolhasPagamento();
       setRegistros(data);
     } catch (error) {
-      console.error('Erro ao carregar folha de pagamento:', error);
-      toast.error('Erro ao carregar folha de pagamento');
+      console.error('Erro ao carregar folhas de pagamento:', error);
+      toast.error('Erro ao carregar folhas de pagamento');
     } finally {
       setLoading(false);
     }
   };
-
-  const handleNovoRegistro = () => {
-    setEditingId(null);
+  
+  const abrirModalCriacao = () => {
     setRegistroAtual(null);
+    setModalMode('create');
     setDialogOpen(true);
   };
-
-  const handleEditarRegistro = async (id: number) => {
+  
+  const abrirModalEdicao = async (id: number) => {
+    setLoading(true);
     try {
       const registro = await buscarFolhaPagamento(id);
       if (registro) {
         setRegistroAtual(registro);
-        setEditingId(id);
+        setModalMode('edit');
         setDialogOpen(true);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar registro para edição:', error);
-      toast.error('Erro ao buscar registro para edição');
-    }
-  };
-
-  const handleExcluirRegistro = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este registro?')) {
-      try {
-        const sucesso = await excluirRegistroFolhaPagamento(id);
-        if (sucesso) {
-          toast.success('Registro excluído com sucesso');
-          carregarRegistros();
-        } else {
-          toast.error('Erro ao excluir registro');
-        }
-      } catch (error) {
-        console.error('Erro ao excluir registro:', error);
-        toast.error('Erro ao excluir registro');
-      }
-    }
-  };
-
-  const handleSalvarRegistro = async (dados: Partial<FolhaPagamentoType>) => {
-    try {
-      if (editingId) {
-        await atualizarRegistroFolhaPagamento(editingId, dados);
-        toast.success('Registro atualizado com sucesso');
       } else {
-        await criarRegistroFolhaPagamento(dados);
-        toast.success('Registro criado com sucesso');
+        toast.error('Registro não encontrado');
       }
-      setDialogOpen(false);
-      carregarRegistros();
     } catch (error) {
-      console.error('Erro ao salvar registro:', error);
-      toast.error('Erro ao salvar registro');
+      console.error('Erro ao buscar registro:', error);
+      toast.error('Erro ao buscar registro');
+    } finally {
+      setLoading(false);
     }
   };
-
+  
+  const handleSalvar = async (data: Partial<FolhaPagamento>) => {
+    try {
+      if (modalMode === 'create') {
+        // Garantir que o status está definido
+        const novaFolha: FolhaPagamento = {
+          ...data as FolhaPagamento,
+          status: data.status || 'concluido'
+        };
+        
+        await criarFolhaPagamento(novaFolha);
+        toast.success('Folha de pagamento registrada com sucesso');
+      } else if (registroAtual?.id) {
+        await atualizarFolhaPagamento(registroAtual.id, data);
+        toast.success('Folha de pagamento atualizada com sucesso');
+      }
+      
+      setDialogOpen(false);
+      carregarFolhasPagamento();
+    } catch (error) {
+      console.error('Erro ao salvar folha de pagamento:', error);
+      toast.error('Erro ao salvar folha de pagamento');
+    }
+  };
+  
+  const handleExcluir = async (id: number) => {
+    if (!confirm('Tem certeza que deseja excluir este registro?')) {
+      return;
+    }
+    
+    try {
+      await excluirFolhaPagamento(id);
+      toast.success('Registro excluído com sucesso');
+      carregarFolhasPagamento();
+    } catch (error) {
+      console.error('Erro ao excluir registro:', error);
+      toast.error('Erro ao excluir registro');
+    }
+  };
+  
   return (
     <PageLayout>
-      <PageHeader
-        title="Folha de Pagamento"
-        description="Gerenciamento de salários e encargos dos funcionários"
-        icon={<Users className="h-6 w-6" />}
-      />
-
-      <div className="mb-6">
-        <Button onClick={handleNovoRegistro}>
-          <Plus className="mr-2 h-4 w-4" /> Novo Registro
+      <PageHeader 
+        title="Folha de Pagamento" 
+        description="Gerenciamento de folhas de pagamento dos funcionários"
+      >
+        <Button onClick={abrirModalCriacao} className="gap-1">
+          <PlusCircle size={16} />
+          Novo Registro
         </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Folha de Pagamento</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <p>Carregando registros...</p>
-            </div>
-          ) : registros.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900">
-                Nenhum registro encontrado
-              </h3>
-              <p className="mt-1 text-gray-500">
-                Crie um novo registro para começar.
-              </p>
-            </div>
-          ) : (
+      </PageHeader>
+      
+      <div className="mt-6">
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin h-8 w-8 border-b-2 border-blue-700 rounded-full"></div>
+          </div>
+        ) : (
+          <>
             <FolhaPagamentoTable 
-              registros={registros} 
-              onEditar={handleEditarRegistro}
-              onExcluir={handleExcluirRegistro}
+              data={registros}
+              onEditar={abrirModalEdicao}
+              onExcluir={handleExcluir}
             />
-          )}
-        </CardContent>
-      </Card>
-
+          </>
+        )}
+      </div>
+      
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl">
-          <FolhaPagamentoForm 
-            registro={registroAtual}
-            onSubmit={handleSalvarRegistro}
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText size={18} />
+              {modalMode === 'create' ? 'Novo Registro de Folha' : 'Editar Registro de Folha'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <FolhaPagamentoForm
+            initialData={registroAtual || undefined}
+            onSubmit={handleSalvar}
             onCancel={() => setDialogOpen(false)}
           />
         </DialogContent>
