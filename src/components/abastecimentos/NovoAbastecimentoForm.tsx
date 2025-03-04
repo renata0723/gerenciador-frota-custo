@@ -29,7 +29,8 @@ const NovoAbastecimentoForm: React.FC<NovoAbastecimentoFormProps> = ({
     valor: initialData?.valor || 0,
     posto: initialData?.posto || "",
     responsavel: initialData?.responsavel || "",
-    quilometragem: initialData?.quilometragem || 0
+    quilometragem: initialData?.quilometragem || 0,
+    itens: initialData?.itens || ""
   });
 
   const [placasDisponiveis, setPlacasDisponiveis] = useState<{placa_cavalo: string}[]>([]);

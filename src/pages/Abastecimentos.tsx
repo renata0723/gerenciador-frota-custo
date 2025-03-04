@@ -9,7 +9,7 @@ import { formataMoeda } from '@/utils/constants';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import NovoAbastecimentoForm from '@/components/abastecimentos/NovoAbastecimentoForm';
 import TipoCombustivelForm from '@/components/abastecimentos/TipoCombustivelForm';
-import { AbastecimentoItem, TipoCombustivel, TipoCombustivelFormData } from '@/types/abastecimento';
+import { AbastecimentoItem, TipoCombustivel, AbastecimentoFormData } from '@/types/abastecimento';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -29,7 +29,14 @@ const Abastecimentos = () => {
         .select('*');
       
       if (error) throw error;
-      setAbastecimentos(data || []);
+
+      // Garantir que os dados retornados estejam no formato esperado
+      const validData: AbastecimentoItem[] = (data || []).map(item => ({
+        ...item,
+        quantidade: item.quantidade || 0 // Adicionar quantidade se não existir
+      }));
+      
+      setAbastecimentos(validData);
     } catch (error) {
       console.error('Erro ao buscar abastecimentos:', error);
       toast.error('Erro ao carregar abastecimentos.');
@@ -58,13 +65,38 @@ const Abastecimentos = () => {
     fetchTiposCombustivel();
   }, []);
 
-  const handleAbastecimentoAdicionado = () => {
-    setNovoAbastecimentoOpen(false);
-    fetchAbastecimentos();
-    toast.success('Abastecimento registrado com sucesso!');
+  const handleSaveAbastecimento = async (formData: AbastecimentoFormData) => {
+    try {
+      const novoAbastecimento = {
+        data_abastecimento: formData.data,
+        placa_veiculo: formData.placa,
+        motorista_solicitante: formData.motorista,
+        tipo_combustivel: formData.tipoCombustivel,
+        quantidade: formData.quantidade,
+        valor_abastecimento: formData.valor,
+        quilometragem: formData.quilometragem,
+        posto: formData.posto,
+        responsavel_autorizacao: formData.responsavel,
+        itens_abastecidos: formData.itens,
+        valor_total: formData.valor // Podemos calcular baseado em outros valores se necessário
+      };
+
+      const { error } = await supabase
+        .from('Abastecimentos')
+        .insert(novoAbastecimento);
+
+      if (error) throw error;
+      
+      setNovoAbastecimentoOpen(false);
+      fetchAbastecimentos();
+      toast.success('Abastecimento registrado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar abastecimento:', error);
+      toast.error('Erro ao registrar abastecimento.');
+    }
   };
 
-  const handleTipoCombustivelAdicionado = (tipoCombustivel: TipoCombustivel) => {
+  const handleTipoCombustivelAdded = (tipoCombustivel: TipoCombustivel) => {
     setNovoCombustivelOpen(false);
     setTiposCombustivel([...tiposCombustivel, tipoCombustivel]);
     toast.success('Tipo de combustível cadastrado com sucesso!');
@@ -108,7 +140,7 @@ const Abastecimentos = () => {
               <DialogHeader>
                 <DialogTitle>Cadastrar Tipo de Combustível</DialogTitle>
               </DialogHeader>
-              <TipoCombustivelForm onTipoCombustivelAdded={handleTipoCombustivelAdicionado} />
+              <TipoCombustivelForm onTipoCombustivelAdded={handleTipoCombustivelAdded} />
             </DialogContent>
           </Dialog>
 
@@ -125,7 +157,7 @@ const Abastecimentos = () => {
               </DialogHeader>
               <NovoAbastecimentoForm 
                 tiposCombustivel={tiposCombustivel} 
-                onAbastecimentoAdicionado={handleAbastecimentoAdicionado}
+                onSave={handleSaveAbastecimento}
               />
             </DialogContent>
           </Dialog>

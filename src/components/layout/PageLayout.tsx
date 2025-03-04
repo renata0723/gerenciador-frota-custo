@@ -3,6 +3,12 @@ import React, { useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 
+interface NavbarProps {
+  onToggleSidebar: () => void;
+  isSidebarOpen: boolean;
+  showProjectionButton?: boolean;
+}
+
 interface PageLayoutProps {
   children: React.ReactNode;
   showProjectionButton?: boolean;

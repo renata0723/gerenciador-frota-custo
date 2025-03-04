@@ -1,4 +1,3 @@
-
 export const formataMoeda = (valor: number) => {
   return valor.toLocaleString('pt-BR', {
     style: 'currency',
@@ -33,14 +32,13 @@ export const APP_SUBTITLE = "Controladoria";
 export const APP_VERSION = "";
 
 // Status do canhoto
-export const canhotoStatus = [
-  "Pendente",
-  "Recebido",
-  "Entregue",
-  "Arquivado",
-  "Cancelado",
-  "Aguardando Pagamento"
-];
+export const canhotoStatus = {
+  PENDENTE: 'Pendente' as const,
+  RECEBIDO: 'Recebido' as const,
+  CANCELADO: 'Cancelado' as const
+};
+
+export type CanhotoStatus = typeof canhotoStatus[keyof typeof canhotoStatus];
 
 // Tipos de manutenção
 export const tiposManutencao = [

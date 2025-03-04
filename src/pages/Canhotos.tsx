@@ -8,14 +8,14 @@ import PesquisaDocumentos from '@/components/canhotos/PesquisaDocumentos';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
 import PageHeader from '@/components/ui/PageHeader';
 import { Canhoto, CanhotoPendente } from '@/types/canhoto';
-import { CanhotoStatus } from '@/utils/constants';
 import { Search, FileDown, FileUp, Download } from 'lucide-react';
-import { PDFDownloadLink } from '@react-pdf/renderer';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+
+// Definir tipo de status do canhoto
+type CanhotoStatus = 'Pendente' | 'Recebido' | 'Cancelado';
 
 const Canhotos: React.FC = () => {
   const [activeTab, setActiveTab] = useState('pendentes');
@@ -182,7 +182,7 @@ const Canhotos: React.FC = () => {
       });
       
       // Adicionar rodapé
-      const pageCount = doc.internal.getNumberOfPages();
+      const pageCount = (doc as any).internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);

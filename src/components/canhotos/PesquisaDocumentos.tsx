@@ -34,7 +34,9 @@ const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({ onResultadoEnco
         .select('id, cliente_destino, motorista_id');
       
       if (numeroContrato) {
-        query = query.eq('id', numeroContrato);
+        // Convertendo para número apenas se for um valor numérico válido
+        const contratoId = isNaN(Number(numeroContrato)) ? numeroContrato : Number(numeroContrato);
+        query = query.eq('id', contratoId);
       }
 
       // Buscar pelo contrato primeiro
@@ -53,6 +55,7 @@ const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({ onResultadoEnco
           .single();
           
         const resultado: CanhotoPendente = {
+          id: 0, // Atribuímos um ID temporário
           contrato_id: contratoData[0].id.toString(),
           cliente: contratoData[0].cliente_destino,
           motorista: motoristasData?.nome || 'Não identificado'
@@ -98,6 +101,7 @@ const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({ onResultadoEnco
           const canhotoPendente = canhotosData[0];
           
           const resultado: CanhotoPendente = {
+            id: canhotoPendente.id || 0,
             contrato_id: canhotoPendente.contrato_id,
             cliente: canhotoPendente.cliente,
             motorista: canhotoPendente.motorista,
@@ -111,10 +115,12 @@ const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({ onResultadoEnco
 
         // Tentar buscar pelos documentos nas Notas Fiscais
         if (numeroNotaFiscal) {
+          const notaId = isNaN(Number(numeroNotaFiscal)) ? numeroNotaFiscal : Number(numeroNotaFiscal);
+          
           const { data: notasData, error: notasError } = await supabase
             .from('Notas Fiscais')
             .select('*')
-            .eq('numero_nota_fiscal', numeroNotaFiscal);
+            .eq('numero_nota_fiscal', notaId);
             
           if (notasError) {
             throw notasError;
@@ -124,6 +130,7 @@ const PesquisaDocumentos: React.FC<PesquisaDocumentosProps> = ({ onResultadoEnco
             const nota = notasData[0];
             
             const resultado: CanhotoPendente = {
+              id: 0, // ID temporário
               cliente: nota.cliente_destinatario,
               contrato_id: '',  // Será preenchido posteriormente
               motorista: 'A ser associado',

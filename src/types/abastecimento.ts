@@ -39,5 +39,6 @@ export interface TipoCombustivelFormProps {
 
 export interface NovoAbastecimentoFormProps {
   tiposCombustivel: TipoCombustivel[];
-  onAbastecimentoAdicionado: () => void;
+  onSave: (data: AbastecimentoFormData) => void;
+  initialData?: Partial<AbastecimentoFormData>;
 }

@@ -1,6 +1,8 @@
 
 import { StatusItem } from '@/types/contabilidade';
 
+export type CanhotoStatus = 'Pendente' | 'Recebido' | 'Cancelado';
+
 export interface Canhoto {
   id: number;
   contrato_id?: string;
@@ -55,7 +57,7 @@ export interface CanhotoPendente {
   status?: string;
   numero_nota_fiscal?: string;
   data_entrega_cliente?: string;
-  data_entrega?: string; // Adicionado para compatibilidade
-  cliente?: string; // Adicionado para compatibilidade
-  motorista?: string; // Adicionado para compatibilidade
+  data_entrega?: string;
+  cliente?: string;
+  motorista?: string;
 }
