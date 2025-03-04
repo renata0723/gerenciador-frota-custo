@@ -5,127 +5,128 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { supabase } from '@/integrations/supabase/client';
+import { TipoConta } from '@/types/contabilidade';
+import { FreteContratadoData } from '@/types/contrato';
 import { formatCurrency } from '@/utils/formatters';
 import { toast } from 'sonner';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { InfoIcon, CalendarIcon } from 'lucide-react';
-import { bancos } from '@/utils/constants';
-import { Switch } from '@/components/ui/switch';
-import { supabase } from '@/integrations/supabase/client';
-import { ContaContabil, TipoConta } from '@/types/contabilidade';
 
-interface FreteContratadoFormProps {
-  contrato?: any;
-  onSave: (data: any) => void;
-  initialData?: any;
+interface ContaContabil {
+  codigo: string;
+  nome: string;
+  natureza: "devedora" | "credora";
+  nivel: number;
+  tipo: TipoConta;
+  codigo_reduzido: string;
+  conta_pai: string;
+  status: string;
 }
 
-const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onSave, initialData }) => {
-  const [valorFreteContratado, setValorFreteContratado] = useState(initialData?.valorFreteContratado || 0);
-  const [valorAdiantamento, setValorAdiantamento] = useState(initialData?.valorAdiantamento || 0);
-  const [valorPedagio, setValorPedagio] = useState(initialData?.valorPedagio || 0);
-  const [saldoPagar, setSaldoPagar] = useState(0);
+interface FreteContratadoFormProps {
+  contrato: any;
+  onSave: (data: FreteContratadoData) => void;
+  initialData?: FreteContratadoData;
+  readOnly?: boolean;
+}
+
+const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ 
+  contrato, 
+  onSave,
+  initialData,
+  readOnly = false
+}) => {
+  const [valorFreteContratado, setValorFreteContratado] = useState<number>(initialData?.valorFreteContratado || 0);
+  const [valorPedagio, setValorPedagio] = useState<number>(initialData?.valorPedagio || 0);
+  const [valorAdiantamento, setValorAdiantamento] = useState<number>(initialData?.valorAdiantamento || 0);
   const [dataAdiantamento, setDataAdiantamento] = useState<Date | undefined>(
     initialData?.dataAdiantamento ? new Date(initialData.dataAdiantamento) : undefined
   );
-  const [metodoPagamentoAdiantamento, setMetodoPagamentoAdiantamento] = useState(initialData?.metodoPagamentoAdiantamento || '');
-  const [bancoPagamentoAdiantamento, setBancoPagamentoAdiantamento] = useState(initialData?.bancoPagamentoAdiantamento || '');
-  const [contabilizado, setContabilizado] = useState(initialData?.contabilizado || false);
-  const [contaDebito, setContaDebito] = useState(initialData?.contaDebito || '');
-  const [contaCredito, setContaCredito] = useState(initialData?.contaCredito || '');
-  const [planoContas, setPlanoContas] = useState<ContaContabil[]>([]);
-  
+  const [bancoPagamento, setBancoPagamento] = useState<string>(initialData?.bancoPagamento || '');
+  const [contabilizado, setContabilizado] = useState<boolean>(initialData?.contabilizado || false);
+  const [contaDebito, setContaDebito] = useState<string>(initialData?.contaDebito || '');
+  const [contaCredito, setContaCredito] = useState<string>(initialData?.contaCredito || '');
+  const [valorSaldoPagar, setValorSaldoPagar] = useState<number>(initialData?.valorSaldoPagar || 0);
+  const [contas, setContas] = useState<ContaContabil[]>([]);
+
   // Carregar plano de contas
   useEffect(() => {
-    const carregarPlanoContas = async () => {
+    const carregarContas = async () => {
       try {
         const { data, error } = await supabase
           .from('Plano_Contas')
           .select('*')
-          .order('codigo', { ascending: true });
-          
-        if (error) {
-          console.error('Erro ao carregar plano de contas:', error);
-          return;
-        }
+          .eq('status', 'ativo');
+
+        if (error) throw error;
         
-        // Converter os dados para o formato esperado de ContaContabil
-        const contasContabeis: ContaContabil[] = (data || []).map(conta => ({
+        // Transformando os dados para se adequar à interface ContaContabil
+        const contasFormatadas: ContaContabil[] = data.map(conta => ({
           codigo: conta.codigo,
           codigo_reduzido: conta.codigo_reduzido,
-          conta_pai: conta.conta_pai,
-          natureza: conta.natureza,
-          nivel: conta.nivel,
           nome: conta.nome,
-          status: conta.status,
-          tipo: conta.tipo as TipoConta
+          natureza: conta.natureza as "devedora" | "credora",
+          nivel: conta.nivel,
+          tipo: conta.tipo as TipoConta,
+          conta_pai: conta.conta_pai,
+          status: conta.status
         }));
         
-        setPlanoContas(contasContabeis);
+        setContas(contasFormatadas);
       } catch (error) {
         console.error('Erro ao carregar plano de contas:', error);
+        toast.error('Erro ao carregar plano de contas');
       }
     };
-    
-    carregarPlanoContas();
+
+    carregarContas();
   }, []);
-  
-  // Calcular saldo a pagar quando valores são alterados
+
+  // Calcular saldo a pagar
   useEffect(() => {
-    const saldo = valorFreteContratado - (valorAdiantamento + valorPedagio);
-    setSaldoPagar(saldo > 0 ? saldo : 0);
-  }, [valorFreteContratado, valorAdiantamento, valorPedagio]);
+    const novoSaldo = valorFreteContratado - valorAdiantamento;
+    setValorSaldoPagar(novoSaldo > 0 ? novoSaldo : 0);
+  }, [valorFreteContratado, valorAdiantamento]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validações
     if (valorFreteContratado <= 0) {
-      toast.error('O valor do frete contratado deve ser maior que zero.');
+      toast.error('O valor do frete contratado deve ser maior que zero');
       return;
     }
-    
+
+    if (valorAdiantamento > valorFreteContratado) {
+      toast.error('O valor do adiantamento não pode ser maior que o valor do frete');
+      return;
+    }
+
     if (contabilizado && (!contaDebito || !contaCredito)) {
-      toast.error('Para contabilizar o frete, selecione as contas de débito e crédito.');
+      toast.error('Selecione as contas contábeis para débito e crédito');
       return;
     }
-    
-    // Preparar dados para envio
-    const data = {
+
+    const dados: FreteContratadoData = {
       valorFreteContratado,
-      valorAdiantamento,
       valorPedagio,
-      saldoPagar,
-      dataAdiantamento: dataAdiantamento ? dataAdiantamento.toISOString().split('T')[0] : null,
-      metodoPagamentoAdiantamento: valorAdiantamento > 0 ? metodoPagamentoAdiantamento : null,
-      bancoPagamentoAdiantamento: valorAdiantamento > 0 ? bancoPagamentoAdiantamento : null,
+      valorAdiantamento,
+      dataAdiantamento: dataAdiantamento ? dataAdiantamento.toISOString().split('T')[0] : '',
+      bancoPagamento,
       contabilizado,
-      contaDebito: contabilizado ? contaDebito : null,
-      contaCredito: contabilizado ? contaCredito : null,
-      contratoId: contrato?.id
+      valorSaldoPagar,
+      contaDebito,
+      contaCredito
     };
-    
-    // Enviar dados para o componente pai
-    onSave(data);
+
+    onSave(dados);
   };
 
   return (
-    <div className="p-4">
-      <Alert className="mb-6 bg-blue-50">
-        <InfoIcon className="h-4 w-4" />
-        <AlertDescription>
-          Informe os valores do frete contratado para este serviço.
-        </AlertDescription>
-      </Alert>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {contrato?.id && (
-          <div className="p-4 bg-gray-50 rounded-md">
-            <h3 className="font-medium mb-2">Contrato</h3>
-            <p><span className="font-medium">Número:</span> {contrato.id}</p>
-          </div>
-        )}
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
           <div>
             <Label htmlFor="valorFreteContratado">Valor do Frete Contratado*</Label>
             <Input
@@ -134,26 +135,12 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onS
               step="0.01"
               min="0"
               value={valorFreteContratado}
-              onChange={(e) => setValorFreteContratado(parseFloat(e.target.value) || 0)}
-              placeholder="0,00"
+              onChange={(e) => setValorFreteContratado(Number(e.target.value))}
+              disabled={readOnly}
               required
             />
           </div>
-          
-          <div>
-            <Label htmlFor="valorAdiantamento">Valor do Adiantamento</Label>
-            <Input
-              id="valorAdiantamento"
-              type="number"
-              step="0.01"
-              min="0"
-              max={valorFreteContratado}
-              value={valorAdiantamento}
-              onChange={(e) => setValorAdiantamento(parseFloat(e.target.value) || 0)}
-              placeholder="0,00"
-            />
-          </div>
-          
+
           <div>
             <Label htmlFor="valorPedagio">Valor do Pedágio</Label>
             <Input
@@ -162,92 +149,86 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onS
               step="0.01"
               min="0"
               value={valorPedagio}
-              onChange={(e) => setValorPedagio(parseFloat(e.target.value) || 0)}
-              placeholder="0,00"
+              onChange={(e) => setValorPedagio(Number(e.target.value))}
+              disabled={readOnly}
             />
           </div>
-        </div>
-        
-        <div className="p-4 border rounded-md bg-gray-50">
-          <div className="flex justify-between">
-            <span className="font-medium">Saldo a Pagar:</span>
-            <span className="font-bold text-blue-600">{formatCurrency(saldoPagar)}</span>
+
+          <div>
+            <Label htmlFor="valorAdiantamento">Valor do Adiantamento</Label>
+            <Input
+              id="valorAdiantamento"
+              type="number"
+              step="0.01"
+              min="0"
+              value={valorAdiantamento}
+              onChange={(e) => setValorAdiantamento(Number(e.target.value))}
+              disabled={readOnly}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="dataAdiantamento">Data do Adiantamento</Label>
+            <DatePicker
+              value={dataAdiantamento}
+              onChange={setDataAdiantamento}
+              disabled={readOnly}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="bancoPagamento">Banco do Pagamento</Label>
+            <Select 
+              value={bancoPagamento} 
+              onValueChange={setBancoPagamento}
+              disabled={readOnly}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o banco" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="001">Banco do Brasil</SelectItem>
+                <SelectItem value="104">Caixa Econômica Federal</SelectItem>
+                <SelectItem value="237">Bradesco</SelectItem>
+                <SelectItem value="341">Itaú</SelectItem>
+                <SelectItem value="033">Santander</SelectItem>
+                <SelectItem value="756">Sicoob</SelectItem>
+                <SelectItem value="748">Sicredi</SelectItem>
+                <SelectItem value="077">Banco Inter</SelectItem>
+                <SelectItem value="260">Nubank</SelectItem>
+                <SelectItem value="outros">Outros</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        
-        {valorAdiantamento > 0 && (
-          <div className="border p-4 rounded-md">
-            <h3 className="font-medium mb-4">Detalhes do Adiantamento</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="dataAdiantamento">Data do Adiantamento</Label>
-                <DatePicker 
-                  value={dataAdiantamento} 
-                  onChange={setDataAdiantamento} 
-                  placeholder="Selecione a data"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="metodoPagamentoAdiantamento">Método de Pagamento</Label>
-                <Select value={metodoPagamentoAdiantamento} onValueChange={setMetodoPagamentoAdiantamento}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o método" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="transferencia">Transferência</SelectItem>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="bancoPagamentoAdiantamento">Banco</Label>
-                <Select value={bancoPagamentoAdiantamento} onValueChange={setBancoPagamentoAdiantamento}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o banco" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bancos.map(banco => (
-                      <SelectItem key={banco.codigo} value={banco.codigo}>
-                        {banco.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+
+        <div className="space-y-4">
+          <div className="p-4 bg-gray-50 rounded-md mb-4">
+            <h3 className="font-semibold mb-2">Saldo a Pagar</h3>
+            <p className="text-2xl font-bold text-blue-600">{formatCurrency(valorSaldoPagar)}</p>
           </div>
-        )}
-        
-        {/* Seção de contabilização */}
-        <div className="border p-4 rounded-md">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium">Contabilização</h3>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                checked={contabilizado} 
-                onCheckedChange={setContabilizado} 
-                id="contabilizado"
-              />
-              <Label htmlFor="contabilizado">Contabilizar frete</Label>
-            </div>
+
+          <div className="flex items-center space-x-2 py-2">
+            <Checkbox 
+              id="contabilizado" 
+              checked={contabilizado} 
+              onCheckedChange={(checked) => setContabilizado(checked as boolean)}
+              disabled={readOnly}
+            />
+            <Label htmlFor="contabilizado" className="cursor-pointer">Contabilizar Automaticamente</Label>
           </div>
-          
+
           {contabilizado && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <>
               <div>
                 <Label htmlFor="contaDebito">Conta de Débito</Label>
-                <Select value={contaDebito} onValueChange={setContaDebito}>
+                <Select value={contaDebito} onValueChange={setContaDebito} disabled={readOnly}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a conta de débito" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {planoContas
-                      .filter(conta => conta.tipo === 'despesa' || conta.tipo === 'ativo')
+                  <SelectContent>
+                    {contas
+                      .filter(conta => conta.natureza === "devedora")
                       .map(conta => (
                         <SelectItem key={conta.codigo} value={conta.codigo}>
                           {conta.codigo} - {conta.nome}
@@ -257,16 +238,16 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onS
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label htmlFor="contaCredito">Conta de Crédito</Label>
-                <Select value={contaCredito} onValueChange={setContaCredito}>
+                <Select value={contaCredito} onValueChange={setContaCredito} disabled={readOnly}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a conta de crédito" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {planoContas
-                      .filter(conta => conta.tipo === 'passivo' || conta.tipo === 'patrimonio')
+                  <SelectContent>
+                    {contas
+                      .filter(conta => conta.natureza === "credora")
                       .map(conta => (
                         <SelectItem key={conta.codigo} value={conta.codigo}>
                           {conta.codigo} - {conta.nome}
@@ -276,17 +257,19 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ contrato, onS
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </>
           )}
         </div>
-        
-        <div className="flex justify-end pt-4">
+      </div>
+
+      {!readOnly && (
+        <div className="flex justify-end mt-6">
           <Button type="submit">
-            Salvar Frete Contratado
+            Salvar
           </Button>
         </div>
-      </form>
-    </div>
+      )}
+    </form>
   );
 };
 
