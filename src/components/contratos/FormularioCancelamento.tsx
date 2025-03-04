@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Label } from '@/components/ui/label';
@@ -43,10 +42,12 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
 
     try {
       // Verificar se o contrato existe
+      const contratoId = typeof numeroDocumento === 'string' ? parseInt(numeroDocumento) : numeroDocumento;
+      
       const { data: contrato, error: contratoError } = await supabase
         .from('Contratos')
         .select('*')
-        .eq('id', numeroDocumento)
+        .eq('id', contratoId)
         .single();
 
       if (contratoError) {
@@ -63,7 +64,7 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
           numero_documento: numeroDocumento,
           motivo,
           observacoes,
-          data_cancelamento: dataCancelamento,
+          data_cancelamento: format(dataCancelamento, 'yyyy-MM-dd'),
           responsavel: 'Usuário Atual' // Ideal: Obter do contexto de autenticação
         });
 
@@ -75,7 +76,7 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
       const { error: atualizacaoError } = await supabase
         .from('Contratos')
         .update({ status_contrato: 'cancelado' })
-        .eq('id', numeroDocumento);
+        .eq('id', contratoId);
 
       if (atualizacaoError) {
         throw atualizacaoError;
@@ -127,7 +128,6 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
                 value={dataCancelamento}
                 onChange={setDataCancelamento}
                 placeholder="Selecione a data de cancelamento"
-                locale={ptBR}
               />
             </div>
 

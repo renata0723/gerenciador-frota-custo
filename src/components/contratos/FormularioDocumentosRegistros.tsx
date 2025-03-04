@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Plus, Trash2, Link as LinkIcon, DollarSign, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { DocumentosRegistrosData } from '@/types/contrato';
 
 export interface DocumentoRegistro {
   id: string;
@@ -16,19 +17,12 @@ export interface DocumentoRegistro {
   notasVinculadas?: string[]; // IDs das notas vinculadas ao CTe
 }
 
-export interface DocumentosRegistrosData {
-  manifestos: DocumentoRegistro[];
-  ctes: DocumentoRegistro[];
-  notas: DocumentoRegistro[];
-  valorFrete: number;
-  valorCarga: number;
-}
-
 interface FormularioDocumentosRegistrosProps {
   onSubmit: (data: DocumentosRegistrosData) => void;
   onBack: () => void;
   onNext: () => void;
   initialData?: Partial<DocumentosRegistrosData>;
+  readOnly?: boolean;
 }
 
 interface CTEDialogData {
@@ -42,22 +36,21 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
   onSubmit,
   onBack,
   onNext,
-  initialData
+  initialData,
+  readOnly = false
 }) => {
   const [formData, setFormData] = useState<DocumentosRegistrosData>({
     manifestos: initialData?.manifestos || [],
     ctes: initialData?.ctes || [],
-    notas: initialData?.notas || [],
+    notasFiscais: initialData?.notasFiscais || [],
     valorFrete: initialData?.valorFrete || 0,
     valorCarga: initialData?.valorCarga || 0
   });
   
-  // Estados para novos itens
   const [novoManifesto, setNovoManifesto] = useState('');
   const [novoCTe, setNovoCTe] = useState('');
   const [novaNota, setNovaNota] = useState('');
   
-  // Estado para o diálogo de criação de CTE
   const [cteDialogOpen, setCteDialogOpen] = useState(false);
   const [cteDialogData, setCteDialogData] = useState<CTEDialogData>({
     numero: '',
@@ -66,20 +59,16 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
     notasVinculadas: []
   });
 
-  // Estado para diálogo de vinculação de notas
   const [vinculacaoNotasDialogOpen, setVinculacaoNotasDialogOpen] = useState(false);
   const [cteParaVincular, setCteParaVincular] = useState<DocumentoRegistro | null>(null);
   const [notasSelecionadas, setNotasSelecionadas] = useState<string[]>([]);
   
-  // Atualizar os valores totais quando os CTes forem modificados
   useEffect(() => {
     if (formData.ctes.length > 0) {
-      // Somar valores do frete de todos os CTes
       const totalFrete = formData.ctes.reduce((sum, cte) => {
         return sum + (cte.valorFrete || 0);
       }, 0);
       
-      // Somar valores da carga de todos os CTes
       const totalCarga = formData.ctes.reduce((sum, cte) => {
         return sum + (cte.valorCarga || 0);
       }, 0);
@@ -90,7 +79,6 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
         valorCarga: totalCarga
       }));
     } else {
-      // Se não há CTEs, zerar os valores totais
       setFormData(prev => ({
         ...prev,
         valorFrete: 0,
@@ -171,8 +159,7 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
       return;
     }
 
-    // Verificar se a nota já existe
-    if (formData.notas.some(nota => nota.numero === valor.trim())) {
+    if (formData.notasFiscais.some(nota => nota.numero === valor.trim())) {
       toast.error(`Nota fiscal com número ${valor.trim()} já cadastrada`);
       return;
     }
@@ -185,7 +172,7 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
     
     setFormData(prev => ({
       ...prev,
-      notas: [...prev.notas, novoItem]
+      notasFiscais: [...prev.notasFiscais, novoItem]
     }));
     
     setNovaNota('');
@@ -207,12 +194,10 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
           ctes: prev.ctes.filter(item => item.id !== id) 
         };
       } else {
-        // Se for uma nota, precisamos também remover essa nota dos CTEs que a têm vinculada
-        const notaRemovida = prev.notas.find(nota => nota.id === id);
+        const notaRemovida = prev.notasFiscais.find(nota => nota.id === id);
         if (notaRemovida) {
           const cteAtualizados = prev.ctes.map(cte => {
             if (cte.notasVinculadas && cte.notasVinculadas.includes(id)) {
-              // Remove a nota dos CTEs que a têm vinculada
               return {
                 ...cte,
                 notasVinculadas: cte.notasVinculadas.filter(notaId => notaId !== id)
@@ -223,13 +208,13 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
           
           novaLista = { 
             ...prev, 
-            notas: prev.notas.filter(item => item.id !== id),
+            notasFiscais: prev.notasFiscais.filter(item => item.id !== id),
             ctes: cteAtualizados
           };
         } else {
           novaLista = { 
             ...prev, 
-            notas: prev.notas.filter(item => item.id !== id)
+            notasFiscais: prev.notasFiscais.filter(item => item.id !== id)
           };
         }
       }
@@ -276,7 +261,6 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
   const confirmarVinculacaoNotas = () => {
     if (!cteParaVincular) return;
 
-    // Atualizar o CTe com as notas vinculadas
     setFormData(prev => ({
       ...prev,
       ctes: prev.ctes.map(cte => {
@@ -297,7 +281,6 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação básica
     if (formData.valorFrete <= 0) {
       toast.error('O valor do frete deve ser maior que zero');
       return;
@@ -312,20 +295,17 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
     onNext();
   };
 
-  // Obter o número da nota a partir do ID
   const getNumeroNotaPorId = (id: string) => {
-    const nota = formData.notas.find(nota => nota.id === id);
+    const nota = formData.notasFiscais.find(nota => nota.id === id);
     return nota ? nota.numero : 'Nota não encontrada';
   };
 
-  // Verificar se uma nota está vinculada a algum CTe
   const notaEstaVinculada = (notaId: string) => {
     return formData.ctes.some(cte => 
       cte.notasVinculadas && cte.notasVinculadas.includes(notaId)
     );
   };
 
-  // Retornar nomes de CTEs vinculados a uma nota
   const getCTEsVinculadosANota = (notaId: string) => {
     return formData.ctes
       .filter(cte => cte.notasVinculadas && cte.notasVinculadas.includes(notaId))
@@ -337,7 +317,6 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
       <h2 className="text-xl font-bold">Documentos e Registros</h2>
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Seção de Manifestos */}
         <Card className="p-4">
           <h3 className="text-lg font-semibold mb-4">Números de Manifesto</h3>
           
@@ -384,7 +363,6 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
           )}
         </Card>
         
-        {/* Seção de Notas Fiscais */}
         <Card className="p-4">
           <h3 className="text-lg font-semibold mb-4">Notas Fiscais</h3>
           
@@ -407,10 +385,10 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
             </Button>
           </div>
           
-          {formData.notas.length > 0 ? (
+          {formData.notasFiscais.length > 0 ? (
             <div className="bg-gray-50 p-4 rounded-md">
               <ul className="space-y-2">
-                {formData.notas.map(item => (
+                {formData.notasFiscais.map(item => (
                   <li key={item.id} className="flex justify-between items-center p-2 bg-white rounded border">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
@@ -445,7 +423,6 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
           )}
         </Card>
         
-        {/* Seção de CTes */}
         <Card className="p-4">
           <h3 className="text-lg font-semibold mb-4">Números de CTe</h3>
           
@@ -546,7 +523,6 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
           )}
         </Card>
         
-        {/* Seção de Valores Totais */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="valorFrete">Valor do Frete (Receita da Empresa) (R$) *</Label>
@@ -601,7 +577,6 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
         </div>
       </form>
 
-      {/* Diálogos */}
       <Dialog open={cteDialogOpen} onOpenChange={setCteDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
@@ -682,11 +657,11 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
           </DialogHeader>
           
           <div className="py-4">
-            {formData.notas.length > 0 ? (
+            {formData.notasFiscais.length > 0 ? (
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-md max-h-[300px] overflow-y-auto">
                   <ul className="space-y-2">
-                    {formData.notas.map(nota => (
+                    {formData.notasFiscais.map(nota => (
                       <li key={nota.id} className="flex items-center p-2 bg-white rounded border hover:bg-blue-50 transition-colors">
                         <input
                           type="checkbox"
@@ -734,7 +709,7 @@ const FormularioDocumentosRegistros: React.FC<FormularioDocumentosRegistrosProps
             <Button 
               type="button" 
               onClick={confirmarVinculacaoNotas} 
-              disabled={formData.notas.length === 0}
+              disabled={formData.notasFiscais.length === 0}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <LinkIcon size={16} className="mr-2" />

@@ -9,6 +9,7 @@ import FormularioCancelamento from '@/components/contratos/FormularioCancelament
 import FormularioRejeicaoContrato from '@/components/contratos/FormularioRejeicaoContrato';
 import ContratoNaoSalvo from '@/components/contratos/ContratoNaoSalvo';
 import { ContratoFormTab } from '@/hooks/useContratoForm';
+import { DocumentosRegistrosData } from '@/types/contrato';
 
 interface ContratoAbasProps {
   activeTab: ContratoFormTab;

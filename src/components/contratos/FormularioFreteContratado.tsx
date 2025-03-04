@@ -35,6 +35,7 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
             contrato={contrato || dadosContrato} 
             onSave={handleSave}
             initialData={initialData}
+            readOnly={readOnly}
           />
         </div>
       </CardContent>

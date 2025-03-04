@@ -27,6 +27,7 @@ export interface DocumentosRegistrosData {
   ctes: string[];
   notasFiscais: Array<{numero: string, valor: number}>;
   valorCarga: number;
+  valorFrete: number;
 }
 
 export interface FreteContratadoData {
@@ -57,7 +58,7 @@ export interface CanhotoDados {
 }
 
 export interface ContratoCompleto {
-  id: number;
+  id: number | string;
   idContrato: string;
   dataSaida: string;
   cidadeOrigem: string;
@@ -137,7 +138,7 @@ export interface CanhotoFormProps {
 }
 
 export interface FormularioCancelamentoProps {
-  numeroDocumento: string;
+  numeroDocumento: string | number;
   onBack?: () => void;
   onCancelamentoRealizado?: () => void;
   onCancel?: () => void;

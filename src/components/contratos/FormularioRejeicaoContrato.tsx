@@ -32,6 +32,8 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
 
     try {
       // Atualizar o status do contrato para rejeitado
+      const contratoId = typeof contrato.id === 'string' ? parseInt(contrato.id) : contrato.id;
+      
       const { error } = await supabase
         .from('Contratos')
         .update({ 
@@ -39,7 +41,7 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
           motivo_rejeicao: motivo,
           status_contrato: 'rejeitado'
         })
-        .eq('id', contrato.id);
+        .eq('id', contratoId);
 
       if (error) {
         throw error;
@@ -63,7 +65,7 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
     <form onSubmit={handleSubmit}>
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <Alert variant="warning" className="mb-6 bg-yellow-50">
+          <Alert variant="destructive" className="mb-6 bg-yellow-50">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               Atenção! A rejeição do contrato impedirá que ele seja processado. Esta ação não pode ser desfeita.
