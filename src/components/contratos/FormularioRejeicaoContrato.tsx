@@ -38,6 +38,9 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
     setCarregando(true);
     
     try {
+      // Converter o ID para número se necessário para o Supabase
+      const contratoId = parseInt(contrato.id);
+      
       // Atualizar o contrato como rejeitado
       const { error } = await supabase
         .from('Contratos')
@@ -46,7 +49,7 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
           motivo_rejeicao: motivo,
           status_contrato: 'Rejeitado'
         })
-        .eq('id', contrato.id); // Usando string como ID
+        .eq('id', contratoId);
         
       if (error) throw error;
       

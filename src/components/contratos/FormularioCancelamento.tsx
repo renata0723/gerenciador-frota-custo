@@ -42,46 +42,55 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
     
     try {
       // Registrar o cancelamento
-      const { error: erroCancelamento } = await supabase
+      const { error: cancelError } = await supabase
         .from('Cancelamentos')
         .insert({
           tipo_documento: tipo,
           numero_documento: numeroDocumento,
           motivo,
           observacoes: observacoes || null,
-          responsavel: 'Usuário do Sistema', // Em um caso real usaria o usuário logado
+          responsavel: 'admin', // TODO: pegar o usuário logado
           data_cancelamento: new Date().toISOString()
         });
         
-      if (erroCancelamento) throw erroCancelamento;
+      if (cancelError) throw cancelError;
       
-      // Atualizar o status do documento
+      // Atualizar o documento como cancelado
       if (tipo === 'Contrato') {
-        const { error: erroContrato } = await supabase
+        // Certifique-se de converter para o tipo correto esperado pelo Supabase
+        const id = parseInt(numeroDocumento);
+        
+        const { error } = await supabase
           .from('Contratos')
-          .update({ status_contrato: 'Cancelado' })
-          .eq('id', numeroDocumento); // Isso agora espera uma string
+          .update({
+            status_contrato: 'Cancelado'
+          })
+          .eq('id', id);
           
-        if (erroContrato) throw erroContrato;
-      } else if (tipo === 'CTe') {
-        // Aqui atualizaria o status do CTe em uma tabela específica
-        // Código exemplo - ajustar conforme necessário
+        if (error) throw error;
+      } else if (tipo === 'CTE') {
+        // Para documentos CTe
+        const { error } = await supabase
+          .from('CTe')
+          .update({
+            status: 'Cancelado'
+          })
+          .eq('numero', numeroDocumento);
+          
+        if (error) throw error;
       }
       
-      toast.success(`${tipo} cancelado com sucesso!`);
-      
-      if (onCancelamentoRealizado) {
-        onCancelamentoRealizado();
-      }
+      toast.success(`${tipo} ${numeroDocumento} cancelado com sucesso`);
+      if (onCancelamentoRealizado) onCancelamentoRealizado();
     } catch (error) {
-      console.error(`Erro ao cancelar ${tipo}:`, error);
-      setErro(`Ocorreu um erro ao cancelar o ${tipo}. Por favor, tente novamente.`);
+      console.error('Erro ao cancelar documento:', error);
+      setErro('Ocorreu um erro ao processar o cancelamento. Por favor, tente novamente.');
       toast.error(`Erro ao cancelar ${tipo}`);
     } finally {
       setCarregando(false);
     }
   };
-  
+
   return (
     <Card>
       <CardHeader className="bg-red-50">
@@ -91,54 +100,48 @@ const FormularioCancelamento: React.FC<FormularioCancelamentoProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit}>
           {erro && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{erro}</AlertDescription>
             </Alert>
           )}
           
-          <div>
-            <div className="mb-4 p-4 bg-gray-50 rounded-md">
-              <h3 className="font-medium mb-2">Detalhes do {tipo}</h3>
-              <p><span className="font-medium">Número:</span> {numeroDocumento}</p>
+          <div className="mb-6 p-4 bg-gray-50 rounded-md">
+            <h3 className="font-medium mb-2">Detalhes do {tipo}</h3>
+            <p><span className="font-medium">Número:</span> {numeroDocumento}</p>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="motivo">Motivo do Cancelamento*</Label>
+              <Textarea
+                id="motivo"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder={`Informe o motivo do cancelamento deste ${tipo.toLowerCase()}`}
+                className="min-h-[100px]"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="observacoes">Observações Adicionais</Label>
+              <Textarea
+                id="observacoes"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                placeholder="Observações adicionais (opcional)"
+                className="min-h-[80px]"
+              />
             </div>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="motivo" className="text-base">Motivo do Cancelamento*</Label>
-            <Textarea
-              id="motivo"
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              className="min-h-[80px]"
-              placeholder={`Informe o motivo para cancelar este ${tipo}`}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="observacoes" className="text-base">Observações</Label>
-            <Textarea
-              id="observacoes"
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-              className="min-h-[80px]"
-              placeholder="Observações adicionais (opcional)"
-            />
-          </div>
-          
-          <div className="flex justify-end space-x-2 pt-4">
-            {onCancel ? (
-              <Button type="button" variant="outline" onClick={onCancel} disabled={carregando}>
-                Fechar
-              </Button>
-            ) : (
-              <Button type="button" variant="outline" onClick={onBack} disabled={carregando}>
-                Voltar
-              </Button>
-            )}
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button type="button" variant="outline" onClick={onBack || onCancel} disabled={carregando}>
+              Voltar
+            </Button>
             <Button type="submit" variant="destructive" disabled={carregando}>
               {carregando ? 'Processando...' : `Cancelar ${tipo}`}
             </Button>

@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { logOperation } from '@/utils/logOperations';
-import { DadosContratoFormData } from '@/components/contratos/FormularioDadosContrato';
+import { DadosContratoFormData } from '@/components/contratos/dadosContrato/types';
 
 export interface ObservacoesData {
   operadorEntrega: string;
@@ -36,7 +35,6 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
   const [contrato, setContrato] = useState<any>(null);
   const navigate = useNavigate();
   
-  // Carregar dados do contrato se estiver editando
   useEffect(() => {
     if (contratoId) {
       carregarContrato(contratoId);
@@ -59,7 +57,6 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
       if (data) {
         setContrato(data);
         
-        // Preencher o formulário com os dados do contrato
         setDadosContrato({
           idContrato: data.id.toString(),
           dataSaida: data.data_saida,
@@ -88,7 +85,6 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
     }
   };
   
-  // Funções para salvar os dados dos formulários
   const handleSaveContractData = (data: DadosContratoFormData) => {
     console.log("Dados do contrato salvos:", data);
     setDadosContrato(data);
@@ -107,19 +103,15 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
     console.log("Dados do frete salvos:", data);
     setDadosFrete(data);
     
-    // Se for frete terceirizado e a opção de gerar saldo a pagar estiver marcada
     if (dadosContrato?.tipo === 'terceiro' && data.gerarSaldoPagar && data.saldoPagar > 0) {
-      // Formatar a data de vencimento
       const dataVencimentoFormatada = data.dataVencimento ? 
         format(data.dataVencimento, 'yyyy-MM-dd') : null;
         
-      // Verificar se a data de vencimento foi definida
       if (!dataVencimentoFormatada) {
         toast.error("Data de vencimento é obrigatória para gerar saldo a pagar");
         return;
       }
       
-      // Gerar entrada no saldo a pagar
       const saldoPagarData = {
         parceiro: dadosContrato.proprietario,
         valor_total: data.saldoPagar,
@@ -132,7 +124,6 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
       console.log("Gerando saldo a pagar:", saldoPagarData);
       
       try {
-        // Inserir no saldo a pagar
         const { error } = await supabase
           .from('Saldo a pagar')
           .insert({
@@ -163,14 +154,12 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
     console.log("Observações salvas:", data);
     setDadosObservacoes(data);
     
-    // Aqui você poderia chamar uma função para salvar todos os dados coletados
     await handleSaveAllData();
     
     toast.success("Observações registradas com sucesso!");
   };
   
   const handleSaveAllData = async () => {
-    // Aqui você enviaria todos os dados para o servidor
     if (!dadosContrato) {
       toast.error("Dados do contrato incompletos");
       return;
@@ -187,7 +176,6 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
     console.log("Contrato completo para salvar:", contratoCompleto);
     
     try {
-      // Gravar na tabela de Contratos
       const contratoData = {
         id: parseInt(dadosContrato.idContrato),
         cidade_destino: dadosContrato.cidadeDestino,
@@ -206,7 +194,6 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
       
       let operation;
       if (contratoId) {
-        // Atualizar contrato existente
         const { error } = await supabase
           .from('Contratos')
           .update(contratoData)
@@ -215,7 +202,6 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
         if (error) throw error;
         operation = 'atualizado';
       } else {
-        // Criar novo contrato
         const { error } = await supabase
           .from('Contratos')
           .insert(contratoData);
@@ -224,15 +210,11 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
         operation = 'criado';
       }
       
-      // Registrar a operação no log
       logOperation('Contratos', `Contrato ${operation}`, `ID: ${dadosContrato.idContrato}, Tipo: ${dadosContrato.tipo}`);
       
-      // Criar entrada na tabela de Canhoto para futuro recebimento
       if (dadosDocumentos?.numeroManifesto || dadosDocumentos?.numeroCTe || dadosDocumentos?.notasFiscais?.length) {
-        // Pegar a primeira nota fiscal
         const primeiraNotaFiscal = dadosDocumentos?.notasFiscais?.[0]?.numero || null;
         
-        // Verificar se já existe um canhoto para este contrato
         const { data: canhotoExistente } = await supabase
           .from('Canhoto')
           .select('*')
@@ -240,7 +222,6 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
           .maybeSingle();
           
         if (canhotoExistente) {
-          // Atualizar canhoto existente
           const { error: canhotoError } = await supabase
             .from('Canhoto')
             .update({
@@ -261,7 +242,6 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
             toast.error('Erro ao atualizar registro de canhoto');
           }
         } else {
-          // Criar novo canhoto
           const { error: canhotoError } = await supabase
             .from('Canhoto')
             .insert({
@@ -284,17 +264,15 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
         }
       }
       
-      // Lançamento contábil automatizado (se houver valor de frete)
       if (dadosFrete?.valorFreteContratado && dadosFrete.contabilizarFrete) {
         try {
-          // Criar lançamento contábil de receita de frete
           const { error: lancamentoError } = await supabase
             .from('Lancamentos_Contabeis')
             .insert({
               data_lancamento: new Date().toISOString().split('T')[0],
               data_competencia: new Date().toISOString().split('T')[0],
-              conta_debito: '1.1.1.01', // Caixa (exemplo)
-              conta_credito: '3.1.1.01', // Receita de fretes (exemplo)
+              conta_debito: '1.1.1.01',
+              conta_credito: '3.1.1.01',
               valor: dadosFrete.valorFreteContratado,
               historico: `Receita de frete - Contrato ${dadosContrato.idContrato}`,
               documento_referencia: `CT-e ${dadosDocumentos?.numeroCTe || 'N/D'}`,
@@ -314,9 +292,7 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
       
       toast.success(`Contrato ${operation} com sucesso!`);
       
-      // Chamar a função de callback se existir, passando os dados completos
       if (onContratoSalvo) {
-        // Montar um objeto com todos os dados para exibição do recibo
         const contratoData = {
           ...dadosContrato,
           ...dadosFrete,
@@ -325,7 +301,6 @@ export const useContratoForm = (contratoId?: string, onContratoSalvo?: (data: an
         };
         onContratoSalvo(contratoData);
       } else {
-        // Redirecionar para a lista de contratos se não houver callback
         setTimeout(() => {
           navigate('/contratos');
         }, 1500);
