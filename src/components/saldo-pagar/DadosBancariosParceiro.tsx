@@ -1,90 +1,81 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CreditCard, AlertCircle } from 'lucide-react';
 import { ParceiroInfo } from '@/types/saldoPagar';
-import { formatCPFCNPJ } from '@/utils/formatters';
-import { CreditCard, Building, ArrowRight } from 'lucide-react';
 
-interface DadosBancariosParceiroProps {
-  parceiro: ParceiroInfo | null;
+interface DadosBancariosParceirosProps {
+  parceiro: ParceiroInfo;
 }
 
-const DadosBancariosParceiro: React.FC<DadosBancariosParceiroProps> = ({ parceiro }) => {
-  if (!parceiro) {
+const DadosBancariosParceiro: React.FC<DadosBancariosParceirosProps> = ({ parceiro }) => {
+  // Verificar se os dados bancários existem e estão em formato string
+  const temDadosBancarios = parceiro.dadosBancarios !== undefined && 
+                            parceiro.dadosBancarios !== null && 
+                            parceiro.dadosBancarios !== '';
+  
+  // Se for string, tentar fazer parse para objeto
+  let dadosBancariosObj: any = null;
+  if (temDadosBancarios && typeof parceiro.dadosBancarios === 'string') {
+    try {
+      dadosBancariosObj = JSON.parse(parceiro.dadosBancarios);
+    } catch (e) {
+      console.error('Erro ao fazer parse dos dados bancários:', e);
+    }
+  } else if (temDadosBancarios && typeof parceiro.dadosBancarios === 'object') {
+    dadosBancariosObj = parceiro.dadosBancarios;
+  }
+
+  // Se não há dados bancários ou ocorreu erro no parse
+  if (!temDadosBancarios || !dadosBancariosObj) {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Dados Bancários</CardTitle>
+          <CardTitle className="text-lg font-semibold">Dados Bancários</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500 text-sm">Nenhum parceiro selecionado</p>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Este parceiro não possui dados bancários cadastrados.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
   }
-  
-  // Verificar se tem dados bancários
-  const temDadosBancarios = parceiro.dados_bancarios && 
-    (parceiro.dados_bancarios.banco || parceiro.dados_bancarios.pix);
-  
+
   return (
     <Card>
-      <CardHeader className="pb-2 flex flex-row items-center justify-between">
-        <CardTitle className="text-base">Dados do Parceiro</CardTitle>
-        <CreditCard className="h-5 w-5 text-blue-600" />
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-semibold">Dados Bancários</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Nome:</span>
-            <span className="font-medium">{parceiro.nome}</span>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex items-center">
+            <CreditCard className="h-5 w-5 text-blue-500 mr-2" />
+            <span className="font-medium">Banco:</span>
+            <span className="ml-2">{dadosBancariosObj.banco}</span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Documento:</span>
-            <span className="font-medium">{formatCPFCNPJ(parceiro.documento)}</span>
+          
+          <div className="flex items-center">
+            <span className="font-medium ml-7">Agência:</span>
+            <span className="ml-2">{dadosBancariosObj.agencia}</span>
           </div>
-        </div>
-        
-        {temDadosBancarios ? (
-          <>
-            <div className="h-px bg-gray-200 my-3" />
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <Building className="h-4 w-4 mr-2 text-gray-500" />
-                <span className="font-medium">Dados Bancários</span>
-              </div>
-              
-              {parceiro.dados_bancarios?.banco && (
-                <>
-                  <div className="flex justify-between items-center ml-6">
-                    <span className="text-sm text-gray-500">Banco:</span>
-                    <span>{parceiro.dados_bancarios.banco}</span>
-                  </div>
-                  <div className="flex justify-between items-center ml-6">
-                    <span className="text-sm text-gray-500">Agência:</span>
-                    <span>{parceiro.dados_bancarios.agencia}</span>
-                  </div>
-                  <div className="flex justify-between items-center ml-6">
-                    <span className="text-sm text-gray-500">Conta:</span>
-                    <span>{parceiro.dados_bancarios.conta} ({parceiro.dados_bancarios.tipo_conta})</span>
-                  </div>
-                </>
-              )}
-              
-              {parceiro.dados_bancarios?.pix && (
-                <div className="flex justify-between items-center ml-6">
-                  <span className="text-sm text-gray-500">Chave PIX:</span>
-                  <span>{parceiro.dados_bancarios.pix}</span>
-                </div>
-              )}
+          
+          <div className="flex items-center">
+            <span className="font-medium ml-7">Conta:</span>
+            <span className="ml-2">{dadosBancariosObj.conta} ({dadosBancariosObj.tipo_conta})</span>
+          </div>
+          
+          {dadosBancariosObj.pix && (
+            <div className="flex items-center">
+              <span className="font-medium ml-7">PIX:</span>
+              <span className="ml-2">{dadosBancariosObj.pix}</span>
             </div>
-          </>
-        ) : (
-          <p className="text-sm text-yellow-600 mt-2 flex items-center">
-            <ArrowRight className="h-4 w-4 mr-1" />
-            Nenhum dado bancário cadastrado
-          </p>
-        )}
+          )}
+        </div>
       </CardContent>
     </Card>
   );

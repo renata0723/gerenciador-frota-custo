@@ -1,198 +1,155 @@
+
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CreditCard, CalendarDays, FileText, DollarSign } from 'lucide-react';
-import { toast } from 'sonner';
-import { SaldoPagar, PagamentoSaldo } from '@/types/saldoPagar';
-import { formataMoeda } from '@/utils/constants';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { bancos, formataMoeda } from '@/utils/constants';
+import { SaldoPagarItem, PagamentoSaldo } from '@/types/saldoPagar';
+import { formatCurrency } from '@/utils/constants';
+import { format } from 'date-fns';
 
 interface FormularioPagamentoProps {
-  saldos: SaldoPagar[];
-  onPagamentoRealizado: (pagamento: PagamentoSaldo) => Promise<void>;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  saldo: SaldoPagarItem | null;
+  onSave: (data: PagamentoSaldo) => void;
+  onCancel: () => void;
 }
 
-const bancos = [
-  "Banco do Brasil",
-  "Caixa Econômica Federal",
-  "Bradesco",
-  "Itaú",
-  "Santander",
-  "Nubank",
-  "Inter",
-  "Sicoob",
-  "Sicredi",
-  "Outro"
-];
-
-const FormularioPagamento: React.FC<FormularioPagamentoProps> = ({ 
-  saldos, 
-  onPagamentoRealizado,
-  open,
-  onOpenChange
+const FormularioPagamento: React.FC<FormularioPagamentoProps> = ({
+  saldo,
+  onSave,
+  onCancel
 }) => {
-  const [valorTotal, setValorTotal] = useState<number>(() => {
-    return saldos.reduce((total, saldo) => total + (saldo.valor_total - (saldo.valor_pago || 0)), 0);
-  });
-  
-  const [valorPago, setValorPago] = useState<number>(valorTotal);
-  const [dataPagamento, setDataPagamento] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [bancoPagamento, setBancoPagamento] = useState<string>("");
-  const [observacoes, setObservacoes] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    if (!bancoPagamento) {
-      toast.error("Selecione o banco utilizado para o pagamento");
-      setLoading(false);
-      return;
-    }
-    
-    if (valorPago <= 0) {
-      toast.error("O valor pago deve ser maior que zero");
-      setLoading(false);
-      return;
-    }
-    
-    try {
-      const pagamento: PagamentoSaldo = {
-        valor_pago: valorPago,
-        data_pagamento: dataPagamento,
-        banco_pagamento: bancoPagamento,
-        observacoes: observacoes,
-        ids_contratos: saldos.map(s => s.contratos_associados || '').filter(Boolean)
-      };
-      
-      await onPagamentoRealizado(pagamento);
-      
-      // Resetar o formulário
-      setValorPago(0);
-      setBancoPagamento("");
-      setObservacoes("");
-      
-      // Fechar o diálogo
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Erro ao processar pagamento:', error);
-      toast.error('Ocorreu um erro ao registrar o pagamento');
-    } finally {
-      setLoading(false);
-    }
+  const [valor, setValor] = useState<number>(saldo?.saldo_restante || saldo?.valor_total || 0);
+  const [dataPagamento, setDataPagamento] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [bancoSelecionado, setBancoSelecionado] = useState<string>('');
+  const [observacao, setObservacao] = useState<string>('');
+
+  const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const novoValor = parseFloat(e.target.value);
+    setValor(isNaN(novoValor) ? 0 : novoValor);
   };
-  
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!valor || valor <= 0) {
+      alert('Por favor, informe um valor válido para o pagamento.');
+      return;
+    }
+
+    if (!bancoSelecionado) {
+      alert('Por favor, selecione o banco utilizado para o pagamento.');
+      return;
+    }
+    
+    // Monta o objeto de pagamento
+    const pagamento: PagamentoSaldo = {
+      id: 0, // Será gerado pelo banco 
+      saldo_id: saldo?.id || 0,
+      valor: valor,
+      data_pagamento: dataPagamento,
+      metodo_pagamento: 'Transferência Bancária',
+      banco_pagamento: bancoSelecionado,
+      observacoes: observacao
+    };
+    
+    onSave(pagamento);
+  };
+
+  if (!saldo) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <DollarSign className="mr-2 h-5 w-5 text-green-600" />
-            Registrar Pagamento
-          </DialogTitle>
-        </DialogHeader>
-        
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-semibold">Detalhes do Pagamento</CardTitle>
+      </CardHeader>
+      <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Card className="bg-muted/30">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Resumo do Saldo</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm">
-              <div className="flex justify-between py-1">
-                <span>Parceiro:</span>
-                <span className="font-medium">{saldos[0]?.parceiro || "N/A"}</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span>Contratos associados:</span>
-                <span className="font-medium">{saldos.map(s => s.contratos_associados).join(', ')}</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span>Valor total pendente:</span>
-                <span className="font-medium text-green-600">{formataMoeda(valorTotal)}</span>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="valor_pago">Valor do Pagamento</Label>
-              <div className="relative">
-                <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                <Input
-                  id="valor_pago"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="pl-8"
-                  value={valorPago}
-                  onChange={(e) => setValorPago(Number(e.target.value))}
-                  required
-                />
-              </div>
+          <div className="p-4 bg-gray-50 rounded-md mb-4">
+            <div className="flex justify-between mb-2">
+              <span className="font-medium">Parceiro:</span>
+              <span>{saldo.parceiro}</span>
             </div>
-            
-            <div>
-              <Label htmlFor="data_pagamento">Data do Pagamento</Label>
-              <div className="relative">
-                <CalendarDays className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                <Input
-                  id="data_pagamento"
-                  type="date"
-                  className="pl-8"
-                  value={dataPagamento}
-                  onChange={(e) => setDataPagamento(e.target.value)}
-                  required
-                />
-              </div>
+            <div className="flex justify-between mb-2">
+              <span className="font-medium">Valor Total:</span>
+              <span>{formatCurrency(saldo.valor_total || 0)}</span>
+            </div>
+            <div className="flex justify-between mb-2">
+              <span className="font-medium">Já Pago:</span>
+              <span>{formatCurrency(saldo.valor_pago || 0)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Saldo a Pagar:</span>
+              <span className="font-bold text-blue-600">
+                {formatCurrency((saldo.valor_total || 0) - (saldo.valor_pago || 0))}
+              </span>
             </div>
           </div>
           
           <div>
-            <Label htmlFor="banco_pagamento">Banco Utilizado</Label>
-            <div className="relative">
-              <CreditCard className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 z-10" />
-              <Select value={bancoPagamento} onValueChange={setBancoPagamento} required>
-                <SelectTrigger className="pl-8">
-                  <SelectValue placeholder="Selecione o banco" />
-                </SelectTrigger>
-                <SelectContent>
-                  {bancos.map(banco => (
-                    <SelectItem key={banco} value={banco}>{banco}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="observacoes">Observações (opcional)</Label>
-            <Textarea
-              id="observacoes"
-              placeholder="Informações adicionais sobre o pagamento"
-              rows={3}
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
+            <Label htmlFor="valor">Valor do Pagamento *</Label>
+            <Input
+              id="valor"
+              type="number"
+              step="0.01"
+              min="0.01"
+              max={(saldo.valor_total || 0) - (saldo.valor_pago || 0)}
+              value={valor}
+              onChange={handleValorChange}
+              required
             />
           </div>
           
-          <DialogFooter className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div>
+            <Label htmlFor="dataPagamento">Data do Pagamento *</Label>
+            <Input
+              id="dataPagamento"
+              type="date"
+              value={dataPagamento}
+              onChange={(e) => setDataPagamento(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="banco">Banco Utilizado *</Label>
+            <Select value={bancoSelecionado} onValueChange={setBancoSelecionado}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o banco" />
+              </SelectTrigger>
+              <SelectContent>
+                {bancos.map(banco => (
+                  <SelectItem key={banco.codigo} value={banco.codigo}>
+                    {banco.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="observacao">Observações</Label>
+            <Input
+              id="observacao"
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Informações adicionais sobre o pagamento"
+            />
+          </div>
+          
+          <div className="pt-4 flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={onCancel}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading} className="gap-2">
-              {loading ? 'Processando...' : 'Confirmar Pagamento'}
+            <Button type="submit">
+              Registrar Pagamento
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </CardContent>
+    </Card>
   );
 };
 

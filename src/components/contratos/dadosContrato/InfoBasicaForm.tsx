@@ -35,7 +35,6 @@ const InfoBasicaForm: React.FC<InfoBasicaFormProps> = ({
       <div className="space-y-2">
         <Label htmlFor="dataSaida">Data de Saída*</Label>
         <DatePicker
-          id="dataSaida"
           value={dataSaida}
           onChange={setDataSaida}
           disabled={readOnly}

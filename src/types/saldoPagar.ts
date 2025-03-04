@@ -14,7 +14,7 @@ export interface SaldoPagarItem {
   valor_pago?: number;
   saldo_restante?: number;
   contratos_associados?: string;
-  dados_bancarios?: string | DadosBancarios;
+  dadosBancarios?: string | DadosBancarios;
   data_pagamento?: string;
   vencimento?: string;
   banco_pagamento?: string;
@@ -28,7 +28,7 @@ export interface ParceiroInfo {
   id?: number;
 }
 
-// Adicionando os tipos necessários que estavam faltando
+// Adicionando os tipos necessários
 export type SaldoPagar = SaldoPagarItem;
 
 export interface PagamentoSaldo {
@@ -37,8 +37,10 @@ export interface PagamentoSaldo {
   valor: number;
   data_pagamento: string;
   metodo_pagamento: string;
+  banco_pagamento?: string;
   comprovante?: string;
   observacoes?: string;
+  valor_pago?: number;
 }
 
 export interface ProprietarioFormValues {

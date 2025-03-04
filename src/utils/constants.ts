@@ -1,135 +1,102 @@
 
-// Constantes para o sistema
-import { TipoManutencao } from '@/types/manutencao';
+import { StatusItem } from '@/types/contabilidade';
+import { format } from 'date-fns';
 
-export const estadosBrasileiros = [
-  { nome: 'Acre', sigla: 'AC' },
-  { nome: 'Alagoas', sigla: 'AL' },
-  { nome: 'Amapá', sigla: 'AP' },
-  { nome: 'Amazonas', sigla: 'AM' },
-  { nome: 'Bahia', sigla: 'BA' },
-  { nome: 'Ceará', sigla: 'CE' },
-  { nome: 'Distrito Federal', sigla: 'DF' },
-  { nome: 'Espírito Santo', sigla: 'ES' },
-  { nome: 'Goiás', sigla: 'GO' },
-  { nome: 'Maranhão', sigla: 'MA' },
-  { nome: 'Mato Grosso', sigla: 'MT' },
-  { nome: 'Mato Grosso do Sul', sigla: 'MS' },
-  { nome: 'Minas Gerais', sigla: 'MG' },
-  { nome: 'Pará', sigla: 'PA' },
-  { nome: 'Paraíba', sigla: 'PB' },
-  { nome: 'Paraná', sigla: 'PR' },
-  { nome: 'Pernambuco', sigla: 'PE' },
-  { nome: 'Piauí', sigla: 'PI' },
-  { nome: 'Rio de Janeiro', sigla: 'RJ' },
-  { nome: 'Rio Grande do Norte', sigla: 'RN' },
-  { nome: 'Rio Grande do Sul', sigla: 'RS' },
-  { nome: 'Rondônia', sigla: 'RO' },
-  { nome: 'Roraima', sigla: 'RR' },
-  { nome: 'Santa Catarina', sigla: 'SC' },
-  { nome: 'São Paulo', sigla: 'SP' },
-  { nome: 'Sergipe', sigla: 'SE' },
-  { nome: 'Tocantins', sigla: 'TO' }
-];
+// Tipos de manutenção
+export const TIPO_MANUTENCAO = {
+  PREVENTIVA: 'preventiva',
+  CORRETIVA: 'corretiva',
+};
 
-export const categoriasManutencao: TipoManutencao[] = [
-  { id: 'preventiva', nome: 'Preventiva', descricao: 'Manutenção realizada para evitar falhas' },
-  { id: 'corretiva', nome: 'Corretiva', descricao: 'Manutenção realizada para corrigir falhas' },
-  { id: 'preditiva', nome: 'Preditiva', descricao: 'Manutenção baseada em previsão de falhas' }
-];
+// Formatação de moeda e data
+export const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+};
 
-export const origemManutencao = [
-  { value: 'patio', label: 'Pátio' },
-  { value: 'externa', label: 'Externa' }
-];
+export const formataMoeda = formatCurrency;
 
-export const tipoVeiculo = [
-  { value: 'cavalo', label: 'Cavalo Mecânico' },
-  { value: 'carreta', label: 'Carreta' },
-  { value: 'truck', label: 'Caminhão Truck' },
-  { value: 'outro', label: 'Outro' }
-];
+export const formatDate = (date: string | Date): string => {
+  if (!date) return '-';
+  try {
+    const dataObj = typeof date === 'string' ? new Date(date) : date;
+    return format(dataObj, 'dd/MM/yyyy');
+  } catch (error) {
+    return String(date);
+  }
+};
 
-export const tipoFrota = [
-  { value: 'propria', label: 'Frota Própria' },
-  { value: 'terceiro', label: 'Terceirizado' }
-];
+// Contas contábeis
+export const CONTAS_CONTABEIS = {
+  CAIXA: '1.1.1.01',
+  BANCOS: '1.1.1.02',
+  CLIENTES: '1.1.2.01',
+  FORNECEDORES: '2.1.1.01',
+  ADIANTAMENTO_FORNECEDORES: '1.1.5.01',
+  IMPOSTOS_A_RECOLHER: '2.1.2.01',
+  RECEITA_FRETE: '3.1.1.01',
+  DESPESA_COMBUSTIVEL: '4.1.1.01',
+  DESPESA_MANUTENCAO: '4.1.2.01',
+  DESPESA_SALARIOS: '4.1.3.01',
+  DESPESA_ADMINISTRATIVA: '4.2.1.01',
+};
 
-export const situacaoVeiculo = [
-  { value: 'ativo', label: 'Ativo' },
-  { value: 'manutencao', label: 'Em Manutenção' },
-  { value: 'inativo', label: 'Inativo' }
-];
-
-export const tipoPlacaVeiculo = [
-  { value: 'cavalo', label: 'Cavalo Mecânico' },
-  { value: 'carreta', label: 'Carreta' },
-  { value: 'conjunto', label: 'Conjunto (Cavalo + Carreta)' }
-];
-
-export const tipoFormaPagamento = [
-  { value: 'pix', label: 'PIX' },
-  { value: 'ted', label: 'TED' },
-  { value: 'deposito', label: 'Depósito Bancário' },
-  { value: 'cheque', label: 'Cheque' },
-  { value: 'dinheiro', label: 'Dinheiro' },
-  { value: 'outro', label: 'Outro' }
-];
-
-// Define os status como um array de objetos para utilização em selects e depois adiciona aliases para facilitar o acesso
-const STATUS_PAGAMENTO = [
+// Status para pagamentos
+export const statusSaldoPagar = [
   { value: 'pendente', label: 'Pendente' },
   { value: 'parcial', label: 'Parcial' },
   { value: 'pago', label: 'Pago' },
   { value: 'cancelado', label: 'Cancelado' },
-  { value: 'liberado', label: 'Liberado' }
+  { value: 'liberado', label: 'Liberado' },
 ];
 
-// Adiciona os aliases para facilitar o acesso via índice
-STATUS_PAGAMENTO.PENDENTE = STATUS_PAGAMENTO[0];
-STATUS_PAGAMENTO.PARCIAL = STATUS_PAGAMENTO[1];
-STATUS_PAGAMENTO.PAGO = STATUS_PAGAMENTO[2];
-STATUS_PAGAMENTO.CANCELADO = STATUS_PAGAMENTO[3];
-STATUS_PAGAMENTO.LIBERADO = STATUS_PAGAMENTO[4];
+// Definição das propriedades para acesso facilitado
+statusSaldoPagar.PENDENTE = 'pendente';
+statusSaldoPagar.PARCIAL = 'parcial';
+statusSaldoPagar.PAGO = 'pago';
+statusSaldoPagar.CANCELADO = 'cancelado';
+statusSaldoPagar.LIBERADO = 'liberado';
 
-export { STATUS_PAGAMENTO };
+export const ANO_ATUAL = new Date().getFullYear();
 
-// Tipos de conta para dados bancários
-export const tipoConta = [
-  { value: 'corrente', label: 'Conta Corrente' },
-  { value: 'poupanca', label: 'Conta Poupança' }
+// Lista de bancos brasileiros
+export const bancos = [
+  { codigo: '001', nome: 'Banco do Brasil' },
+  { codigo: '033', nome: 'Santander' },
+  { codigo: '104', nome: 'Caixa Econômica Federal' },
+  { codigo: '237', nome: 'Bradesco' },
+  { codigo: '341', nome: 'Itaú' },
+  { codigo: '077', nome: 'Inter' },
+  { codigo: '260', nome: 'Nubank' },
+  { codigo: '336', nome: 'C6 Bank' },
+  { codigo: '756', nome: 'Sicoob' },
+  { codigo: '748', nome: 'Sicredi' },
+  { codigo: '212', nome: 'Banco Original' },
+  { codigo: '655', nome: 'Votorantim' },
+  { codigo: '422', nome: 'Safra' },
+  { codigo: '399', nome: 'HSBC' },
+  { codigo: '021', nome: 'Banestes' },
+  { codigo: '041', nome: 'Banrisul' },
+  { codigo: '003', nome: 'Banco da Amazônia' },
+  { codigo: '004', nome: 'Banco do Nordeste' },
+  { codigo: '025', nome: 'Banco Alfa' },
+  { codigo: '600', nome: 'Luso Brasileiro' },
 ];
 
-// Status para notas fiscais
-export const statusNotas = [
-  { value: 'pendente', label: 'Pendente' },
-  { value: 'em_transito', label: 'Em Trânsito' },
-  { value: 'entregue', label: 'Entregue' },
-  { value: 'cancelada', label: 'Cancelada' },
-  { value: 'devolvida', label: 'Devolvida' }
-];
+// Alíquotas de impostos para apuração tributária no Lucro Real
+export const ALIQUOTAS_IMPOSTOS = {
+  PIS: 0.0165,
+  COFINS: 0.076,
+  IRPJ: 0.15,
+  IRPJ_ADICIONAL: 0.10,
+  CSLL: 0.09,
+};
 
-// Tipos de impostos para cálculo
-export const tiposImpostos = [
-  { value: 'pis', label: 'PIS' },
-  { value: 'cofins', label: 'COFINS' },
-  { value: 'csll', label: 'CSLL' },
-  { value: 'irpj', label: 'IRPJ' },
-  { value: 'icms', label: 'ICMS' },
-  { value: 'iss', label: 'ISS' }
-];
+export const LIMITE_MENSAL_IRPJ_ADICIONAL = 20000.00;
 
-// Regimes tributários
-export const regimesTributarios = [
-  { value: 'simples_nacional', label: 'Simples Nacional' },
-  { value: 'lucro_presumido', label: 'Lucro Presumido' },
-  { value: 'lucro_real', label: 'Lucro Real' }
-];
-
-// Tipos de créditos tributários
-export const tiposCreditosTributarios = [
-  { value: 'pis_cofins', label: 'PIS/COFINS' },
-  { value: 'icms', label: 'ICMS' },
-  { value: 'ipi', label: 'IPI' },
-  { value: 'outros', label: 'Outros' }
-];
+export const PERCENTUAIS_PRESUNCAO = {
+  TRANSPORTE_CARGAS: 0.08, // 8% para IRPJ
+  TRANSPORTE_CARGAS_CSLL: 0.12, // 12% para CSLL
+};

@@ -1,389 +1,323 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import NewPageLayout from '@/components/layout/NewPageLayout';
 import PageHeader from '@/components/ui/PageHeader';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { 
-  Search, 
-  CreditCard, 
-  FilePlus, 
-  DollarSign, 
-  FileSearch, 
-  Download, 
-  Printer
-} from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { SaldoPagar, ParceiroInfo, PagamentoSaldo } from '@/types/saldoPagar';
+import { Search, DollarSign, RefreshCcw, ListFilter } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import SaldosPendentesTabela from '@/components/saldo-pagar/SaldosPendentesTabela';
 import DadosBancariosParceiro from '@/components/saldo-pagar/DadosBancariosParceiro';
-import ContratosMultiSelect from '@/components/saldo-pagar/ContratosMultiSelect';
 import FormularioPagamento from '@/components/saldo-pagar/FormularioPagamento';
-import { formatCurrency } from '@/utils/formatters';
+import { ParceiroInfo, SaldoItem, SaldoPagar, PagamentoSaldo } from '@/types/saldoPagar';
 import { statusSaldoPagar } from '@/utils/constants';
 
-const SaldoPagarPage = () => {
-  const [saldos, setSaldos] = useState<(SaldoPagar & { selecionado: boolean })[]>([]);
-  const [termoBusca, setTermoBusca] = useState('');
-  const [filteredSaldos, setFilteredSaldos] = useState<(SaldoPagar & { selecionado: boolean })[]>([]);
-  const [activeTab, setActiveTab] = useState('pendentes');
-  const [loading, setLoading] = useState(true);
-  const [modalDetalhesAberto, setModalDetalhesAberto] = useState(false);
+const SaldoPagarPage: React.FC = () => {
+  const [saldosPendentes, setSaldosPendentes] = useState<SaldoItem[]>([]);
+  const [saldosEfetuados, setSaldosEfetuados] = useState<SaldoItem[]>([]);
   const [modalPagamentoAberto, setModalPagamentoAberto] = useState(false);
+  const [parceiroSelecionado, setParceiroSelecionado] = useState<ParceiroInfo>({ nome: '' });
   const [saldoSelecionado, setSaldoSelecionado] = useState<SaldoPagar | null>(null);
-  const [parceiroInfo, setParceiroInfo] = useState<ParceiroInfo | null>(null);
-  const [contratos, setContratos] = useState<any[]>([]);
-  
+  const [loading, setLoading] = useState(true);
+  const [termoBusca, setTermoBusca] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState<string>('todos');
+
   useEffect(() => {
     carregarSaldos();
-  }, []);
-  
-  useEffect(() => {
-    const filtrar = () => {
-      let filtrados = [...saldos];
-      
-      if (termoBusca) {
-        const termoLowerCase = termoBusca.toLowerCase();
-        filtrados = filtrados.filter(saldo => 
-          saldo.parceiro.toLowerCase().includes(termoLowerCase) ||
-          (saldo.contratos_associados && saldo.contratos_associados.toLowerCase().includes(termoLowerCase))
-        );
-      }
-      
-      if (activeTab === 'pendentes') {
-        filtrados = filtrados.filter(saldo => 
-          saldo.status !== statusSaldoPagar.PAGO && 
-          saldo.status !== statusSaldoPagar.CANCELADO
-        );
-      } else if (activeTab === 'pagos') {
-        filtrados = filtrados.filter(saldo => saldo.status === statusSaldoPagar.PAGO);
-      } else if (activeTab === 'cancelados') {
-        filtrados = filtrados.filter(saldo => saldo.status === statusSaldoPagar.CANCELADO);
-      }
-      
-      setFilteredSaldos(filtrados);
-    };
-    
-    filtrar();
-  }, [saldos, termoBusca, activeTab]);
-  
+  }, [filtroStatus]);
+
   const carregarSaldos = async () => {
-    setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('Saldo a pagar')
-        .select('*')
-        .order('vencimento', { ascending: true });
-        
+      setLoading(true);
+      
+      let query = supabase.from('Saldo a pagar').select('*');
+      
+      // Aplicar filtro de status se necessário
+      if (filtroStatus !== 'todos') {
+        query = query.eq('status', filtroStatus);
+      }
+      
+      const { data, error } = await query;
+      
       if (error) throw error;
       
-      const saldosComSelecao = (data || []).map(saldo => ({
-        ...saldo,
-        selecionado: false
-      }));
+      // Separar saldos pendentes e pagos
+      const pendentes = data?.filter(saldo => 
+        saldo.status !== statusSaldoPagar.PAGO && 
+        saldo.status !== statusSaldoPagar.CANCELADO) || [];
       
-      setSaldos(saldosComSelecao);
+      const pagos = data?.filter(saldo => 
+        saldo.status === statusSaldoPagar.PAGO || 
+        saldo.status === statusSaldoPagar.CANCELADO) || [];
+      
+      setSaldosPendentes(pendentes as SaldoItem[]);
+      setSaldosEfetuados(pagos as SaldoItem[]);
     } catch (error) {
       console.error('Erro ao carregar saldos a pagar:', error);
-      toast.error('Erro ao carregar saldos a pagar');
+      toast.error('Erro ao carregar dados de saldo a pagar');
     } finally {
       setLoading(false);
     }
   };
-  
-  const handleSelecaoSaldo = (id: number) => {
-    setSaldos(saldos.map(saldo => 
-      saldo.id === id 
-        ? { ...saldo, selecionado: !saldo.selecionado }
-        : saldo
-    ));
+
+  const handleBusca = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTermoBusca(e.target.value);
   };
-  
-  const handlePagarSelecionados = () => {
-    const saldosSelecionados = saldos.filter(s => s.selecionado);
-    if (saldosSelecionados.length === 0) {
-      toast.error('Selecione pelo menos um saldo para pagar');
-      return;
-    }
-    
-    setModalPagamentoAberto(true);
-  };
-  
-  const handleVerDetalhes = async (id: number) => {
+
+  const buscarParceiro = async (nome: string) => {
     try {
-      const { data: saldoData, error: saldoError } = await supabase
-        .from('Saldo a pagar')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (saldoError) throw saldoError;
-      
-      setSaldoSelecionado(saldoData);
-      
-      const { data: parceiroData, error: parceiroError } = await supabase
+      const { data, error } = await supabase
         .from('Proprietarios')
         .select('*')
-        .eq('nome', saldoData.parceiro)
+        .eq('nome', nome)
         .single();
-        
-      if (!parceiroError && parceiroData) {
-        setParceiroInfo({
-          ...parceiroData,
-          dados_bancarios: parceiroData.dados_bancarios 
-            ? JSON.parse(parceiroData.dados_bancarios)
-            : null
+      
+      if (error) throw error;
+      
+      if (data) {
+        setParceiroSelecionado({
+          nome: data.nome,
+          documento: data.documento,
+          dadosBancarios: data.dadosBancarios
         });
       } else {
-        setParceiroInfo(null);
+        setParceiroSelecionado({ nome });
       }
-      
-      if (saldoData.contratos_associados) {
-        const contratoIds = saldoData.contratos_associados.split(',').map(id => id.trim());
-        
-        if (contratoIds.length > 0) {
-          const { data: contratosData, error: contratosError } = await supabase
-            .from('Contratos')
-            .select('id, cliente_destino, valor_frete, status_contrato')
-            .in('id', contratoIds.map(id => parseInt(id)));
-            
-          if (!contratosError && contratosData) {
-            setContratos(contratosData.map(contrato => ({
-              ...contrato,
-              selecionado: true
-            })));
-          }
-        }
-      }
-      
-      setModalDetalhesAberto(true);
     } catch (error) {
-      console.error('Erro ao carregar detalhes do saldo:', error);
-      toast.error('Erro ao carregar detalhes do saldo');
+      console.error('Erro ao buscar proprietário:', error);
     }
   };
-  
-  const handleCancelarSaldo = async (id: number) => {
-    const confirmar = window.confirm('Tem certeza que deseja cancelar este saldo a pagar?');
-    if (!confirmar) return;
-    
+
+  const abrirModalPagamento = async (saldo: SaldoItem) => {
+    setSaldoSelecionado(saldo);
+    await buscarParceiro(saldo.parceiro);
+    setModalPagamentoAberto(true);
+  };
+
+  const registrarPagamento = async (pagamento: PagamentoSaldo) => {
+    try {
+      if (!saldoSelecionado) {
+        toast.error('Nenhum saldo selecionado');
+        return;
+      }
+      
+      // Calcular novo saldo restante
+      const valorPago = pagamento.valor;
+      const saldoRestante = Number(saldoSelecionado.valor_total) - Number(saldoSelecionado.valor_pago || 0) - valorPago;
+      
+      // Determinar status baseado no saldo restante
+      let novoStatus = statusSaldoPagar.PARCIAL;
+      if (saldoRestante <= 0) {
+        novoStatus = statusSaldoPagar.PAGO;
+      }
+      
+      // Atualizar saldo a pagar
+      const { error: updateError } = await supabase
+        .from('Saldo a pagar')
+        .update({
+          valor_pago: (Number(saldoSelecionado.valor_pago || 0) + valorPago),
+          saldo_restante: saldoRestante > 0 ? saldoRestante : 0,
+          status: novoStatus,
+          data_pagamento: pagamento.data_pagamento,
+          banco_pagamento: pagamento.banco_pagamento
+        })
+        .eq('id', saldoSelecionado.id);
+      
+      if (updateError) throw updateError;
+      
+      // Registrar o pagamento
+      const { error: insertError } = await supabase
+        .from('Pagamentos_Saldo')
+        .insert({
+          saldo_id: saldoSelecionado.id,
+          valor: valorPago,
+          data_pagamento: pagamento.data_pagamento,
+          metodo_pagamento: 'Transferência Bancária',
+          banco_pagamento: pagamento.banco_pagamento,
+          observacoes: `Pagamento de saldo para ${saldoSelecionado.parceiro}`,
+          criado_em: new Date().toISOString()
+        });
+      
+      if (insertError) throw insertError;
+      
+      toast.success('Pagamento registrado com sucesso!');
+      setModalPagamentoAberto(false);
+      carregarSaldos();
+    } catch (error) {
+      console.error('Erro ao registrar pagamento:', error);
+      toast.error('Erro ao registrar pagamento');
+    }
+  };
+
+  const cancelarSaldo = async (saldo: SaldoItem) => {
     try {
       const { error } = await supabase
         .from('Saldo a pagar')
-        .update({ status: 'cancelado' })
-        .eq('id', id);
-        
+        .update({
+          status: statusSaldoPagar.CANCELADO
+        })
+        .eq('id', saldo.id);
+      
       if (error) throw error;
       
-      toast.success('Saldo cancelado com sucesso');
+      toast.success('Saldo cancelado com sucesso!');
       carregarSaldos();
     } catch (error) {
       console.error('Erro ao cancelar saldo:', error);
       toast.error('Erro ao cancelar saldo');
     }
   };
-  
-  const handlePagamentoRealizado = async (pagamento: PagamentoSaldo) => {
+
+  const liberarSaldo = async (saldo: SaldoItem) => {
     try {
-      const saldosSelecionados = saldos.filter(s => s.selecionado);
+      const { error } = await supabase
+        .from('Saldo a pagar')
+        .update({
+          status: statusSaldoPagar.LIBERADO
+        })
+        .eq('id', saldo.id);
       
-      for (const saldo of saldosSelecionados) {
-        const valorPagoAnterior = saldo.valor_pago || 0;
-        const novoValorPago = valorPagoAnterior + pagamento.valor_pago;
-        const saldoRestante = saldo.valor_total - novoValorPago;
-        
-        const novoStatus = novoValorPago >= saldo.valor_total 
-          ? statusSaldoPagar.PAGO 
-          : statusSaldoPagar.LIBERADO;
-        
-        await supabase
-          .from('Saldo a pagar')
-          .update({
-            valor_pago: novoValorPago,
-            saldo_restante: saldoRestante > 0 ? saldoRestante : 0,
-            data_pagamento: pagamento.data_pagamento,
-            banco_pagamento: pagamento.banco_pagamento,
-            status: novoStatus,
-            observacoes: pagamento.observacoes
-          })
-          .eq('id', saldo.id);
-      }
+      if (error) throw error;
       
-      toast.success(`Pagamento de ${formatCurrency(pagamento.valor_pago)} registrado com sucesso para ${saldosSelecionados.length} saldo(s)`);
-      await carregarSaldos();
-      
+      toast.success('Saldo liberado para pagamento!');
+      carregarSaldos();
     } catch (error) {
-      console.error('Erro ao registrar pagamento:', error);
-      toast.error('Erro ao registrar pagamento');
-      throw error;
+      console.error('Erro ao liberar saldo:', error);
+      toast.error('Erro ao liberar saldo');
     }
   };
-  
-  const getSaldosPagamentoSelecionados = () => {
-    return saldos.filter(s => s.selecionado);
-  };
-  
-  const handleDownloadRelatorio = async () => {
-    try {
-      toast.info('Gerando relatório...');
-      
-      toast.success('Relatório gerado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao gerar relatório:', error);
-      toast.error('Erro ao gerar relatório');
-    }
-  };
-  
+
   return (
     <NewPageLayout>
-      <PageHeader 
-        title="Saldo a Pagar" 
-        description="Gerenciamento de saldos a pagar para parceiros e proprietários"
-        icon={<CreditCard className="h-6 w-6 text-blue-500" />}
-        breadcrumbs={[
-          { label: 'Dashboard', href: '/' },
-          { label: 'Financeiro' },
-          { label: 'Saldo a Pagar' }
-        ]}
-        actions={
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              className="gap-2"
-              onClick={handleDownloadRelatorio}
-            >
-              <Printer size={16} />
-              <span>Relatório</span>
-            </Button>
-            <Button className="gap-2">
-              <FilePlus size={16} />
-              <span>Novo Lançamento</span>
-            </Button>
-          </div>
-        }
+      <PageHeader
+        title="Saldo a Pagar"
+        description="Gestão dos saldos a pagar para parceiros"
+        icon={<DollarSign className="h-6 w-6 text-blue-600" />}
       />
       
-      <div className="mt-6 space-y-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4 justify-between mb-6">
-              <div className="relative w-full md:w-80">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <Input 
-                  className="pl-8"
-                  placeholder="Buscar por parceiro ou contrato..." 
-                  value={termoBusca}
-                  onChange={(e) => setTermoBusca(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  className="gap-2"
-                  onClick={() => setActiveTab('pendentes')}
-                >
-                  <FileSearch size={16} />
-                  <span>Filtros</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="gap-2"
-                  onClick={handleDownloadRelatorio}
-                >
-                  <Download size={16} />
-                  <span>Exportar</span>
-                </Button>
-              </div>
-            </div>
-            
-            <Tabs defaultValue="pendentes" value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="pendentes">Pendentes</TabsTrigger>
-                <TabsTrigger value="pagos">Pagos</TabsTrigger>
-                <TabsTrigger value="cancelados">Cancelados</TabsTrigger>
-                <TabsTrigger value="todos">Todos</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="pendentes">
-                <SaldosPendentesTabela 
-                  saldos={filteredSaldos}
-                  onSelecionarSaldo={handleSelecaoSaldo}
-                  onPagarSelecionados={handlePagarSelecionados}
-                  onVerDetalhes={handleVerDetalhes}
-                  onCancelarSaldo={handleCancelarSaldo}
-                />
-              </TabsContent>
-              
-              <TabsContent value="pagos">
-                <SaldosPendentesTabela 
-                  saldos={filteredSaldos}
-                  onSelecionarSaldo={handleSelecaoSaldo}
-                  onPagarSelecionados={handlePagarSelecionados}
-                  onVerDetalhes={handleVerDetalhes}
-                  onCancelarSaldo={handleCancelarSaldo}
-                />
-              </TabsContent>
-              
-              <TabsContent value="cancelados">
-                <SaldosPendentesTabela 
-                  saldos={filteredSaldos}
-                  onSelecionarSaldo={handleSelecaoSaldo}
-                  onPagarSelecionados={handlePagarSelecionados}
-                  onVerDetalhes={handleVerDetalhes}
-                  onCancelarSaldo={handleCancelarSaldo}
-                />
-              </TabsContent>
-              
-              <TabsContent value="todos">
-                <SaldosPendentesTabela 
-                  saldos={filteredSaldos}
-                  onSelecionarSaldo={handleSelecaoSaldo}
-                  onPagarSelecionados={handlePagarSelecionados}
-                  onVerDetalhes={handleVerDetalhes}
-                  onCancelarSaldo={handleCancelarSaldo}
-                />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-between mb-6">
+        <div className="relative w-64">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Buscar parceiro..."
+            className="pl-8 h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+            value={termoBusca}
+            onChange={handleBusca}
+          />
+        </div>
+        
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFiltroStatus('todos')}
+            className={filtroStatus === 'todos' ? 'bg-gray-100' : ''}
+          >
+            <ListFilter className="h-4 w-4 mr-2" />
+            Todos
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFiltroStatus(statusSaldoPagar.PENDENTE)}
+            className={filtroStatus === statusSaldoPagar.PENDENTE ? 'bg-gray-100' : ''}
+          >
+            Pendentes
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFiltroStatus(statusSaldoPagar.LIBERADO)}
+            className={filtroStatus === statusSaldoPagar.LIBERADO ? 'bg-gray-100' : ''}
+          >
+            Liberados
+          </Button>
+          
+          <Button variant="outline" size="sm" onClick={carregarSaldos}>
+            <RefreshCcw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+        </div>
       </div>
       
-      <Dialog open={modalDetalhesAberto} onOpenChange={setModalDetalhesAberto}>
-        <DialogContent className="sm:max-w-[700px]">
+      <Tabs defaultValue="pendentes" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="pendentes">Saldos Pendentes</TabsTrigger>
+          <TabsTrigger value="efetuados">Pagamentos Efetuados</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="pendentes" className="mt-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Saldos Pendentes de Pagamento</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SaldosPendentesTabela
+                saldos={saldosPendentes.filter(saldo => 
+                  termoBusca.length === 0 || 
+                  saldo.parceiro.toLowerCase().includes(termoBusca.toLowerCase())
+                )}
+                onPagar={abrirModalPagamento}
+                onCancelar={cancelarSaldo}
+                onLiberar={liberarSaldo}
+                isLoading={loading}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="efetuados" className="mt-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Pagamentos Efetuados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SaldosPendentesTabela
+                saldos={saldosEfetuados.filter(saldo => 
+                  termoBusca.length === 0 || 
+                  saldo.parceiro.toLowerCase().includes(termoBusca.toLowerCase())
+                )}
+                onPagar={() => {}}
+                onCancelar={() => {}}
+                onLiberar={() => {}}
+                isLoading={loading}
+                somenteLeitura
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Modal de Pagamento */}
+      <Dialog open={modalPagamentoAberto} onOpenChange={setModalPagamentoAberto}>
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <DollarSign className="mr-2 h-5 w-5 text-blue-500" />
-              Detalhes do Saldo a Pagar
-            </DialogTitle>
+            <DialogTitle>Registrar Pagamento</DialogTitle>
           </DialogHeader>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div className="space-y-4">
-              <DadosBancariosParceiro parceiro={parceiroInfo} />
+            <div>
+              <DadosBancariosParceiro parceiro={parceiroSelecionado} />
             </div>
             
-            <div className="space-y-4">
-              <ContratosMultiSelect 
-                contratos={contratos}
-                onContratoToggle={() => {}}
-                valorTotal={saldoSelecionado?.valor_total || 0}
-                onLimparSelecao={() => {}}
+            <div>
+              <FormularioPagamento
+                saldo={saldoSelecionado}
+                onSave={registrarPagamento}
+                onCancel={() => setModalPagamentoAberto(false)}
               />
             </div>
           </div>
         </DialogContent>
       </Dialog>
-      
-      <FormularioPagamento 
-        saldos={getSaldosPagamentoSelecionados()}
-        onPagamentoRealizado={handlePagamentoRealizado}
-        open={modalPagamentoAberto}
-        onOpenChange={setModalPagamentoAberto}
-      />
     </NewPageLayout>
   );
 };

@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 import { formatCurrency } from '@/utils/constants';
 
 interface SaldoPagarOptionsProps {
@@ -10,18 +11,26 @@ interface SaldoPagarOptionsProps {
 
 const SaldoPagarOptions: React.FC<SaldoPagarOptionsProps> = ({ saldoPagar }) => {
   return (
-    <Card className="bg-blue-50 border-blue-200">
+    <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold text-blue-800">Saldo a Pagar</CardTitle>
+        <CardTitle className="text-lg font-semibold">Saldo a Pagar</CardTitle>
       </CardHeader>
       <CardContent className="pt-3">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-blue-600">
-            {formatCurrency(saldoPagar)}
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            O saldo a pagar é calculado automaticamente com base nos valores informados.
+          </AlertDescription>
+        </Alert>
+        
+        <div className="mt-4 p-4 border rounded-md bg-gray-50">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-800 font-medium">Valor do frete:</span>
+            <span className="text-gray-800">{formatCurrency(saldoPagar)}</span>
           </div>
-          <p className="text-blue-700 mt-1">
-            Valor a ser pago ao parceiro após a entrega do canhoto
-          </p>
+          <div className="text-sm text-gray-500 mt-2">
+            Este valor será registrado como saldo a pagar para o parceiro.
+          </div>
         </div>
       </CardContent>
     </Card>
