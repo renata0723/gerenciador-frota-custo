@@ -6,6 +6,7 @@ import { Shield } from 'lucide-react';
 import { Usuario, PermissaoUsuario } from '@/types/usuario';
 import PermissaoUsuarioForm from './PermissaoUsuarioForm';
 import { toast } from 'sonner';
+import { getPermissoesUsuario, atribuirPermissao, removerPermissao } from '@/services/usuarios';
 
 interface PermissoesModalProps {
   isOpen: boolean;
@@ -28,7 +29,6 @@ const PermissoesModal: React.FC<PermissoesModalProps> = ({
   
   const carregarPermissoesUsuario = async (usuarioId: number) => {
     try {
-      const { getPermissoesUsuario } = await import('@/services/usuarios');
       const data = await getPermissoesUsuario(usuarioId);
       setPermissoesUsuario(data);
     } catch (error) {
@@ -44,8 +44,6 @@ const PermissoesModal: React.FC<PermissoesModalProps> = ({
     }
     
     try {
-      const { atribuirPermissao, removerPermissao } = await import('@/services/usuarios');
-      
       // 1. Verificar quais permissões existem e precisam ser removidas
       const permissoesParaRemover = permissoesUsuario.filter(
         p => !permissoesSelecionadas.includes(p.permissao_id)

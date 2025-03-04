@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Permissao } from "@/types/usuario";
-import { getPermissoes } from "@/services/usuarioService";
+import { getPermissoes } from "@/services/usuarios";
 
 interface PermissaoUsuarioFormProps {
   usuarioId: number;
@@ -44,7 +44,7 @@ const PermissaoUsuarioForm: React.FC<PermissaoUsuarioFormProps> = ({
       setPermissoes(data);
       
       // Extrair módulos únicos
-      const modulos = [...new Set(data.map(p => p.modulo))];
+      const modulos = [...new Set(data.map(p => p.modulo))].filter(Boolean) as string[];
       setModulosFiltrados(modulos);
       
       if (modulos.length > 0) {
@@ -103,7 +103,7 @@ const PermissaoUsuarioForm: React.FC<PermissaoUsuarioFormProps> = ({
         <h3 className="text-lg font-medium">Permissões de Acesso</h3>
         <Select
           value={moduloSelecionado}
-          onValueChange={setModuloSelecionado}
+          onValueChange={(value) => setModuloSelecionado(value)}
           disabled={loading}
         >
           <SelectTrigger className="w-[180px]">

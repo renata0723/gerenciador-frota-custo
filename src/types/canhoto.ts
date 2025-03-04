@@ -7,6 +7,8 @@ export interface Canhoto {
   responsavel_recebimento?: string;
   status?: string;
   observacoes?: string;
+  data_recebimento_controladoria?: string;
+  data_recebimento_mercadoria?: string;
   
   // Campos adicionais necessários
   cliente?: string;
@@ -16,8 +18,7 @@ export interface Canhoto {
   numero_nota_fiscal?: string;
   data_recebimento_canhoto?: string;
   data_programada_pagamento?: string;
-  data_recebimento_mercadoria?: string;
-  data_recebimento_controladoria?: string;
+  data_entrega?: string;
   saldo_a_pagar?: number;
   proprietario_veiculo?: string;
 }

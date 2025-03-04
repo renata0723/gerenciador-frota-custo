@@ -23,7 +23,7 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
   initialData,
   dadosContrato 
 }) => {
-  const [valorFreteContratado, setValorFreteContratado] = useState(contrato?.valor_frete_contratado || 0);
+  const [valorFreteContratado, setValorFreteContratado] = useState(contrato?.valorFreteContratado || 0);
   const [dadosValidos, setDadosValidos] = useState(false);
 
   useEffect(() => {
@@ -55,7 +55,7 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
             <Button 
               type="button" 
               onClick={() => {
-                onSave({...contrato, valor_frete_contratado: valorFreteContratado});
+                onSave({...contrato, valorFreteContratado: valorFreteContratado});
                 if (onNext) onNext();
               }}
               disabled={!dadosValidos}

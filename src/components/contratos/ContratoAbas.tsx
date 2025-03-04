@@ -98,9 +98,9 @@ const ContratoAbas: React.FC<ContratoAbasProps> = ({
       <TabsContent value="rejeicao" className="p-4 space-y-4">
         {contratoId ? (
           <FormularioRejeicaoContrato
-            contrato={contratoId}
+            contrato={{ id: contratoId }}
             onBack={() => setActiveTab("observacoes")}
-            onSave={() => {}} // Add empty function to fix the prop error
+            onSave={() => {}}
           />
         ) : (
           <ContratoNaoSalvo onVoltar={() => setActiveTab("dados")} />

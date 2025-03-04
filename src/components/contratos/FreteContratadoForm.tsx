@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import FormNavigation from './frete/FormNavigation';
 interface FreteContratadoFormProps {
   contrato: any;
   onSave: (data: any) => void;
-  initialData?: FreteContratadoData;
+  initialData?: any;
 }
 
 const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({ 
@@ -25,10 +26,10 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({
   initialData
 }) => {
   // Estados para os valores
-  const [valorFreteContratado, setValorFreteContratado] = useState<number>(initialData?.valor_frete_contratado || 0);
-  const [valorAdiantamento, setValorAdiantamento] = useState<number>(initialData?.valor_adiantamento || 0);
-  const [valorPedagio, setValorPedagio] = useState<number>(initialData?.valor_pedagio || 0);
-  const [dataAdiantamento, setDataAdiantamento] = useState<string>(initialData?.data_programada_pagamento || '');
+  const [valorFreteContratado, setValorFreteContratado] = useState<number>(initialData?.valorFreteContratado || 0);
+  const [valorAdiantamento, setValorAdiantamento] = useState<number>(initialData?.valorAdiantamento || 0);
+  const [valorPedagio, setValorPedagio] = useState<number>(initialData?.valorPedagio || 0);
+  const [dataAdiantamento, setDataAdiantamento] = useState<string>(initialData?.dataProgramadaPagamento || '');
   const [contabilizado, setContabilizado] = useState<boolean>(initialData?.contabilizado || false);
   
   // Calcular saldo a pagar
@@ -50,11 +51,11 @@ const FreteContratadoForm: React.FC<FreteContratadoFormProps> = ({
   const handleSave = () => {
     onSave({
       ...contrato,
-      valor_frete_contratado: valorFreteContratado,
-      valor_adiantamento: valorAdiantamento,
-      valor_pedagio: valorPedagio,
-      saldo_pagar: saldoPagar,
-      data_programada_pagamento: dataAdiantamento,
+      valorFreteContratado: valorFreteContratado,
+      valorAdiantamento: valorAdiantamento,
+      valorPedagio: valorPedagio,
+      saldoPagar: saldoPagar,
+      dataProgramadaPagamento: dataAdiantamento,
       contabilizado: contabilizado
     });
   };
