@@ -31,6 +31,11 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
     setDadosValidos(!!valorFreteContratado);
   }, [valorFreteContratado]);
 
+  const handleSave = (data: any) => {
+    onSave(data);
+    if (onNext) onNext();
+  };
+
   return (
     <Card>
       <CardContent className="pt-6">
@@ -44,25 +49,9 @@ const FormularioFreteContratado: React.FC<FormularioFreteContratadoProps> = ({
 
           <FreteContratadoForm 
             contrato={contrato || dadosContrato} 
-            onSave={onSave}
+            onSave={handleSave}
             initialData={initialData}
           />
-          
-          <div className="flex justify-between">
-            <Button type="button" variant="outline" onClick={onBack}>
-              Voltar
-            </Button>
-            <Button 
-              type="button" 
-              onClick={() => {
-                onSave({...contrato, valorFreteContratado: valorFreteContratado});
-                if (onNext) onNext();
-              }}
-              disabled={!dadosValidos}
-            >
-              Salvar e Continuar
-            </Button>
-          </div>
         </div>
       </CardContent>
     </Card>

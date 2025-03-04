@@ -1,181 +1,258 @@
 
-import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Canhoto } from '@/types/canhoto';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
+
+// Schema de validação para o formulário de canhoto
+const canhotoSchema = z.object({
+  data_recebimento_canhoto: z.string().optional(),
+  data_entrega_cliente: z.string().min(1, { message: 'Data de entrega é obrigatória' }),
+  responsavel_recebimento: z.string().min(1, { message: 'Responsável pelo recebimento é obrigatório' }),
+  observacoes: z.string().optional(),
+  data_programada_pagamento: z.string().optional(),
+});
+
+type CanhotoFormValues = z.infer<typeof canhotoSchema>;
 
 interface CanhotoFormProps {
-  contrato_id?: string;
-  onSubmit: (data: any) => Promise<void>;
-  initialData?: any;
+  canhoto?: Partial<Canhoto>;
+  contrato?: any;
+  onSubmit: (data: Partial<Canhoto>) => Promise<void>;
+  onCancel: () => void;
 }
 
-const CanhotoForm: React.FC<CanhotoFormProps> = ({ contrato_id, onSubmit, initialData = {} }) => {
-  const [formData, setFormData] = useState({
-    responsavel_recebimento: '',
-    data_recebimento: '',
-    data_recebimento_mercadoria: '',
-    data_recebimento_controladoria: '',
-    saldo_a_pagar: 0,
-    contrato_id: contrato_id || '',
-    observacoes: '',
-    ...initialData
+const CanhotoForm: React.FC<CanhotoFormProps> = ({ canhoto, contrato, onSubmit, onCancel }) => {
+  const form = useForm<CanhotoFormValues>({
+    resolver: zodResolver(canhotoSchema),
+    defaultValues: {
+      data_recebimento_canhoto: canhoto?.data_recebimento_canhoto || '',
+      data_entrega_cliente: canhoto?.data_entrega_cliente || '',
+      responsavel_recebimento: canhoto?.responsavel_recebimento || '',
+      observacoes: canhoto?.observacoes || '',
+      data_programada_pagamento: canhoto?.data_programada_pagamento || '',
+    },
   });
 
-  // Update just the specific function with issues
-  const calculaSaldoPagar = () => {
-    // Esta função seria implementada para calcular o saldo a pagar
-    // baseando-se no contrato e outros parâmetros
-    return 0; // Implementação simplificada
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.responsavel_recebimento) {
-      toast.error("Informe o responsável pelo recebimento do canhoto");
-      return;
+  const handleFormSubmit = async (values: CanhotoFormValues) => {
+    try {
+      const updatedCanhoto: Partial<Canhoto> = {
+        ...canhoto,
+        ...values,
+      };
+      
+      await onSubmit(updatedCanhoto);
+    } catch (error) {
+      console.error('Erro ao salvar canhoto:', error);
     }
-    
-    if (!formData.data_recebimento) {
-      toast.error("Informe a data de recebimento do canhoto");
-      return;
-    }
-    
-    if (!formData.data_recebimento_mercadoria) {
-      toast.error("Informe a data que o cliente recebeu a mercadoria");
-      return;
-    }
-    
-    if (!formData.data_recebimento_controladoria) {
-      toast.error("Informe a data que a controladoria recebeu o canhoto");
-      return;
-    }
-    
-    // Calcular saldo a pagar se necessário
-    if (!formData.saldo_a_pagar) {
-      setFormData({...formData, saldo_a_pagar: calculaSaldoPagar()});
-    }
-    
-    // Liberar o saldo a pagar quando o canhoto é recebido
-    if (formData.saldo_a_pagar && formData.saldo_a_pagar > 0) {
-      try {
-        const { data: saldoData, error: saldoError } = await supabase
-          .from('Saldo a pagar')
-          .select('*')
-          .eq('contratos_associados', formData.contrato_id?.toString())
-          .single();
-          
-        if (!saldoError && saldoData) {
-          // Atualizar status do saldo para liberado para pagamento
-          await supabase
-            .from('Saldo a pagar')
-            .update({ 
-              status: 'Liberado para pagamento'
-            })
-            .eq('id', saldoData.id);
-            
-          toast.success('Saldo a pagar liberado com sucesso!');
-        }
-      } catch (error) {
-        console.error('Erro ao liberar saldo a pagar:', error);
-      }
-    }
-    
-    await onSubmit(formData);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Formulário com campos apropriados */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="responsavel_recebimento" className="block text-sm font-medium mb-1">
-            Responsável pelo Recebimento
-          </label>
-          <input
-            id="responsavel_recebimento"
-            name="responsavel_recebimento"
-            type="text"
-            value={formData.responsavel_recebimento}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-            required
-          />
-        </div>
-        
-        <div>
-          <label htmlFor="data_recebimento" className="block text-sm font-medium mb-1">
-            Data de Recebimento
-          </label>
-          <input
-            id="data_recebimento"
-            name="data_recebimento"
-            type="date"
-            value={formData.data_recebimento}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-            required
-          />
-        </div>
-      </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Registro de Canhoto</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form 
+            onSubmit={form.handleSubmit(handleFormSubmit)} 
+            className="space-y-6"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="data_recebimento_canhoto"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data de Recebimento do Canhoto</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(new Date(field.value), "dd/MM/yyyy", { locale: ptBR })
+                            ) : (
+                              <span>Selecione uma data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>
+                      Data em que o canhoto foi recebido pela empresa
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="data_recebimento_mercadoria" className="block text-sm font-medium mb-1">
-            Data que o Cliente Recebeu a Mercadoria
-          </label>
-          <input
-            id="data_recebimento_mercadoria"
-            name="data_recebimento_mercadoria"
-            type="date"
-            value={formData.data_recebimento_mercadoria}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-            required
-          />
-        </div>
-        
-        <div>
-          <label htmlFor="data_recebimento_controladoria" className="block text-sm font-medium mb-1">
-            Data que a Controladoria Recebeu
-          </label>
-          <input
-            id="data_recebimento_controladoria"
-            name="data_recebimento_controladoria"
-            type="date"
-            value={formData.data_recebimento_controladoria}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-            required
-          />
-        </div>
-      </div>
+              <FormField
+                control={form.control}
+                name="data_entrega_cliente"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data de Entrega ao Cliente*</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(new Date(field.value), "dd/MM/yyyy", { locale: ptBR })
+                            ) : (
+                              <span>Selecione uma data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>
+                      Data em que a mercadoria foi entregue ao cliente
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-      <div>
-        <label htmlFor="observacoes" className="block text-sm font-medium mb-1">
-          Observações
-        </label>
-        <textarea
-          id="observacoes"
-          name="observacoes"
-          value={formData.observacoes}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          rows={3}
-        ></textarea>
-      </div>
+            <FormField
+              control={form.control}
+              name="responsavel_recebimento"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Responsável pelo Recebimento*</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nome de quem recebeu a mercadoria" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Nome da pessoa que recebeu a mercadoria no cliente
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-      <Button type="submit" className="w-full">
-        Salvar Informações do Canhoto
-      </Button>
-    </form>
+            {canhoto?.proprietario_veiculo && canhoto?.saldo_a_pagar && canhoto?.saldo_a_pagar > 0 && (
+              <FormField
+                control={form.control}
+                name="data_programada_pagamento"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data Programada para Pagamento</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(new Date(field.value), "dd/MM/yyyy", { locale: ptBR })
+                            ) : (
+                              <span>Selecione uma data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>
+                      Data programada para pagamento do saldo ao proprietário
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <FormField
+              control={form.control}
+              name="observacoes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Observações</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Observações adicionais sobre a entrega" 
+                      {...field} 
+                      rows={4}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-between pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onCancel}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit"
+              >
+                Salvar Canhoto
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 };
 

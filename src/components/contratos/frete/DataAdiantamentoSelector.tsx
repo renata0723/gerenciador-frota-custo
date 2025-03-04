@@ -42,7 +42,7 @@ const DataAdiantamentoSelector: React.FC<DataAdiantamentoSelectorProps> = ({
         <div className="space-y-4">
           <Label className="text-lg font-semibold">Data Programada de Pagamento</Label>
           <p className="text-sm text-gray-600 mb-2">
-            Selecione a data em que o pagamento do saldo será realizado
+            Selecione a data em que o pagamento do adiantamento será realizado
           </p>
           
           <Popover>

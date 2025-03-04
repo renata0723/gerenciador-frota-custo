@@ -40,7 +40,7 @@ export interface CanhotoPendente {
   id: number;
   contrato_id: string;
   cliente: string;
-  data_entrega: string;
+  data_entrega?: string;
   data_entrega_cliente?: string;
   motorista?: string;
   status: string;

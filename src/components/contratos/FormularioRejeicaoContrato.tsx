@@ -51,7 +51,10 @@ const FormularioRejeicaoContrato: React.FC<FormularioRejeicaoContratoProps> = ({
       // Atualizando o status do contrato para rejeitado
       const { error: updateError } = await supabase
         .from('Contratos')
-        .update({ status_contrato: 'Rejeitado', motivo_rejeicao: motivo })
+        .update({ 
+          status_contrato: 'Rejeitado', 
+          motivo_rejeicao: motivo 
+        })
         .eq('id', contrato.id);
       
       if (updateError) {

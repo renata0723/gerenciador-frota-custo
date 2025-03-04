@@ -72,6 +72,7 @@ const ContratoAbas: React.FC<ContratoAbasProps> = ({
           onNext={() => setActiveTab("observacoes")}
           initialData={dadosFrete || undefined}
           dadosContrato={dadosContrato}
+          contrato={dadosContrato}
         />
       </TabsContent>
       
